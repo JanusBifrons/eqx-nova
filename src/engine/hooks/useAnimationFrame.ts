@@ -8,8 +8,8 @@ export function useAnimationFrame(
   callback: (deltaTime: number) => void,
   deps: React.DependencyList = []
 ) {
-  const requestRef = useRef<number>();
-  const previousTimeRef = useRef<number>();
+  const requestRef = useRef<number>(0);
+  const previousTimeRef = useRef<number | undefined>(undefined);
 
   const animate = (time: number) => {
     if (previousTimeRef.current !== undefined) {
