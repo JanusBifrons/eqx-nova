@@ -3,18 +3,15 @@ import { Application, Graphics } from 'pixi.js';
 export class Engine {
   private app: Application | null = null;
   private isRunning = false;
-  private animationFrameId: number | null = null;
-  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
+  private animationFrameId: number | null = null; public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     // Create PixiJS application
     this.app = new Application();
 
-    // Initialize the application - let canvas size determine the app size
+    // Initialize the application - let PixiJS handle sizing automatically
     await this.app.init({
       canvas,
-      width: canvas.width || 800,
-      height: canvas.height || 600,
       backgroundColor: 0x1a1a2e,
-      resizeTo: canvas, // This makes PixiJS automatically resize to match the canvas
+      resizeTo: canvas.parentElement || window,
     });
 
     // Create a simple demo sprite - a rotating rectangle

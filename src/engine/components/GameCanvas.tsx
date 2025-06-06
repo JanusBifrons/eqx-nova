@@ -9,12 +9,8 @@ export const GameCanvas = forwardRef<HTMLCanvasElement, GameCanvasProps>(
     return (
       <canvas
         ref={ref}
-        className={`game-canvas ${className}`}
-        style={{
-          display: 'block',
-          width: '100%',
-          height: '100%',
-        }}
+        className={className}
+      // Remove all sizing - let the parent and resizeTo handle it
       />
     );
   }
