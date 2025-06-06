@@ -20,6 +20,8 @@
     "@mui/icons-material": "^7.1.1",
     "@mui/material": "^7.1.1",
     "@tanstack/react-router": "^1.120.16",
+    "@types/matter-js": "^0.19.8",
+    "matter-js": "^0.20.0",
     "pixi.js": "^8.10.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

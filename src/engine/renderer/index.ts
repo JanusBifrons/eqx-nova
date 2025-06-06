@@ -1,0 +1,1 @@
+export { PixiRendererSystem } from './PixiRendererSystem';

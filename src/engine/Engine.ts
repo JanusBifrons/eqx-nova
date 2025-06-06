@@ -1,48 +1,40 @@
-import { Application, Graphics } from 'pixi.js';
+import type { IPhysicsSystem, IPhysicsBody } from './interfaces/IPhysicsSystem';
+import type { IRendererSystem, RenderableObject } from './interfaces/IRendererSystem';
+import { MatterPhysicsSystem } from './physics/MatterPhysicsSystem';
+import { PixiRendererSystem } from './renderer/PixiRendererSystem';
 
 export class Engine {
-  private app: Application | null = null;
+  private physicsSystem: IPhysicsSystem;
+  private rendererSystem: IRendererSystem;
   private isRunning = false;
   private animationFrameId: number | null = null;
-  private border: Graphics | null = null;
+  private lastTime = 0;
+  private physicsBodyToRenderMap: Map<string, string> = new Map();
+
+  constructor(
+    physicsSystem?: IPhysicsSystem,
+    rendererSystem?: IRendererSystem
+  ) {
+    // Use dependency injection with defaults (follows DIP)
+    this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
+    this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
+  }
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
-    // Create PixiJS application
-    this.app = new Application();
+    // Initialize renderer first to get dimensions
+    await this.rendererSystem.initialize(canvas);
 
-    // Initialize the application - let PixiJS handle sizing automatically
-    await this.app.init({
-      canvas,
-      backgroundColor: 0x1a1a2e,
-      resizeTo: canvas,
-    });
-
-    // Create a border around the canvas
-    this.border = new Graphics();
-    this.border.rect(0, 0, this.app.screen.width, this.app.screen.height);
-    this.border.stroke({ color: 0x0f3460, width: 4 });
-    this.app.stage.addChild(this.border);
-
-    // Add resize listener to update border
-    this.app.renderer.on('resize', this.updateBorder);
-
-    // Create a simple demo sprite - a rotating rectangle
-    const graphics = new Graphics();
-    graphics.rect(0, 0, 100, 100);
-    graphics.fill(0x16213e);
-    graphics.stroke({ color: 0x0f3460, width: 2 });
-
-    // Center the rectangle
-    graphics.x = this.app.screen.width / 2 - 50;
-    graphics.y = this.app.screen.height / 2 - 50;
-
-    this.app.stage.addChild(graphics);
+    // Initialize physics with canvas dimensions
+    const width = this.rendererSystem.getWidth();
+    const height = this.rendererSystem.getHeight();
+    this.physicsSystem.initialize(width, height);
   }
   public start(): void {
-    if (this.isRunning || !this.app) return;
+    if (this.isRunning) return;
 
     this.isRunning = true;
-    this.gameLoop();
+    this.lastTime = performance.now();
+    this.animationFrameId = requestAnimationFrame(this.gameLoop);
   }
 
   public stop(): void {
@@ -53,41 +45,115 @@ export class Engine {
       this.animationFrameId = null;
     }
   }
-  private gameLoop = (): void => {
-    if (!this.isRunning || !this.app) return;
 
-    // Update game logic here (for now, just rotate the rectangle)
-    if (this.app.stage.children.length > 1) {
-      const graphics = this.app.stage.children[1] as Graphics;
-      graphics.rotation += 0.01;
+  public createRectangle(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    options?: { isStatic?: boolean; color?: number }
+  ): IPhysicsBody {
+    // Create physics body
+    const physicsBody = this.physicsSystem.createRectangle(x, y, width, height, {
+      isStatic: options?.isStatic,
+    });
+
+    // Create corresponding render object
+    const renderObject: RenderableObject = {
+      id: `render_${physicsBody.id}`,
+      position: physicsBody.position,
+      angle: physicsBody.angle,
+      width,
+      height,
+      color: options?.color ?? 0x16213e,
+      type: 'rectangle',
+    };
+
+    this.rendererSystem.createRenderObject(renderObject);
+    this.physicsBodyToRenderMap.set(physicsBody.id, renderObject.id);
+
+    return physicsBody;
+  }
+
+  public createCircle(
+    x: number,
+    y: number,
+    radius: number,
+    options?: { isStatic?: boolean; color?: number }
+  ): IPhysicsBody {
+    // Create physics body
+    const physicsBody = this.physicsSystem.createCircle(x, y, radius, {
+      isStatic: options?.isStatic,
+    });
+
+    // Create corresponding render object
+    const renderObject: RenderableObject = {
+      id: `render_${physicsBody.id}`,
+      position: physicsBody.position,
+      angle: physicsBody.angle,
+      radius,
+      color: options?.color ?? 0xaa4465,
+      type: 'circle',
+    };
+
+    this.rendererSystem.createRenderObject(renderObject);
+    this.physicsBodyToRenderMap.set(physicsBody.id, renderObject.id);
+
+    return physicsBody;
+  }
+
+  public removeBody(body: IPhysicsBody): void {
+    const renderId = this.physicsBodyToRenderMap.get(body.id);
+    if (renderId) {
+      this.rendererSystem.removeRenderObject(renderId);
+      this.physicsBodyToRenderMap.delete(body.id);
     }
-    // Manually render the frame
-    this.app.renderer.render(this.app.stage);
+    this.physicsSystem.removeBody(body);
+  }
+
+  private gameLoop = (currentTime: number): void => {
+    if (!this.isRunning) return;
+
+    const deltaTime = currentTime - this.lastTime;
+    this.lastTime = currentTime;
+
+    // Update physics
+    this.physicsSystem.update(deltaTime);
+
+    // Sync render objects with physics bodies
+    this.syncRenderWithPhysics();
+
+    // Render the frame
+    this.rendererSystem.render();
 
     // Schedule next frame
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
-  private updateBorder = (): void => {
-    if (!this.border || !this.app) return;
+  private syncRenderWithPhysics(): void {
+    const bodies = this.physicsSystem.getAllBodies();
 
-    this.border.clear();
-    this.border.rect(0, 0, this.app.screen.width, this.app.screen.height);
-    this.border.stroke({ color: 0x0f3460, width: 4 });
-  };
-  public destroy(): void {
-    this.stop();
-
-    if (this.app) {
-      this.app.renderer.off('resize', this.updateBorder);
-      this.app.destroy(true);
-      this.app = null;
-    }
-
-    this.border = null;
+    bodies.forEach((body) => {
+      const renderId = this.physicsBodyToRenderMap.get(body.id);
+      if (renderId) {
+        this.rendererSystem.updateRenderObject(renderId, body.position, body.angle);
+      }
+    });
   }
 
-  public getApplication(): Application | null {
-    return this.app;
+  public destroy(): void {
+    this.stop();
+    this.physicsSystem.destroy();
+    this.rendererSystem.destroy();
+    this.physicsBodyToRenderMap.clear();
+  }
+
+  // Getters for access to systems (if needed)
+  public getPhysicsSystem(): IPhysicsSystem {
+    return this.physicsSystem;
+  }
+
+  public getRendererSystem(): IRendererSystem {
+    return this.rendererSystem;
   }
 }
