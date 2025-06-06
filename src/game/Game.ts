@@ -1,5 +1,6 @@
 import type { Engine } from '../engine';
 import type { Entity } from '../engine/entity';
+import type { MouseInputEvent } from '../engine/input';
 
 /**
  * Game class - Physics demonstration with interactive entities
@@ -11,10 +12,10 @@ export class Game {
   private dynamicEntities: Entity[] = [];
   private spawnTimer = 0;
   private readonly SPAWN_INTERVAL = 2000; // milliseconds
-
   public initialize(engine: Engine): void {
     this.engine = engine;
     this.setupPhysicsDemo();
+    this.setupInputHandlers();
     this.isInitialized = true;
     console.log('Physics demonstration initialized!');
   }
@@ -169,7 +170,20 @@ export class Game {
     });
   }
 
-  public handleMouseClick(x: number, y: number): void {
+  private setupInputHandlers(): void {
+    if (!this.engine) return;
+
+    const inputSystem = this.engine.getInputSystem();
+
+    // Handle mouse clicks for explosion effects and object spawning
+    inputSystem.addEventListener('mouse', (event: MouseInputEvent) => {
+      if (event.action === 'down' && event.button === 'left') {
+        this.handleMouseClick(event.position.x, event.position.y);
+      }
+    });
+  }
+
+  private handleMouseClick(x: number, y: number): void {
     if (!this.engine) return;
 
     // Create an explosion effect - apply upward forces to nearby objects

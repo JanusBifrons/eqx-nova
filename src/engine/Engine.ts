@@ -4,25 +4,27 @@ import { MatterPhysicsSystem } from './physics/MatterPhysicsSystem';
 import { PixiRendererSystem } from './renderer/PixiRendererSystem';
 import { EntityManager } from './entity/EntityManager';
 import type { Entity, RectangleConfig, CircleConfig } from './entity';
+import { InputSystem, type IInputSystem } from './input';
 
 export class Engine {
   private physicsSystem: IPhysicsSystem;
   private rendererSystem: IRendererSystem;
+  private inputSystem: IInputSystem;
   private entityManager: EntityManager;
   private isRunning = false;
   private animationFrameId: number | null = null;
   private lastTime = 0;
-
   constructor(
     physicsSystem?: IPhysicsSystem,
-    rendererSystem?: IRendererSystem
+    rendererSystem?: IRendererSystem,
+    inputSystem?: IInputSystem
   ) {
     // Use dependency injection with defaults (follows DIP)
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
+    this.inputSystem = inputSystem ?? new InputSystem();
     this.entityManager = new EntityManager(this.physicsSystem, this.rendererSystem);
   }
-
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     // Initialize renderer first to get dimensions
     await this.rendererSystem.initialize(canvas);
@@ -31,6 +33,9 @@ export class Engine {
     const width = this.rendererSystem.getWidth();
     const height = this.rendererSystem.getHeight();
     this.physicsSystem.initialize(width, height);
+
+    // Initialize input system with canvas element
+    this.inputSystem.initialize(canvas);
   }
 
   public start(): void {
@@ -89,14 +94,13 @@ export class Engine {
     // Schedule next frame
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
-
   public destroy(): void {
     this.stop();
+    this.inputSystem.destroy();
     this.entityManager.destroy();
     this.physicsSystem.destroy();
     this.rendererSystem.destroy();
   }
-
   // Getters for access to systems (if needed)
   public getPhysicsSystem(): IPhysicsSystem {
     return this.physicsSystem;
@@ -104,6 +108,10 @@ export class Engine {
 
   public getRendererSystem(): IRendererSystem {
     return this.rendererSystem;
+  }
+
+  public getInputSystem(): IInputSystem {
+    return this.inputSystem;
   }
 
   public getEntityManager(): EntityManager {

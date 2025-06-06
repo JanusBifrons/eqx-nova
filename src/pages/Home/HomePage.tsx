@@ -59,11 +59,6 @@ export function HomePage() {
     };
   }, []);
 
-  const handleCanvasClick = (x: number, y: number) => {
-    if (gameRef.current) {
-      gameRef.current.handleMouseClick(x, y);
-    }
-  };
   return (
     <div className="flex flex-1 flex-col">
       <div className="bg-gray-100 p-4 text-center">
@@ -72,12 +67,10 @@ export function HomePage() {
           Click anywhere on the canvas to create objects and apply forces!
           Objects spawn automatically and interact with the physics world.
         </p>
-      </div>
-      <div className="flex flex-1 overflow-hidden">
+      </div>      <div className="flex flex-1 overflow-hidden">
         <GameCanvas
           ref={canvasRef}
           className="flex-1"
-          onMouseClick={handleCanvasClick}
         />
       </div>
     </div>
