@@ -1,15 +1,17 @@
-import type { IPhysicsSystem, IPhysicsBody } from './interfaces/IPhysicsSystem';
-import type { IRendererSystem, RenderableObject } from './interfaces/IRendererSystem';
+import type { IPhysicsSystem } from './interfaces/IPhysicsSystem';
+import type { IRendererSystem } from './interfaces/IRendererSystem';
 import { MatterPhysicsSystem } from './physics/MatterPhysicsSystem';
 import { PixiRendererSystem } from './renderer/PixiRendererSystem';
+import { EntityManager } from './entity/EntityManager';
+import type { Entity, RectangleConfig, CircleConfig } from './entity';
 
 export class Engine {
   private physicsSystem: IPhysicsSystem;
   private rendererSystem: IRendererSystem;
+  private entityManager: EntityManager;
   private isRunning = false;
   private animationFrameId: number | null = null;
   private lastTime = 0;
-  private physicsBodyToRenderMap: Map<string, string> = new Map();
 
   constructor(
     physicsSystem?: IPhysicsSystem,
@@ -18,6 +20,7 @@ export class Engine {
     // Use dependency injection with defaults (follows DIP)
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
+    this.entityManager = new EntityManager(this.physicsSystem, this.rendererSystem);
   }
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
@@ -29,6 +32,7 @@ export class Engine {
     const height = this.rendererSystem.getHeight();
     this.physicsSystem.initialize(width, height);
   }
+
   public start(): void {
     if (this.isRunning) return;
 
@@ -46,69 +50,25 @@ export class Engine {
     }
   }
 
-  public createRectangle(
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    options?: { isStatic?: boolean; color?: number }
-  ): IPhysicsBody {
-    // Create physics body
-    const physicsBody = this.physicsSystem.createRectangle(x, y, width, height, {
-      isStatic: options?.isStatic,
-    });
-
-    // Create corresponding render object
-    const renderObject: RenderableObject = {
-      id: `render_${physicsBody.id}`,
-      position: physicsBody.position,
-      angle: physicsBody.angle,
-      width,
-      height,
-      color: options?.color ?? 0x16213e,
-      type: 'rectangle',
-    };
-
-    this.rendererSystem.createRenderObject(renderObject);
-    this.physicsBodyToRenderMap.set(physicsBody.id, renderObject.id);
-
-    return physicsBody;
+  // New unified entity creation methods
+  public createRectangle(config: RectangleConfig): Entity {
+    return this.entityManager.createRectangle(config);
   }
 
-  public createCircle(
-    x: number,
-    y: number,
-    radius: number,
-    options?: { isStatic?: boolean; color?: number }
-  ): IPhysicsBody {
-    // Create physics body
-    const physicsBody = this.physicsSystem.createCircle(x, y, radius, {
-      isStatic: options?.isStatic,
-    });
-
-    // Create corresponding render object
-    const renderObject: RenderableObject = {
-      id: `render_${physicsBody.id}`,
-      position: physicsBody.position,
-      angle: physicsBody.angle,
-      radius,
-      color: options?.color ?? 0xaa4465,
-      type: 'circle',
-    };
-
-    this.rendererSystem.createRenderObject(renderObject);
-    this.physicsBodyToRenderMap.set(physicsBody.id, renderObject.id);
-
-    return physicsBody;
+  public createCircle(config: CircleConfig): Entity {
+    return this.entityManager.createCircle(config);
   }
 
-  public removeBody(body: IPhysicsBody): void {
-    const renderId = this.physicsBodyToRenderMap.get(body.id);
-    if (renderId) {
-      this.rendererSystem.removeRenderObject(renderId);
-      this.physicsBodyToRenderMap.delete(body.id);
-    }
-    this.physicsSystem.removeBody(body);
+  public removeEntity(entityId: string): void {
+    this.entityManager.removeEntity(entityId);
+  }
+
+  public getEntity(id: string): Entity | undefined {
+    return this.entityManager.getEntity(id);
+  }
+
+  public getAllEntities(): Entity[] {
+    return this.entityManager.getAllEntities();
   }
 
   private gameLoop = (currentTime: number): void => {
@@ -120,8 +80,8 @@ export class Engine {
     // Update physics
     this.physicsSystem.update(deltaTime);
 
-    // Sync render objects with physics bodies
-    this.syncRenderWithPhysics();
+    // Update entities (sync physics with render objects)
+    this.entityManager.updateEntities();
 
     // Render the frame
     this.rendererSystem.render();
@@ -130,22 +90,11 @@ export class Engine {
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
 
-  private syncRenderWithPhysics(): void {
-    const bodies = this.physicsSystem.getAllBodies();
-
-    bodies.forEach((body) => {
-      const renderId = this.physicsBodyToRenderMap.get(body.id);
-      if (renderId) {
-        this.rendererSystem.updateRenderObject(renderId, body.position, body.angle);
-      }
-    });
-  }
-
   public destroy(): void {
     this.stop();
+    this.entityManager.destroy();
     this.physicsSystem.destroy();
     this.rendererSystem.destroy();
-    this.physicsBodyToRenderMap.clear();
   }
 
   // Getters for access to systems (if needed)
@@ -155,5 +104,9 @@ export class Engine {
 
   public getRendererSystem(): IRendererSystem {
     return this.rendererSystem;
+  }
+
+  public getEntityManager(): EntityManager {
+    return this.entityManager;
   }
 }

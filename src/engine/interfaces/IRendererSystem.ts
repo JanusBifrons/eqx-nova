@@ -1,4 +1,4 @@
-import { Vector2D } from './IPhysicsSystem';
+import type { Vector2D } from './IPhysicsSystem';
 
 export interface RenderableObject {
     id: string;
