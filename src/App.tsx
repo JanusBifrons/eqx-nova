@@ -6,14 +6,20 @@ function App() {
       {/* Header - fixed small height */}
       <nav className="h-12 bg-white shadow-sm border-b">
         <div className="h-full max-w-7xl mx-auto px-4 flex justify-between items-center">
-          <h1 className="text-lg font-bold text-gray-900">EQX Nova</h1>
-          <div className="flex items-center space-x-6">
+          <h1 className="text-lg font-bold text-gray-900">EQX Nova</h1>          <div className="flex items-center space-x-6">
             <Link
               to="/"
               className="text-gray-600 hover:text-gray-900 text-sm font-medium"
               activeProps={{ className: "text-blue-600" }}
             >
               Home
+            </Link>
+            <Link
+              to="/physics-demo"
+              className="text-gray-600 hover:text-gray-900 text-sm font-medium"
+              activeProps={{ className: "text-blue-600" }}
+            >
+              Physics Demo
             </Link>
             <Link
               to="/about"

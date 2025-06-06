@@ -24,15 +24,14 @@ export class Engine {
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
     this.inputSystem = inputSystem ?? new InputSystem();
     this.entityManager = new EntityManager(this.physicsSystem, this.rendererSystem);
-  }
-  public async initialize(canvas: HTMLCanvasElement): Promise<void> {
+  } public async initialize(canvas: HTMLCanvasElement, createBoundaries: boolean = true): Promise<void> {
     // Initialize renderer first to get dimensions
     await this.rendererSystem.initialize(canvas);
 
     // Initialize physics with canvas dimensions
     const width = this.rendererSystem.getWidth();
     const height = this.rendererSystem.getHeight();
-    this.physicsSystem.initialize(width, height);
+    this.physicsSystem.initialize(width, height, createBoundaries);
 
     // Initialize input system with canvas element
     this.inputSystem.initialize(canvas);

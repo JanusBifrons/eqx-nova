@@ -46,9 +46,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     private engine: Engine | null = null;
     private world: World | null = null;
     private bodies: Map<string, MatterPhysicsBody> = new Map();
-    private bodyIdCounter = 0;
-
-    public initialize(width: number, height: number): void {
+    private bodyIdCounter = 0; public initialize(width: number, height: number, createBoundaries: boolean = true): void {
         // Create Matter.js engine
         this.engine = Engine.create();
         this.world = this.engine.world;
@@ -57,20 +55,22 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         this.engine.world.gravity.y = 1;
         this.engine.world.gravity.x = 0;
 
-        // Create world boundaries
-        const groundOptions: PhysicsBodyOptions = { isStatic: true };
+        // Create world boundaries only if requested
+        if (createBoundaries) {
+            const groundOptions: PhysicsBodyOptions = { isStatic: true };
 
-        // Ground
-        this.createRectangle(width / 2, height - 10, width, 20, groundOptions);
+            // Ground
+            this.createRectangle(width / 2, height - 10, width, 20, groundOptions);
 
-        // Left wall
-        this.createRectangle(10, height / 2, 20, height, groundOptions);
+            // Left wall
+            this.createRectangle(10, height / 2, 20, height, groundOptions);
 
-        // Right wall
-        this.createRectangle(width - 10, height / 2, 20, height, groundOptions);
+            // Right wall
+            this.createRectangle(width - 10, height / 2, 20, height, groundOptions);
 
-        // Ceiling
-        this.createRectangle(width / 2, 10, width, 20, groundOptions);
+            // Ceiling
+            this.createRectangle(width / 2, 10, width, 20, groundOptions);
+        }
     }
 
     public update(deltaTime: number): void {
@@ -147,12 +147,24 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     public getAllBodies(): IPhysicsBody[] {
         return Array.from(this.bodies.values());
-    }
-
-    public applyForce(body: IPhysicsBody, force: Vector2D): void {
+    } public applyForce(body: IPhysicsBody, force: Vector2D): void {
         const matterBody = this.bodies.get(body.id);
         if (matterBody) {
             Body.applyForce(matterBody.matterBody, matterBody.position, Vector.create(force.x, force.y));
+        }
+    }
+
+    public setPosition(body: IPhysicsBody, position: Vector2D): void {
+        const matterBody = this.bodies.get(body.id);
+        if (matterBody) {
+            Body.setPosition(matterBody.matterBody, Vector.create(position.x, position.y));
+        }
+    }
+
+    public setRotation(body: IPhysicsBody, angle: number): void {
+        const matterBody = this.bodies.get(body.id);
+        if (matterBody) {
+            Body.setAngle(matterBody.matterBody, angle);
         }
     }
 

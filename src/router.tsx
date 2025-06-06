@@ -1,8 +1,8 @@
 import { createRouter } from '@tanstack/react-router';
-import { rootRoute, homeRoute, aboutRoute } from './routes';
+import { rootRoute, homeRoute, aboutRoute, physicsDemoRoute } from './routes';
 
 // Create the route tree
-const routeTree = rootRoute.addChildren([homeRoute, aboutRoute]);
+const routeTree = rootRoute.addChildren([homeRoute, aboutRoute, physicsDemoRoute]);
 
 // Create the router
 export const router = createRouter({ routeTree });
