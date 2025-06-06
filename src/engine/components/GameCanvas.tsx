@@ -10,7 +10,6 @@ export const GameCanvas = forwardRef<HTMLCanvasElement, GameCanvasProps>(
       <canvas
         ref={ref}
         className={className}
-      // Remove all sizing - let the parent and resizeTo handle it
       />
     );
   }

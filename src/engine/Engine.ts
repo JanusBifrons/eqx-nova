@@ -13,7 +13,8 @@ export class Engine {
     // Initialize the application - let PixiJS handle sizing automatically
     await this.app.init({
       canvas,
-      backgroundColor: 0x1a1a2e, resizeTo: canvas.parentElement || window,
+      backgroundColor: 0x1a1a2e,
+      resizeTo: canvas,
     });
 
     // Create a border around the canvas

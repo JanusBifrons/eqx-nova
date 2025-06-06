@@ -29,6 +29,6 @@ export function HomePage() {
       }
     };
   }, []); return (
-    <GameCanvas ref={canvasRef} />
+    <GameCanvas ref={canvasRef} className='w-full h-full' />
   );
 }

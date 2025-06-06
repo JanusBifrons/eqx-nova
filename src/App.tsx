@@ -25,7 +25,7 @@ function App() {
           </div>
         </div>
       </nav>      {/* Main content - takes remaining height, no overflow */}
-      <main className="flex flex-1 min-h-0">
+      <main className="flex flex-1 min-h-0 overflow-hidden">
         <Outlet />
       </main>
     </div>
