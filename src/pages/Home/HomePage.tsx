@@ -64,9 +64,8 @@ export function HomePage() {
       gameRef.current.handleMouseClick(x, y);
     }
   };
-
   return (
-    <div className="w-full h-full flex flex-col">
+    <div className="flex flex-1 flex-col">
       <div className="bg-gray-100 p-4 text-center">
         <h2 className="text-xl font-bold text-gray-800 mb-2">Physics Demonstration</h2>
         <p className="text-sm text-gray-600">
@@ -74,10 +73,10 @@ export function HomePage() {
           Objects spawn automatically and interact with the physics world.
         </p>
       </div>
-      <div className="flex-1">
+      <div className="flex flex-1 overflow-hidden">
         <GameCanvas
           ref={canvasRef}
-          className="w-full h-full"
+          className="flex-1"
           onMouseClick={handleCanvasClick}
         />
       </div>

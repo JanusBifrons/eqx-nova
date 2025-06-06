@@ -123,7 +123,7 @@ export class PixiRendererSystem implements IRendererSystem {
         const border = new Graphics();
         border.name = 'border';
         border.rect(0, 0, this.app.screen.width, this.app.screen.height);
-        border.stroke({ color: 0x0f3460, width: 4 });
+        border.stroke({ color: 0x0f3460, width: 10 });
 
         // Add border behind game objects
         this.app.stage.addChildAt(border, 0);

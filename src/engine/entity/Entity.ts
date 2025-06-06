@@ -1,59 +1,59 @@
 import type { Vector2D } from '../interfaces/IPhysicsSystem';
 
 export interface EntityOptions {
-  color?: number;
-  isStatic?: boolean;
-  restitution?: number;
-  friction?: number;
+    color?: number;
+    isStatic?: boolean;
+    restitution?: number;
+    friction?: number;
 }
 
 export class Entity {
-  public readonly id: string;
-  public readonly type: 'rectangle' | 'circle';
-  public readonly physicsBodyId: string;
-  public readonly renderObjectId: string;
-  
-  private _position: Vector2D = { x: 0, y: 0 };
-  private _angle: number = 0;
-  private _isActive: boolean = true;
+    public readonly id: string;
+    public readonly type: 'rectangle' | 'circle';
+    public readonly physicsBodyId: string;
+    public readonly renderObjectId: string;
 
-  constructor(
-    id: string,
-    type: 'rectangle' | 'circle',
-    physicsBodyId: string,
-    renderObjectId: string
-  ) {
-    this.id = id;
-    this.type = type;
-    this.physicsBodyId = physicsBodyId;
-    this.renderObjectId = renderObjectId;
-  }
+    private _position: Vector2D = { x: 0, y: 0 };
+    private _angle: number = 0;
+    private _isActive: boolean = true;
 
-  public get position(): Vector2D {
-    return { ...this._position };
-  }
+    constructor(
+        id: string,
+        type: 'rectangle' | 'circle',
+        physicsBodyId: string,
+        renderObjectId: string
+    ) {
+        this.id = id;
+        this.type = type;
+        this.physicsBodyId = physicsBodyId;
+        this.renderObjectId = renderObjectId;
+    }
 
-  public set position(pos: Vector2D) {
-    this._position = pos;
-  }
+    public get position(): Vector2D {
+        return { ...this._position };
+    }
 
-  public get angle(): number {
-    return this._angle;
-  }
+    public set position(pos: Vector2D) {
+        this._position = pos;
+    }
 
-  public set angle(angle: number) {
-    this._angle = angle;
-  }
+    public get angle(): number {
+        return this._angle;
+    }
 
-  public get isActive(): boolean {
-    return this._isActive;
-  }
+    public set angle(angle: number) {
+        this._angle = angle;
+    }
 
-  public setActive(active: boolean): void {
-    this._isActive = active;
-  }
+    public get isActive(): boolean {
+        return this._isActive;
+    }
 
-  public destroy(): void {
-    this._isActive = false;
-  }
+    public setActive(active: boolean): void {
+        this._isActive = active;
+    }
+
+    public destroy(): void {
+        this._isActive = false;
+    }
 }
