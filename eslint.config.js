@@ -5,7 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist'] },
+  { ignores: ['dist', '.vite'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
@@ -34,6 +34,45 @@ export default tseslint.config(
             properties: 'explicit',
             parameterProperties: 'explicit',
           },
+        },
+      ],
+      'padding-line-between-statements': [
+        'error',
+        // Require blank line before if statements (but not after opening braces)
+        {
+          blankLine: 'always',
+          prev: ['*'],
+          next: 'if',
+        },
+        // Require blank line before function declarations
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: 'function',
+        },
+        // Require blank line after function declarations
+        {
+          blankLine: 'always',
+          prev: 'function',
+          next: '*',
+        },
+        // Exception: Don't require blank lines between consecutive imports
+        {
+          blankLine: 'never',
+          prev: 'import',
+          next: 'import',
+        },
+        // Exception: Don't require blank lines at the start of blocks
+        {
+          blankLine: 'never',
+          prev: 'block-like',
+          next: '*',
+        },
+        // Exception: Allow no blank line after variable declarations when followed by related code
+        {
+          blankLine: 'any',
+          prev: ['const', 'let', 'var'],
+          next: '*',
         },
       ],
     },

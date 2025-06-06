@@ -188,6 +188,12 @@ Follow SOLID principles rigorously in all code:
 
 ## Documentation Standards
 
+### File Creation Policy
+
+- **No Markdown Files**: Do not create .md documentation files unless explicitly requested by the user
+- **Focus on Code**: Prioritize working implementation over documentation during development
+- **Inline Documentation**: Use JSDoc comments and inline comments instead of separate documentation files
+
 ### Code Documentation
 
 - **JSDoc Comments**: Document complex functions and components

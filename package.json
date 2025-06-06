@@ -7,10 +7,12 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "format:lint": "npm run format && npm run lint:fix"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.120.16",

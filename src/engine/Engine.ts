@@ -37,6 +37,7 @@ export class Engine {
 
   public stop(): void {
     this.isRunning = false;
+
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = null;
@@ -50,9 +51,7 @@ export class Engine {
     if (this.app.stage.children.length > 0) {
       const graphics = this.app.stage.children[0] as Graphics;
       graphics.rotation += 0.01;
-    }
-
-    // Manually render the frame
+    }    // Manually render the frame
     this.app.renderer.render(this.app.stage);
 
     // Schedule next frame
@@ -60,6 +59,7 @@ export class Engine {
   };
   public destroy(): void {
     this.stop();
+
     if (this.app) {
       this.app.destroy(true);
       this.app = null;
