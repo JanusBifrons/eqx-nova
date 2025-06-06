@@ -8,12 +8,13 @@ export class Engine {
     // Create PixiJS application
     this.app = new Application();
 
-    // Initialize the application
+    // Initialize the application - let canvas size determine the app size
     await this.app.init({
       canvas,
-      width: 800,
-      height: 600,
+      width: canvas.width || 800,
+      height: canvas.height || 600,
       backgroundColor: 0x1a1a2e,
+      resizeTo: canvas, // This makes PixiJS automatically resize to match the canvas
     });
 
     // Create a simple demo sprite - a rotating rectangle
@@ -51,7 +52,8 @@ export class Engine {
     if (this.app.stage.children.length > 0) {
       const graphics = this.app.stage.children[0] as Graphics;
       graphics.rotation += 0.01;
-    }    // Manually render the frame
+    }
+    // Manually render the frame
     this.app.renderer.render(this.app.stage);
 
     // Schedule next frame
