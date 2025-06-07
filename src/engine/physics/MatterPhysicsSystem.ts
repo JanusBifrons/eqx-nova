@@ -224,6 +224,21 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       Body.setAngle(matterBody.matterBody, angle);
     }
   }
+
+  public setVelocity(body: IPhysicsBody, velocity: Vector2D): void {
+    const matterBody = this.bodies.get(body.id);
+    if (matterBody) {
+      Body.setVelocity(matterBody.matterBody, Vector.create(velocity.x, velocity.y));
+    }
+  }
+
+  public setAngularVelocity(body: IPhysicsBody, angularVelocity: number): void {
+    const matterBody = this.bodies.get(body.id);
+    if (matterBody) {
+      Body.setAngularVelocity(matterBody.matterBody, angularVelocity);
+    }
+  }
+
   public setGravity(x: number, y: number): void {
     if (this.engine) {
       this.engine.world.gravity.x = x;

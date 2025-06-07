@@ -63,10 +63,9 @@ export class AsteroidFactory {
     medium: 25,
     small: 15,
   };
-
   private static readonly SPEED_RANGE = {
-    min: 0.05,
-    max: 0.15,
+    min: 0.5,
+    max: 1.5,
   };
 
   public static create(
@@ -96,9 +95,7 @@ export class AsteroidFactory {
         frictionAir: 0,
         density: 0.001,
       },
-    });
-
-    // Apply velocity
+    });    // Apply velocity
     const finalVelocity = velocity ?? this.generateRandomVelocity();
     const physicsSystem = engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
@@ -107,9 +104,12 @@ export class AsteroidFactory {
     );
 
     if (asteroidBody) {
-      const forceX = finalVelocity.x * 0.001;
-      const forceY = finalVelocity.y * 0.001;
-      physicsSystem.applyForce(asteroidBody, { x: forceX, y: forceY });
+      // Use direct velocity setting for more predictable movement
+      physicsSystem.setVelocity(asteroidBody, finalVelocity);
+
+      // Add gentle rotation for visual interest
+      const angularVelocity = (Math.random() - 0.5) * 0.02;
+      physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
 
     return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);

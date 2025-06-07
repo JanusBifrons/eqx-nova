@@ -55,6 +55,8 @@ export interface IPhysicsSystem {
   applyForce(body: IPhysicsBody, force: Vector2D): void;
   setPosition(body: IPhysicsBody, position: Vector2D): void;
   setRotation(body: IPhysicsBody, angle: number): void;
+  setVelocity(body: IPhysicsBody, velocity: Vector2D): void;
+  setAngularVelocity(body: IPhysicsBody, angularVelocity: number): void;
   setGravity(x: number, y: number): void;
   onCollisionStart(callback: CollisionCallback): void;
   onCollisionEnd(callback: CollisionCallback): void;

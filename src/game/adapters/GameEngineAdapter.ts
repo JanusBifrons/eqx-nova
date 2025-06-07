@@ -102,6 +102,26 @@ export class GameEngineAdapter implements IGameEngine {
     }
   }
 
+  public setEntityVelocity(entity: Entity, velocity: Vector2D): void {
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const body = allBodies.find(b => b.id === entity.physicsBodyId);
+
+    if (body) {
+      physicsSystem.setVelocity(body, velocity);
+    }
+  }
+
+  public setEntityAngularVelocity(entity: Entity, angularVelocity: number): void {
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const body = allBodies.find(b => b.id === entity.physicsBodyId);
+
+    if (body) {
+      physicsSystem.setAngularVelocity(body, angularVelocity);
+    }
+  }
+
   public wrapEntityPosition(
     entity: Entity,
     bounds: { width: number; height: number }

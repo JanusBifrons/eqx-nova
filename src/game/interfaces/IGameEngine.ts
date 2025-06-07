@@ -26,6 +26,8 @@ export interface IGameEngine {
   applyForceToEntity(entity: Entity, force: Vector2D): void;
   setEntityRotation(entity: Entity, rotation: number): void;
   setEntityPosition(entity: Entity, position: Vector2D): void;
+  setEntityVelocity(entity: Entity, velocity: Vector2D): void;
+  setEntityAngularVelocity(entity: Entity, angularVelocity: number): void;
   wrapEntityPosition(
     entity: Entity,
     bounds: { width: number; height: number }

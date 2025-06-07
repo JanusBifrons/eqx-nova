@@ -13,10 +13,8 @@ interface AsteroidData {
  */
 export class AsteroidManager {
   private asteroids: AsteroidData[] = [];
-  private gameEngine: IGameEngine;
-
-  private readonly ASTEROID_MIN_SPEED = 0.05;
-  private readonly ASTEROID_MAX_SPEED = 0.15;
+  private gameEngine: IGameEngine; private readonly ASTEROID_MIN_SPEED = 0.5;
+  private readonly ASTEROID_MAX_SPEED = 1.5;
   private readonly SIZE_MAP = {
     large: 40,
     medium: 25,
@@ -26,11 +24,19 @@ export class AsteroidManager {
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
   }
-
   public spawnInitialAsteroids(): void {
-    for (let i = 0; i < 3; i++) {
+    // Spawn a mix of large and medium asteroids for more variety
+    // 4 large asteroids
+    for (let i = 0; i < 4; i++) {
       this.createRandomAsteroid('large');
     }
+
+    // 3 medium asteroids for additional challenge and visual interest
+    for (let i = 0; i < 3; i++) {
+      this.createRandomAsteroid('medium');
+    }
+
+    console.log('Spawned initial asteroids: 4 large, 3 medium');
   }
 
   public spawnAsteroidWave(score: number): void {
@@ -47,9 +53,7 @@ export class AsteroidManager {
       dimensions.height
     );
     this.createAsteroid(size, position.x, position.y);
-  }
-
-  public createAsteroid(
+  } public createAsteroid(
     size: 'large' | 'medium' | 'small',
     x: number,
     y: number
@@ -61,20 +65,21 @@ export class AsteroidManager {
       { x, y },
       this.SIZE_MAP[size],
       vertices
-    );
-
-    // Apply initial velocity
+    );    // Apply initial linear velocity for gentle movement
     const speed =
       this.ASTEROID_MIN_SPEED +
       Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
     const angle = Math.random() * Math.PI * 2;
 
-    const forceX = Math.cos(angle) * speed * 0.001;
-    const forceY = Math.sin(angle) * speed * 0.001;
-    this.gameEngine.applyForceToEntity(entity, { x: forceX, y: forceY });
+    // Use direct velocity setting instead of forces for more predictable movement
+    const velocityX = Math.cos(angle) * speed;
+    const velocityY = Math.sin(angle) * speed;
+    this.gameEngine.setEntityVelocity(entity, { x: velocityX, y: velocityY });
 
-    this.asteroids.push({ entity, size });
-    console.log(`Created ${size} asteroid at:`, x, y);
+    // Add gentle rotation for visual interest
+    const angularVelocity = (Math.random() - 0.5) * 0.02; // Random rotation between -0.01 and 0.01 rad/frame
+    this.gameEngine.setEntityAngularVelocity(entity, angularVelocity); this.asteroids.push({ entity, size });
+    console.log(`Created ${size} asteroid at (${x.toFixed(1)}, ${y.toFixed(1)}) with velocity (${velocityX.toFixed(2)}, ${velocityY.toFixed(2)}) pixels/frame, angular velocity: ${angularVelocity.toFixed(4)} rad/frame`);
   }
 
   public breakAsteroid(asteroidData: AsteroidData): void {
