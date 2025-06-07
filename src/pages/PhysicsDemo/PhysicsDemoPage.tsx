@@ -38,9 +38,7 @@ export function PhysicsDemoPage() {
 
             if (gameRef.current) {
                 gameRef.current.update(deltaTime);
-            }
-
-            requestAnimationFrame(gameLoop);
+            }            requestAnimationFrame(gameLoop);
         };
 
         initializeEngine();

@@ -80,9 +80,7 @@ export class InputSystem implements IInputSystem {
     public initialize(element: HTMLElement): void {
         if (this.isInitialized) {
             this.destroy();
-        }
-
-        this.element = element;
+        }        this.element = element;
         this.setupEventListeners();
         this.isInitialized = true;
     }
@@ -350,9 +348,7 @@ export class InputSystem implements IInputSystem {
                 x: touch.clientX - rect.left,
                 y: touch.clientY - rect.top,
             });
-        }
-
-        return positions;
+        }        return positions;
     }
 
     private dispatchEvent(event: InputEventUnion): void {

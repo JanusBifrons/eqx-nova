@@ -51,9 +51,7 @@ export class PixiRendererSystem implements IRendererSystem {
             graphics.circle(0, 0, radius);
             graphics.fill(object.color ?? 0x16213e);
             graphics.stroke({ color: 0x0f3460, width: 2 });
-        }
-
-        graphics.x = object.position.x;
+        }        graphics.x = object.position.x;
         graphics.y = object.position.y;
         graphics.rotation = object.angle;
 
@@ -117,9 +115,7 @@ export class PixiRendererSystem implements IRendererSystem {
         if (existingBorder) {
             this.app.stage.removeChild(existingBorder);
             existingBorder.destroy();
-        }
-
-        // Create new border
+        }        // Create new border
         const border = new Graphics();
         border.name = 'border';
         border.rect(0, 0, this.app.screen.width, this.app.screen.height);

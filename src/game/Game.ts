@@ -25,12 +25,11 @@ export class Game {
 
     // Spawn new objects periodically
     this.spawnTimer += deltaTime;
+
     if (this.spawnTimer >= this.SPAWN_INTERVAL) {
       this.spawnRandomObject();
       this.spawnTimer = 0;
-    }
-
-    // Clean up objects that have fallen too far
+    }    // Clean up objects that have fallen too far
     this.cleanupFallenObjects();
   }
 
@@ -142,9 +141,7 @@ export class Game {
         radius: radius,
         options: { color }
       });
-    }
-
-    this.dynamicEntities.push(entity);
+    }    this.dynamicEntities.push(entity);
   }
 
   private cleanupFallenObjects(): void {

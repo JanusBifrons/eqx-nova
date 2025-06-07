@@ -3,6 +3,7 @@ import globals from 'globals';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
+import customRules from './eslint-custom-rules.js';
 
 export default tseslint.config(
   { ignores: ['dist', '.vite'] },
@@ -16,6 +17,7 @@ export default tseslint.config(
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      custom: customRules,
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
@@ -23,19 +25,8 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      '@typescript-eslint/explicit-member-accessibility': [
-        'error',
-        {
-          accessibility: 'explicit',
-          overrides: {
-            accessors: 'explicit',
-            constructors: 'explicit',
-            methods: 'explicit',
-            properties: 'explicit',
-            parameterProperties: 'explicit',
-          },
-        },
-      ],
+      '@typescript-eslint/explicit-member-accessibility': 'off', // Disabled in favor of custom rule
+      'custom/add-public-modifier': 'error',
       'padding-line-between-statements': [
         'error',
         // Require blank line before if statements (but not after opening braces)

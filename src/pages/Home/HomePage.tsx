@@ -44,9 +44,7 @@ export function HomePage() {
         setScore(gameRef.current.getScore());
         setLives(gameRef.current.getLives());
         setGameOver(gameRef.current.isGameOver());
-      }
-
-      requestAnimationFrame(gameLoop);
+      }      requestAnimationFrame(gameLoop);
     };
 
     initializeEngine();

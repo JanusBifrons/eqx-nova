@@ -36,9 +36,7 @@ export const useCanvasResize = (
     const container = containerRef?.current || canvasRef.current.parentElement;
     if (container) {
       resizeObserver.observe(container);
-    }
-
-    // Cleanup
+    }    // Cleanup
     return () => {
       resizeObserver.disconnect();
     };

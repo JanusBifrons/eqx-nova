@@ -21,23 +21,23 @@ class MatterPhysicsBody implements IPhysicsBody {
         this.id = id;
     }
 
-    get position(): Vector2D {
+    public get position(): Vector2D {
         return { x: this.body.position.x, y: this.body.position.y };
     }
 
-    get angle(): number {
+    public get angle(): number {
         return this.body.angle;
     }
 
-    get velocity(): Vector2D {
+    public get velocity(): Vector2D {
         return { x: this.body.velocity.x, y: this.body.velocity.y };
     }
 
-    get angularVelocity(): number {
+    public get angularVelocity(): number {
         return this.body.angularVelocity;
     }
 
-    get matterBody(): Body {
+    public get matterBody(): Body {
         return this.body;
     }
 }
@@ -89,9 +89,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     ): IPhysicsBody {
         if (!this.world) {
             throw new Error('Physics system not initialized');
-        }
-
-        const body = Bodies.rectangle(x, y, width, height, {
+        }        const body = Bodies.rectangle(x, y, width, height, {
             isStatic: options.isStatic ?? false,
             restitution: options.restitution ?? 0.3,
             friction: options.friction ?? 0.1,
@@ -116,9 +114,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     ): IPhysicsBody {
         if (!this.world) {
             throw new Error('Physics system not initialized');
-        }
-
-        const body = Bodies.circle(x, y, radius, {
+        }        const body = Bodies.circle(x, y, radius, {
             isStatic: options.isStatic ?? false,
             restitution: options.restitution ?? 0.3,
             friction: options.friction ?? 0.1,

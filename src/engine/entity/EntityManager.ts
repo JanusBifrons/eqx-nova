@@ -43,9 +43,7 @@ export class EntityManager {
         const physicsBody = allBodies.find(body => body.id === entity.physicsBodyId);
         if (physicsBody) {
             this.physicsSystem.removeBody(physicsBody);
-        }
-
-        // Remove render object
+        }        // Remove render object
         this.rendererSystem.removeRenderObject(entity.renderObjectId);
 
         // Clean up mappings
