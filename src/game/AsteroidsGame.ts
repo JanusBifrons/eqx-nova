@@ -49,12 +49,14 @@ export class AsteroidsGame {
     if (this.isDestroyed) {
       console.warn('Cannot initialize destroyed game instance');
       return;
-    }    if (this.isInitialized) {
+    }
+    if (this.isInitialized) {
       console.warn(
         'Game already initialized, skipping duplicate initialization'
       );
       return;
-    }    this.setupManagers(engine);
+    }
+    this.setupManagers(engine);
     this.setupGame();
     this.setupEventHandlers();
     this.isInitialized = true;
@@ -172,17 +174,20 @@ export class AsteroidsGame {
     if (this.inputManager.isRightPressed()) {
       const currentRotation = this.playerManager.getRotation();
       this.playerManager.setRotation(currentRotation + 0.003 * deltaTime);
-    }    // Handle thrust
+    }
+    // Handle thrust
     this.playerManager.setThrust(this.inputManager.isThrustPressed());
 
     // Handle continuous firing - check every frame if spacebar is held down
     if (this.inputManager.isFirePressed()) {
       this.handleFireLaser();
     }
-  }
-  private updateManagers(deltaTime: number): void {
+  } private updateManagers(deltaTime: number): void {
     this.playerManager!.update(deltaTime);
     this.laserManager!.update(deltaTime);
+
+    // Maintain asteroid density in the expanded game world
+    this.asteroidManager!.maintainAsteroidDensity(40);
   }
   private updateCamera(): void {
     if (!this.gameEngine || !this.playerManager) return;
@@ -210,7 +215,8 @@ export class AsteroidsGame {
     const player = this.playerManager!.getPlayer();
     if (player) {
       this.gameEngine.wrapEntityPosition(player, dimensions);
-    }    // Wrap lasers
+    }
+    // Wrap lasers
     this.laserManager!.getAllLasers().forEach(laserData => {
       this.gameEngine!.wrapEntityPosition(laserData.entity, dimensions);
     });

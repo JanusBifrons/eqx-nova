@@ -12,9 +12,9 @@ interface AsteroidData {
  * Following Single Responsibility Principle
  */
 export class AsteroidManager {
-  private asteroids: AsteroidData[] = [];
-  private gameEngine: IGameEngine; private readonly ASTEROID_MIN_SPEED = 0.5;
-  private readonly ASTEROID_MAX_SPEED = 1.5;
+  private asteroids: AsteroidData[] = []; private gameEngine: IGameEngine;
+  private readonly ASTEROID_MIN_SPEED = 0.3; // Slightly slower for better control in expanded space
+  private readonly ASTEROID_MAX_SPEED = 2.0; // Increased max speed for variety
   private readonly SIZE_MAP = {
     large: 40,
     medium: 25,
@@ -23,22 +23,54 @@ export class AsteroidManager {
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
-  }
-  public spawnInitialAsteroids(): void {
-    // Spawn a mix of large and medium asteroids for more variety
-    // 4 large asteroids
-    for (let i = 0; i < 4; i++) {
-      this.createRandomAsteroid('large');
-    }    // 3 medium asteroids for additional challenge and visual interest
-    for (let i = 0; i < 3; i++) {
-      this.createRandomAsteroid('medium');
-    }    console.log('Spawned initial asteroids: 4 large, 3 medium');
-  }
+  } public spawnInitialAsteroids(): void {
+    // Spawn many more asteroids to fill the expanded game space (4x viewport)
 
-  public spawnAsteroidWave(score: number): void {
-    const numAsteroids = Math.min(3 + Math.floor(score / 1000), 8);
-    for (let i = 0; i < numAsteroids; i++) {
+    // First spawn asteroids at the edges
+    // 12 large asteroids for major obstacles
+    for (let i = 0; i < 12; i++) {
       this.createRandomAsteroid('large');
+    }
+    // 15 medium asteroids for variety and challenge
+    for (let i = 0; i < 15; i++) {
+      this.createRandomAsteroid('medium');
+    }
+    // 8 small asteroids for detail and visual interest
+    for (let i = 0; i < 8; i++) {
+      this.createRandomAsteroid('small');
+    }
+
+    // Then spawn additional asteroids throughout the interior space
+    this.spawnInteriorAsteroids(12);
+
+    console.log('Spawned initial asteroids: 35 at edges + 12 interior = 47 total asteroids');
+  } public spawnAsteroidWave(score: number): void {
+    // Scale asteroid count for the expanded game space
+    // Base of 8 asteroids, increasing by 2 for every 500 points, max of 20
+    const numAsteroids = Math.min(8 + Math.floor(score / 500) * 2, 20);
+
+    // Spawn a mix of sizes for variety
+    const largeCount = Math.floor(numAsteroids * 0.5); // 50% large
+    const mediumCount = Math.floor(numAsteroids * 0.3); // 30% medium  
+    const smallCount = numAsteroids - largeCount - mediumCount; // 20% small
+
+    for (let i = 0; i < largeCount; i++) {
+      this.createRandomAsteroid('large');
+    }
+    for (let i = 0; i < mediumCount; i++) {
+      this.createRandomAsteroid('medium');
+    }
+    for (let i = 0; i < smallCount; i++) {
+      this.createRandomAsteroid('small');
+    }
+
+    // At higher scores, also spawn some interior asteroids for added challenge
+    if (score > 2000) {
+      const interiorCount = Math.min(Math.floor(score / 2000) * 2, 6);
+      this.spawnInteriorAsteroids(interiorCount);
+      console.log(`Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} edge) + ${interiorCount} interior`);
+    } else {
+      console.log(`Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} total)`);
     }
   }
 
@@ -111,9 +143,96 @@ export class AsteroidManager {
 
   public getAllAsteroids(): AsteroidData[] {
     return [...this.asteroids];
-  }
-  public getAsteroidCount(): number {
+  } public getAsteroidCount(): number {
     return this.asteroids.length;
+  }
+
+  /**
+   * Spawn additional asteroids throughout the interior of the game world
+   * This fills the expanded space beyond just edge spawning
+   */
+  public spawnInteriorAsteroids(count: number = 10): void {
+    const dimensions = this.gameEngine.getWorldDimensions();
+    const centerX = dimensions.width / 2;
+    const centerY = dimensions.height / 2;
+    const safeZoneRadius = Math.min(dimensions.width, dimensions.height) * 0.1; // 10% of smaller dimension
+
+    for (let i = 0; i < count; i++) {
+      let x: number, y: number;
+      let attempts = 0;
+      const maxAttempts = 50;
+
+      // Keep trying until we find a position outside the safe zone around the player
+      do {
+        x = Math.random() * dimensions.width;
+        y = Math.random() * dimensions.height;
+        attempts++;
+
+        const distanceFromCenter = Math.sqrt(
+          Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
+        );
+
+        if (distanceFromCenter > safeZoneRadius) {
+          break;
+        }
+      } while (attempts < maxAttempts);
+
+      // If we couldn't find a good position, fall back to edge spawning
+      if (attempts >= maxAttempts) {
+        this.createRandomAsteroid('medium');
+        continue;
+      }
+
+      // Randomly choose size with bias toward smaller asteroids for interior
+      const sizeRandom = Math.random();
+      let size: 'large' | 'medium' | 'small';
+      if (sizeRandom < 0.3) {
+        size = 'large';
+      } else if (sizeRandom < 0.7) {
+        size = 'medium';
+      } else {
+        size = 'small';
+      }
+
+      this.createAsteroid(size, x, y);
+    }
+
+    console.log(`Spawned ${count} interior asteroids throughout the game world`);
+  }
+
+  /**
+   * Maintain asteroid density in the expanded game world
+   * Should be called periodically to ensure good asteroid distribution
+   */
+  public maintainAsteroidDensity(targetCount: number = 40): void {
+    const currentCount = this.getAsteroidCount();
+
+    if (currentCount < targetCount) {
+      const needed = Math.min(targetCount - currentCount, 8); // Don't spawn too many at once
+
+      // Mix of edge and interior spawning
+      const edgeCount = Math.ceil(needed * 0.7); // 70% from edges
+      const interiorCount = needed - edgeCount; // 30% interior
+
+      // Spawn edge asteroids
+      for (let i = 0; i < edgeCount; i++) {
+        const sizeRandom = Math.random();
+        if (sizeRandom < 0.4) {
+          this.createRandomAsteroid('large');
+        } else if (sizeRandom < 0.8) {
+          this.createRandomAsteroid('medium');
+        } else {
+          this.createRandomAsteroid('small');
+        }
+      }
+
+      // Spawn interior asteroids
+      if (interiorCount > 0) {
+        this.spawnInteriorAsteroids(interiorCount);
+      }
+
+      console.log(`Maintaining asteroid density: spawned ${needed} asteroids (${edgeCount} edge, ${interiorCount} interior)`);
+    }
   }
 
   public destroy(): void {
