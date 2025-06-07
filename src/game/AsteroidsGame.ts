@@ -89,13 +89,47 @@ export class AsteroidsGame {
       () => this.handleGameOver()
     );
   }
-
   private setupGame(): void {
     if (!this.gameEngine) return;
 
-    // Configure physics for space environment
+    // Configure physics for realistic space environment
     this.gameEngine.configurePhysics({
-      gravity: { x: 0, y: 0 }, // No gravity in space
+      // No gravity in space
+      gravity: { x: 0, y: 0 },
+
+      // World-level configuration for space physics
+      world: {
+        gravity: { x: 0, y: 0 },
+        gravityScale: 0,
+        enableSleeping: false, // Objects in space don't sleep
+        constraintIterations: 2,
+        positionIterations: 6,
+        velocityIterations: 4,
+        timing: {
+          timeScale: 1.0, // Normal time flow
+        }
+      },
+
+      // Default body properties for space objects
+      defaultBodyProperties: {
+        friction: 0, // No friction in space
+        frictionStatic: 0, // No static friction
+        frictionAir: 0, // No air resistance in space
+        restitution: 1, // Perfect elastic collisions (conservation of energy)
+        density: 0.001, // Low density for space objects
+        sleepThreshold: Infinity, // Never sleep - objects keep moving in space
+      },
+
+      // Engine configuration for smooth space physics
+      engine: {
+        enableSleeping: false, // Disable sleeping for continuous motion
+        positionIterations: 6, // Higher precision for collision detection
+        velocityIterations: 4, // Good velocity resolution
+        constraintIterations: 2, // Minimal constraints in space
+        timing: {
+          timeScale: 1.0,
+        }
+      }
     });
 
     // Create initial game objects

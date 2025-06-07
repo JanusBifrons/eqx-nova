@@ -45,4 +45,43 @@ export interface IGameEngine {
 export interface PhysicsConfig {
   gravity?: Vector2D;
   airResistance?: number;
+  // World-level physics properties
+  world?: {
+    gravity?: Vector2D;
+    gravityScale?: number;
+    constraintIterations?: number;
+    positionIterations?: number;
+    velocityIterations?: number;
+    enableSleeping?: boolean;
+    timing?: {
+      timeScale?: number;
+      timestamp?: number;
+    };
+  };
+  // Default body properties that will be applied to new bodies
+  defaultBodyProperties?: {
+    restitution?: number;
+    friction?: number;
+    frictionStatic?: number;
+    frictionAir?: number;
+    density?: number;
+    inertia?: number;
+    inverseInertia?: number;
+    mass?: number;
+    inverseMass?: number;
+    slop?: number;
+    sleepThreshold?: number;
+    sleepTimeScale?: number;
+  };
+  // Engine-level properties
+  engine?: {
+    enableSleeping?: boolean;
+    positionIterations?: number;
+    velocityIterations?: number;
+    constraintIterations?: number;
+    timing?: {
+      timeScale?: number;
+      timestamp?: number;
+    };
+  };
 }

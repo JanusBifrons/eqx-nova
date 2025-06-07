@@ -154,12 +154,39 @@ export class GameEngineAdapter implements IGameEngine {
     const physicsSystem = this.engine.getPhysicsSystem();
     physicsSystem.onCollisionStart(callback);
   }
-
   public configurePhysics(config: PhysicsConfig): void {
-    const physicsSystem = this.engine.getPhysicsSystem();
+    const physicsSystem = this.engine.getPhysicsSystem() as any; // Cast to access extended methods
 
+    // Basic gravity configuration (backwards compatibility)
     if (config.gravity) {
       physicsSystem.setGravity(config.gravity.x, config.gravity.y);
+    }
+
+    // Legacy air resistance support (backwards compatibility)
+    if (typeof config.airResistance === 'number') {
+      physicsSystem.setDefaultBodyProperties({
+        frictionAir: config.airResistance
+      });
+      physicsSystem.updateExistingBodies({
+        frictionAir: config.airResistance
+      });
+    }
+
+    // Advanced world configuration
+    if (config.world) {
+      physicsSystem.configureWorld(config.world);
+    }
+
+    // Engine configuration
+    if (config.engine) {
+      physicsSystem.configureEngine(config.engine);
+    }
+
+    // Default body properties
+    if (config.defaultBodyProperties) {
+      physicsSystem.setDefaultBodyProperties(config.defaultBodyProperties);
+      // Optionally apply to existing bodies
+      physicsSystem.updateExistingBodies(config.defaultBodyProperties);
     }
   }
 }

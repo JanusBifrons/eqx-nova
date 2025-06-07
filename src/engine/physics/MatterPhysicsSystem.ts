@@ -45,6 +45,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   private bodyIdCounter = 0;
   private collisionStartCallbacks: CollisionCallback[] = [];
   private collisionEndCallbacks: CollisionCallback[] = [];
+  private defaultBodyProperties: any = {};
   public initialize(
     width: number,
     height: number,
@@ -88,7 +89,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     // Convert deltaTime from milliseconds to seconds and run engine
     Engine.update(this.engine, deltaTime);
   }
-
   public createRectangle(
     x: number,
     y: number,
@@ -99,14 +99,18 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (!this.world) {
       throw new Error('Physics system not initialized');
     }
-    const body = Bodies.rectangle(x, y, width, height, {
-      isStatic: options.isStatic ?? false,
-      restitution: options.restitution ?? 0.3,
-      friction: options.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? 0.01,
-      density: options.density ?? 0.001,
-      isSensor: options.isSensor ?? false,
-    });
+
+    // Merge options with defaults
+    const finalOptions = {
+      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
+      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
+      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+    };
+
+    const body = Bodies.rectangle(x, y, width, height, finalOptions);
 
     const id = `body_${this.bodyIdCounter++}`;
     const physicsBody = new MatterPhysicsBody(body, id);
@@ -116,7 +120,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     return physicsBody;
   }
-
   public createCircle(
     x: number,
     y: number,
@@ -126,14 +129,18 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (!this.world) {
       throw new Error('Physics system not initialized');
     }
-    const body = Bodies.circle(x, y, radius, {
-      isStatic: options.isStatic ?? false,
-      restitution: options.restitution ?? 0.3,
-      friction: options.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? 0.01,
-      density: options.density ?? 0.001,
-      isSensor: options.isSensor ?? false,
-    });
+
+    // Merge options with defaults
+    const finalOptions = {
+      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
+      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
+      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+    };
+
+    const body = Bodies.circle(x, y, radius, finalOptions);
 
     const id = `body_${this.bodyIdCounter++}`;
     const physicsBody = new MatterPhysicsBody(body, id);
@@ -143,7 +150,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     return physicsBody;
   }
-
   public createPolygon(
     x: number,
     y: number,
@@ -157,14 +163,17 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     // Convert Vector2D vertices to Matter.js format
     const matterVertices = vertices.map(v => ({ x: v.x, y: v.y }));
 
-    const body = Bodies.fromVertices(x, y, [matterVertices], {
-      isStatic: options.isStatic ?? false,
-      restitution: options.restitution ?? 0.3,
-      friction: options.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? 0.01,
-      density: options.density ?? 0.001,
-      isSensor: options.isSensor ?? false,
-    });
+    // Merge options with defaults
+    const finalOptions = {
+      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
+      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
+      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+    };
+
+    const body = Bodies.fromVertices(x, y, [matterVertices], finalOptions);
 
     const id = `body_${this.bodyIdCounter++}`;
     const physicsBody = new MatterPhysicsBody(body, id);
@@ -215,12 +224,125 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       Body.setAngle(matterBody.matterBody, angle);
     }
   }
-
   public setGravity(x: number, y: number): void {
     if (this.engine) {
       this.engine.world.gravity.x = x;
       this.engine.world.gravity.y = y;
     }
+  }
+
+  public configureWorld(config: any): void {
+    if (!this.engine || !this.world) return;
+
+    if (config.gravity) {
+      this.engine.world.gravity.x = config.gravity.x;
+      this.engine.world.gravity.y = config.gravity.y;
+    }
+
+    if (typeof config.gravityScale === 'number') {
+      this.engine.world.gravity.scale = config.gravityScale;
+    }
+
+    if (typeof config.constraintIterations === 'number') {
+      this.engine.constraintIterations = config.constraintIterations;
+    }
+
+    if (typeof config.positionIterations === 'number') {
+      this.engine.positionIterations = config.positionIterations;
+    }
+
+    if (typeof config.velocityIterations === 'number') {
+      this.engine.velocityIterations = config.velocityIterations;
+    }
+
+    if (typeof config.enableSleeping === 'boolean') {
+      this.engine.enableSleeping = config.enableSleeping;
+    }
+
+    if (config.timing) {
+      if (typeof config.timing.timeScale === 'number') {
+        this.engine.timing.timeScale = config.timing.timeScale;
+      }
+      if (typeof config.timing.timestamp === 'number') {
+        this.engine.timing.timestamp = config.timing.timestamp;
+      }
+    }
+  }
+
+  public configureEngine(config: any): void {
+    if (!this.engine) return;
+
+    if (typeof config.enableSleeping === 'boolean') {
+      this.engine.enableSleeping = config.enableSleeping;
+    }
+
+    if (typeof config.positionIterations === 'number') {
+      this.engine.positionIterations = config.positionIterations;
+    }
+
+    if (typeof config.velocityIterations === 'number') {
+      this.engine.velocityIterations = config.velocityIterations;
+    }
+
+    if (typeof config.constraintIterations === 'number') {
+      this.engine.constraintIterations = config.constraintIterations;
+    }
+
+    if (config.timing) {
+      if (typeof config.timing.timeScale === 'number') {
+        this.engine.timing.timeScale = config.timing.timeScale;
+      }
+      if (typeof config.timing.timestamp === 'number') {
+        this.engine.timing.timestamp = config.timing.timestamp;
+      }
+    }
+  }
+
+  public setDefaultBodyProperties(defaults: any): void {
+    // Store defaults for future body creation
+    this.defaultBodyProperties = { ...defaults };
+  }
+  public updateExistingBodies(properties: any): void {
+    // Apply properties to all existing bodies
+    this.bodies.forEach((physicsBody) => {
+      const body = physicsBody.matterBody;
+
+      if (typeof properties.restitution === 'number') {
+        body.restitution = properties.restitution;
+      }
+
+      if (typeof properties.friction === 'number') {
+        body.friction = properties.friction;
+      }
+
+      if (typeof properties.frictionStatic === 'number') {
+        body.frictionStatic = properties.frictionStatic;
+      }
+
+      if (typeof properties.frictionAir === 'number') {
+        body.frictionAir = properties.frictionAir;
+      }
+
+      if (typeof properties.density === 'number') {
+        Body.setDensity(body, properties.density);
+      }
+
+      if (typeof properties.mass === 'number') {
+        Body.setMass(body, properties.mass);
+      }
+
+      if (typeof properties.inertia === 'number') {
+        Body.setInertia(body, properties.inertia);
+      }
+
+      if (typeof properties.sleepThreshold === 'number') {
+        body.sleepThreshold = properties.sleepThreshold;
+      }
+
+      if (typeof properties.slop === 'number') {
+        body.slop = properties.slop;
+      }
+    });
   }
 
   public destroy(): void {
