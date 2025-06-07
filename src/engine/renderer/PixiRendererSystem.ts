@@ -69,7 +69,6 @@ export class PixiRendererSystem implements IRendererSystem {
       console.warn('Render error (possibly due to context loss):', error);
     }
   }
-
   public createRenderObject(object: RenderableObject): void {
     if (!this.app) return;
 
@@ -88,7 +87,15 @@ export class PixiRendererSystem implements IRendererSystem {
       graphics.circle(0, 0, radius);
       graphics.fill(object.color ?? 0x16213e);
       graphics.stroke({ color: 0x0f3460, width: 2 });
+    } else if (object.type === 'polygon') {
+      const vertices = object.vertices ?? [];
+      if (vertices.length >= 3) {
+        graphics.poly(vertices.map(v => ({ x: v.x, y: v.y })));
+        graphics.fill(object.color ?? 0x16213e);
+        graphics.stroke({ color: 0x0f3460, width: 2 });
+      }
     }
+
     graphics.x = object.position.x;
     graphics.y = object.position.y;
     graphics.rotation = object.angle;

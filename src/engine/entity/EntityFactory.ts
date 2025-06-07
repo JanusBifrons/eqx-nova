@@ -1,4 +1,4 @@
-import type { IPhysicsSystem } from '../interfaces/IPhysicsSystem';
+import type { IPhysicsSystem, Vector2D } from '../interfaces/IPhysicsSystem';
 import type {
   IRendererSystem,
   RenderableObject,
@@ -18,6 +18,13 @@ export interface CircleConfig {
   x: number;
   y: number;
   radius: number;
+  options?: EntityOptions;
+}
+
+export interface PolygonConfig {
+  x: number;
+  y: number;
+  vertices: Vector2D[];
   options?: EntityOptions;
 }
 
@@ -44,6 +51,7 @@ export class EntityFactory {
         friction: config.options?.friction,
         frictionAir: config.options?.frictionAir,
         density: config.options?.density,
+        isSensor: config.options?.isSensor,
       }
     );
 
@@ -85,6 +93,7 @@ export class EntityFactory {
         friction: config.options?.friction,
         frictionAir: config.options?.frictionAir,
         density: config.options?.density,
+        isSensor: config.options?.isSensor,
       }
     );
 
@@ -104,6 +113,49 @@ export class EntityFactory {
     const entity = new Entity(
       entityId,
       'circle',
+      physicsBody.id,
+      renderObject.id
+    );
+    entity.position = physicsBody.position;
+    entity.angle = physicsBody.angle;
+
+    return entity;
+  }
+
+  public createPolygon(config: PolygonConfig): Entity {
+    const entityId = `entity_${this.entityIdCounter++}`;
+
+    // Create physics body
+    const physicsBody = this.physicsSystem.createPolygon(
+      config.x,
+      config.y,
+      config.vertices,
+      {
+        isStatic: config.options?.isStatic,
+        restitution: config.options?.restitution,
+        friction: config.options?.friction,
+        frictionAir: config.options?.frictionAir,
+        density: config.options?.density,
+        isSensor: config.options?.isSensor,
+      }
+    );
+
+    // Create render object
+    const renderObject: RenderableObject = {
+      id: `render_${entityId}`,
+      position: physicsBody.position,
+      angle: physicsBody.angle,
+      vertices: config.vertices,
+      color: config.options?.color ?? 0x16213e,
+      type: 'polygon',
+    };
+
+    this.rendererSystem.createRenderObject(renderObject);
+
+    // Create and return entity
+    const entity = new Entity(
+      entityId,
+      'polygon',
       physicsBody.id,
       renderObject.id
     );

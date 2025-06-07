@@ -1,26 +1,25 @@
 import type { Engine } from '../engine';
 import type { Entity } from '../engine/entity';
 import type { KeyboardInputEvent } from '../engine/input';
+import type {
+  Vector2D,
+  CollisionEvent,
+} from '../engine/interfaces/IPhysicsSystem';
+import { ShapeUtils } from './utils';
 
-interface Vector2 {
-  x: number;
-  y: number;
+interface LaserData {
+  entity: Entity;
+  createdAt: number;
 }
 
-interface Asteroid {
+interface AsteroidData {
   entity: Entity;
   size: 'large' | 'medium' | 'small';
-  velocity: Vector2;
-}
-
-interface Bullet {
-  entity: Entity;
-  velocity: Vector2;
-  lifeTime: number;
 }
 
 /**
- * AsteroidsGame - Classic asteroids game implementation
+ * Refactored AsteroidsGame - Uses engine properly without duplicating functionality
+ * Focuses on game logic rather than entity management
  */
 export class AsteroidsGame {
   private static instance: AsteroidsGame | null = null;
@@ -28,7 +27,34 @@ export class AsteroidsGame {
   private isDestroyed = false;
   private engine: Engine | null = null;
 
-  // Singleton pattern to prevent multiple instances
+  // Game entities - just tracking what we created, engine manages them
+  private playerShip: Entity | null = null;
+  private lasers: LaserData[] = [];
+  private asteroids: AsteroidData[] = [];
+
+  // Player state
+  private playerRotation = 0;
+  private playerThrust = false;
+
+  // Input state
+  private keys: Set<string> = new Set();
+
+  // Game constants
+  private readonly PLAYER_ROTATION_SPEED = 0.003;
+  private readonly LASER_SPEED = 0.6;
+  private readonly LASER_LIFETIME = 2000; // milliseconds
+  private readonly ASTEROID_MIN_SPEED = 0.05;
+  private readonly ASTEROID_MAX_SPEED = 0.15;
+  private readonly THRUST_FORCE = 0.0005;
+
+  // Game state
+  private score = 0;
+  private lives = 3;
+  private gameOver = false;
+  private lastLaserTime = 0;
+  private readonly LASER_COOLDOWN = 150; // milliseconds
+
+  // Singleton pattern
   public static getInstance(): AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
@@ -43,29 +69,6 @@ export class AsteroidsGame {
     }
   }
 
-  // Game entities
-  private playerShip: Entity | null = null;
-  private asteroids: Asteroid[] = [];
-  private bullets: Bullet[] = [];
-  // Player state
-  private playerRotation = 0;
-  private playerThrust = false;
-
-  // Input state
-  private keys: Set<string> = new Set();
-
-  // Game constants
-  private readonly PLAYER_ROTATION_SPEED = 0.003;
-  private readonly BULLET_SPEED = 0.6;
-  private readonly BULLET_LIFETIME = 2000; // milliseconds
-  private readonly ASTEROID_MIN_SPEED = 0.05;
-  private readonly ASTEROID_MAX_SPEED = 0.15;
-
-  // Game state
-  private score = 0;
-  private lives = 3;
-  private gameOver = false;
-  private lastBulletTime: number = 0;
   public initialize(engine: Engine): void {
     if (this.isDestroyed) {
       console.warn('Cannot initialize destroyed game instance');
@@ -82,24 +85,9 @@ export class AsteroidsGame {
     this.engine = engine;
     this.setupGame();
     this.setupInputHandlers();
+    this.setupCollisionHandlers();
     this.isInitialized = true;
     console.log('Asteroids game initialized!');
-  }
-
-  public update(deltaTime: number): void {
-    if (!this.isInitialized || !this.engine || this.gameOver) return;
-
-    this.handleInput(deltaTime);
-    this.updatePlayer(deltaTime);
-    this.updateBullets(deltaTime);
-    this.updateAsteroids(deltaTime);
-    this.checkCollisions();
-    this.wrapScreenPositions();
-
-    // Spawn new asteroids if none left
-    if (this.asteroids.length === 0) {
-      this.spawnAsteroidWave();
-    }
   }
 
   private setupGame(): void {
@@ -117,32 +105,29 @@ export class AsteroidsGame {
 
     const rendererSystem = this.engine.getRendererSystem();
     const centerX = rendererSystem.getWidth() / 2;
-    const centerY = rendererSystem.getHeight() / 2; // Create a triangular ship
-    this.playerShip = this.engine.createRectangle({
+    const centerY = rendererSystem.getHeight() / 2;
+
+    // Create triangular ship using polygon
+    const triangleVertices = ShapeUtils.createTriangle(20);
+
+    this.playerShip = this.engine.createPolygon({
       x: centerX,
       y: centerY,
-      width: 20,
-      height: 20,
+      vertices: triangleVertices,
       options: {
         color: 0x00ff00,
         isStatic: false,
+        frictionAir: 0.02, // Some drag to prevent infinite spinning
+        density: 0.001,
       },
     });
 
-    console.log('Player ship created at:', centerX, centerY);
+    console.log('Triangular player ship created at:', centerX, centerY);
   }
 
   private spawnInitialAsteroids(): void {
     // Start with 3 large asteroids
     for (let i = 0; i < 3; i++) {
-      this.createRandomAsteroid('large');
-    }
-  }
-
-  private spawnAsteroidWave(): void {
-    // Increase difficulty by adding more asteroids
-    const numAsteroids = Math.min(5 + Math.floor(this.score / 1000), 8);
-    for (let i = 0; i < numAsteroids; i++) {
       this.createRandomAsteroid('large');
     }
   }
@@ -154,29 +139,12 @@ export class AsteroidsGame {
     const width = rendererSystem.getWidth();
     const height = rendererSystem.getHeight();
 
-    // Spawn at random edge of screen
-    let x, y;
-    const edge = Math.floor(Math.random() * 4);
-    switch (edge) {
-      case 0: // Top
-        x = Math.random() * width;
-        y = -20;
-        break;
-      case 1: // Right
-        x = width + 20;
-        y = Math.random() * height;
-        break;
-      case 2: // Bottom
-        x = Math.random() * width;
-        y = height + 20;
-        break;
-      default: // Left
-        x = -20;
-        y = Math.random() * height;
-        break;
-    }
-    this.createAsteroid(size, x, y);
+    // Get random edge position
+    const position = ShapeUtils.getRandomEdgePosition(width, height);
+
+    this.createAsteroid(size, position.x, position.y);
   }
+
   private createAsteroid(
     size: 'large' | 'medium' | 'small',
     x: number,
@@ -190,47 +158,42 @@ export class AsteroidsGame {
       small: 15,
     };
 
-    const asteroidSize = sizeMap[size];
-    const entity = this.engine.createCircle({
+    const asteroidRadius = sizeMap[size] / 2;
+
+    // Create irregular polygon for asteroid
+    const vertices = ShapeUtils.createIrregularPolygon(asteroidRadius, 8, 0.4);
+
+    const entity = this.engine.createPolygon({
       x,
       y,
-      radius: asteroidSize / 2,
+      vertices,
       options: {
         color: 0x888888,
         isStatic: false,
         frictionAir: 0, // No air resistance in space
         density: 0.001,
       },
-    }); // Apply initial velocity through physics
+    });
+
+    // Apply initial velocity through physics
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const asteroidBody = allBodies.find(
       body => body.id === entity.physicsBodyId
     );
 
-    // Calculate speed and angle once
-    const speed =
-      this.ASTEROID_MIN_SPEED +
-      Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
-    const angle = Math.random() * Math.PI * 2;
-
     if (asteroidBody) {
+      const speed =
+        this.ASTEROID_MIN_SPEED +
+        Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
+      const angle = Math.random() * Math.PI * 2;
+
       const forceX = Math.cos(angle) * speed * 0.001;
       const forceY = Math.sin(angle) * speed * 0.001;
       physicsSystem.applyForce(asteroidBody, { x: forceX, y: forceY });
     }
 
-    // Store velocity for reference (though physics is now source of truth)
-    const velocity = {
-      x: Math.cos(angle) * speed,
-      y: Math.sin(angle) * speed,
-    };
-
-    this.asteroids.push({
-      entity,
-      size,
-      velocity,
-    });
+    this.asteroids.push({ entity, size });
     console.log(`Created ${size} asteroid at:`, x, y);
   }
 
@@ -247,23 +210,180 @@ export class AsteroidsGame {
       }
     });
   }
-  private handleInput(_deltaTime: number): void {
+
+  private setupCollisionHandlers(): void {
+    if (!this.engine) return;
+
+    const physicsSystem = this.engine.getPhysicsSystem();
+
+    physicsSystem.onCollisionStart((event: CollisionEvent) => {
+      this.handleCollision(event);
+    });
+  }
+
+  private handleCollision(event: CollisionEvent): void {
+    const { bodyA, bodyB } = event;
+
+    // Find which entities these bodies belong to
+    const entityA = this.findEntityByPhysicsBodyId(bodyA.id);
+    const entityB = this.findEntityByPhysicsBodyId(bodyB.id);
+
+    if (!entityA || !entityB) return;
+
+    // Check laser-asteroid collisions
+    const laserData =
+      this.findLaserByEntity(entityA) || this.findLaserByEntity(entityB);
+    const asteroidData =
+      this.findAsteroidByEntity(entityA) || this.findAsteroidByEntity(entityB);
+
+    if (laserData && asteroidData) {
+      this.handleLaserAsteroidCollision(laserData, asteroidData);
+    }
+
+    // Check player-asteroid collisions
+    const isPlayerA = entityA === this.playerShip;
+    const isPlayerB = entityB === this.playerShip;
+    const playerAsteroidData =
+      asteroidData && (isPlayerA || isPlayerB) ? asteroidData : null;
+
+    if (playerAsteroidData) {
+      this.handlePlayerAsteroidCollision(playerAsteroidData);
+    }
+  }
+
+  private findEntityByPhysicsBodyId(physicsBodyId: string): Entity | null {
+    if (this.playerShip?.physicsBodyId === physicsBodyId) {
+      return this.playerShip;
+    }
+
+    const laser = this.lasers.find(
+      l => l.entity.physicsBodyId === physicsBodyId
+    );
+    if (laser) return laser.entity;
+
+    const asteroid = this.asteroids.find(
+      a => a.entity.physicsBodyId === physicsBodyId
+    );
+    if (asteroid) return asteroid.entity;
+
+    return null;
+  }
+
+  private findLaserByEntity(entity: Entity): LaserData | null {
+    return this.lasers.find(l => l.entity === entity) || null;
+  }
+
+  private findAsteroidByEntity(entity: Entity): AsteroidData | null {
+    return this.asteroids.find(a => a.entity === entity) || null;
+  }
+
+  private handleLaserAsteroidCollision(
+    laserData: LaserData,
+    asteroidData: AsteroidData
+  ): void {
+    if (!this.engine) return;
+
+    // Remove laser
+    this.removeLaser(laserData);
+
+    // Add score
+    const points =
+      asteroidData.size === 'large'
+        ? 20
+        : asteroidData.size === 'medium'
+          ? 50
+          : 100;
+    this.score += points;
+
+    // Break asteroid
+    this.breakAsteroid(asteroidData);
+  }
+
+  private handlePlayerAsteroidCollision(asteroidData: AsteroidData): void {
+    this.lives--;
+
+    if (this.lives <= 0) {
+      this.gameOver = true;
+      console.log('Game Over! Final Score:', this.score);
+    } else {
+      this.respawnPlayer();
+    }
+  }
+
+  private breakAsteroid(asteroidData: AsteroidData): void {
+    if (!this.engine) return;
+
+    const position = asteroidData.entity.position;
+
+    // Remove original asteroid
+    this.removeAsteroid(asteroidData);
+
+    // Create smaller asteroids
+    if (asteroidData.size === 'large') {
+      for (let i = 0; i < 2; i++) {
+        this.createAsteroid('medium', position.x, position.y);
+      }
+    } else if (asteroidData.size === 'medium') {
+      for (let i = 0; i < 2; i++) {
+        this.createAsteroid('small', position.x, position.y);
+      }
+    }
+    // Small asteroids just disappear
+  }
+
+  private removeLaser(laserData: LaserData): void {
+    if (!this.engine) return;
+
+    const index = this.lasers.indexOf(laserData);
+    if (index > -1) {
+      this.lasers.splice(index, 1);
+      this.engine.removeEntity(laserData.entity.id);
+    }
+  }
+
+  private removeAsteroid(asteroidData: AsteroidData): void {
+    if (!this.engine) return;
+
+    const index = this.asteroids.indexOf(asteroidData);
+    if (index > -1) {
+      this.asteroids.splice(index, 1);
+      this.engine.removeEntity(asteroidData.entity.id);
+    }
+  }
+
+  public update(deltaTime: number): void {
+    if (!this.isInitialized || !this.engine || this.gameOver) return;
+
+    this.handleInput(deltaTime);
+    this.updatePlayer(deltaTime);
+    this.updateLasers(deltaTime);
+    this.wrapScreenPositions();
+
+    // Spawn new asteroids if none left
+    if (this.asteroids.length === 0) {
+      this.spawnAsteroidWave();
+    }
+  }
+
+  private handleInput(deltaTime: number): void {
     // Rotation
     if (this.keys.has('a') || this.keys.has('arrowleft')) {
-      this.playerRotation -= this.PLAYER_ROTATION_SPEED * _deltaTime;
+      this.playerRotation -= this.PLAYER_ROTATION_SPEED * deltaTime;
     }
     if (this.keys.has('d') || this.keys.has('arrowright')) {
-      this.playerRotation += this.PLAYER_ROTATION_SPEED * _deltaTime;
+      this.playerRotation += this.PLAYER_ROTATION_SPEED * deltaTime;
     }
+
     // Thrust
     this.playerThrust = this.keys.has('w') || this.keys.has('arrowup');
 
     // Shooting
     if (this.keys.has(' ') || this.keys.has('spacebar')) {
-      this.fireBullet();
+      this.fireLaser();
     }
   }
-  private updatePlayer(_deltaTime: number): void {
+
+  private updatePlayer(deltaTime: number): void {
     if (!this.playerShip || !this.engine) return;
 
     const physicsSystem = this.engine.getPhysicsSystem();
@@ -274,245 +394,83 @@ export class AsteroidsGame {
 
     if (!playerBody) return;
 
-    // Apply thrust as a force to the physics body
+    // Apply thrust
     if (this.playerThrust) {
-      const thrustForce = 0.0005; // Adjust as needed
-      const forceX = Math.cos(this.playerRotation) * thrustForce;
-      const forceY = Math.sin(this.playerRotation) * thrustForce;
-
+      const forceX = Math.cos(this.playerRotation) * this.THRUST_FORCE;
+      const forceY = Math.sin(this.playerRotation) * this.THRUST_FORCE;
       physicsSystem.applyForce(playerBody, { x: forceX, y: forceY });
     }
 
-    // Apply rotation directly to physics body
+    // Apply rotation
     physicsSystem.setRotation(playerBody, this.playerRotation);
-
-    // Sync entity position from physics body (physics is source of truth)
-    this.playerShip.position = playerBody.position;
-    this.playerShip.angle = playerBody.angle;
   }
-  private fireBullet(): void {
+
+  private fireLaser(): void {
     if (!this.playerShip || !this.engine) return;
 
     const now = performance.now();
-    if (!this.lastBulletTime || now - this.lastBulletTime > 150) {
-      const bulletX =
-        this.playerShip.position.x + Math.cos(this.playerRotation) * 25;
-      const bulletY =
-        this.playerShip.position.y + Math.sin(this.playerRotation) * 25;
+    if (now - this.lastLaserTime < this.LASER_COOLDOWN) return;
 
-      const entity = this.engine.createCircle({
-        x: bulletX,
-        y: bulletY,
-        radius: 2,
-        options: {
-          color: 0xffff00,
-          isStatic: false,
-          frictionAir: 0, // No air resistance for bullets
-          density: 0.001, // Light bullets
-        },
-      });
+    const laserX =
+      this.playerShip.position.x + Math.cos(this.playerRotation) * 25;
+    const laserY =
+      this.playerShip.position.y + Math.sin(this.playerRotation) * 25;
 
-      // Apply initial force to the bullet using physics
-      const physicsSystem = this.engine.getPhysicsSystem();
-      const allBodies = physicsSystem.getAllBodies();
-      const bulletBody = allBodies.find(
-        body => body.id === entity.physicsBodyId
-      );
+    const entity = this.engine.createCircle({
+      x: laserX,
+      y: laserY,
+      radius: 2,
+      options: {
+        color: 0xffff00,
+        isStatic: false,
+        frictionAir: 0,
+        density: 0.001,
+        isSensor: true, // Lasers are sensors - they detect collisions but don't physically collide
+      },
+    });
 
-      if (bulletBody) {
-        const forceX =
-          Math.cos(this.playerRotation) * this.BULLET_SPEED * 0.001;
-        const forceY =
-          Math.sin(this.playerRotation) * this.BULLET_SPEED * 0.001;
-        physicsSystem.applyForce(bulletBody, { x: forceX, y: forceY });
-      }
-
-      const bullet: Bullet = {
-        entity,
-        velocity: {
-          x: Math.cos(this.playerRotation) * this.BULLET_SPEED,
-          y: Math.sin(this.playerRotation) * this.BULLET_SPEED,
-        },
-        lifeTime: this.BULLET_LIFETIME,
-      };
-
-      this.bullets.push(bullet);
-      this.lastBulletTime = now;
-    }
-  }
-  private updateBullets(deltaTime: number): void {
-    if (!this.engine) return;
-
-    const bulletsToRemove: number[] = [];
+    // Apply velocity to laser
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
+    const laserBody = allBodies.find(body => body.id === entity.physicsBodyId);
 
-    this.bullets.forEach((bullet, index) => {
-      // Sync position from physics body (physics is source of truth)
-      const bulletBody = allBodies.find(
-        body => body.id === bullet.entity.physicsBodyId
-      );
-
-      if (bulletBody) {
-        bullet.entity.position = bulletBody.position;
-        bullet.entity.angle = bulletBody.angle;
-      }
-
-      // Update lifetime
-      bullet.lifeTime -= deltaTime;
-
-      if (bullet.lifeTime <= 0) {
-        bulletsToRemove.push(index);
-      }
-    });
-
-    // Remove expired bullets
-    bulletsToRemove.reverse().forEach(index => {
-      const bullet = this.bullets[index];
-      this.engine!.removeEntity(bullet.entity.id);
-      this.bullets.splice(index, 1);
-    });
-  }
-  private updateAsteroids(_deltaTime: number): void {
-    if (!this.engine) return;
-
-    const physicsSystem = this.engine.getPhysicsSystem();
-    const allBodies = physicsSystem.getAllBodies();
-
-    this.asteroids.forEach(asteroid => {
-      // Sync position from physics body (physics is source of truth)
-      const asteroidBody = allBodies.find(
-        body => body.id === asteroid.entity.physicsBodyId
-      );
-
-      if (asteroidBody) {
-        asteroid.entity.position = asteroidBody.position;
-        asteroid.entity.angle = asteroidBody.angle;
-      }
-    });
-  }
-  private checkCollisions(): void {
-    if (!this.playerShip || !this.engine) return;
-
-    const bulletsToRemove: number[] = [];
-    const asteroidsToRemove: number[] = [];
-    const asteroidsToBreak: Asteroid[] = []; // Track asteroids to break
-
-    // Check bullet-asteroid collisions
-    this.bullets.forEach((bullet, bulletIndex) => {
-      this.asteroids.forEach((asteroid, asteroidIndex) => {
-        const dx = bullet.entity.position.x - asteroid.entity.position.x;
-        const dy = bullet.entity.position.y - asteroid.entity.position.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        const bulletRadius = 2;
-        const asteroidRadius =
-          asteroid.size === 'large'
-            ? 20
-            : asteroid.size === 'medium'
-              ? 12.5
-              : 7.5;
-
-        if (distance < bulletRadius + asteroidRadius) {
-          bulletsToRemove.push(bulletIndex);
-          asteroidsToRemove.push(asteroidIndex);
-
-          // Add score based on asteroid size
-          const points =
-            asteroid.size === 'large'
-              ? 20
-              : asteroid.size === 'medium'
-                ? 50
-                : 100;
-          this.score += points;
-
-          // Store asteroid for breaking (avoid duplicates)
-          if (!asteroidsToBreak.includes(asteroid)) {
-            asteroidsToBreak.push(asteroid);
-          }
-        }
-      });
-    });
-
-    // Check player-asteroid collisions
-    this.asteroids.forEach(asteroid => {
-      const dx = this.playerShip!.position.x - asteroid.entity.position.x;
-      const dy = this.playerShip!.position.y - asteroid.entity.position.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      const playerRadius = 10;
-      const asteroidRadius =
-        asteroid.size === 'large'
-          ? 20
-          : asteroid.size === 'medium'
-            ? 12.5
-            : 7.5;
-
-      if (distance < playerRadius + asteroidRadius) {
-        this.handlePlayerDeath();
-      }
-    });
-
-    // Remove collided objects
-    const uniqueBullets = [...new Set(bulletsToRemove)].sort((a, b) => b - a);
-    const uniqueAsteroids = [...new Set(asteroidsToRemove)].sort(
-      (a, b) => b - a
-    );
-
-    uniqueBullets.forEach(index => {
-      if (index < this.bullets.length) {
-        const bullet = this.bullets[index];
-        this.engine!.removeEntity(bullet.entity.id);
-        this.bullets.splice(index, 1);
-      }
-    });
-    uniqueAsteroids.forEach(index => {
-      if (index < this.asteroids.length) {
-        const asteroid = this.asteroids[index];
-        this.engine!.removeEntity(asteroid.entity.id);
-        this.asteroids.splice(index, 1);
-      }
-    });
-
-    // Break asteroids after removing them to avoid duplicates
-    asteroidsToBreak.forEach(asteroid => {
-      this.breakAsteroid(asteroid);
-    });
-  }
-
-  private breakAsteroid(asteroid: Asteroid): void {
-    if (asteroid.size === 'large') {
-      // Create 2 medium asteroids
-      for (let i = 0; i < 2; i++) {
-        this.createAsteroid(
-          'medium',
-          asteroid.entity.position.x,
-          asteroid.entity.position.y
-        );
-      }
-    } else if (asteroid.size === 'medium') {
-      // Create 2 small asteroids
-      for (let i = 0; i < 2; i++) {
-        this.createAsteroid(
-          'small',
-          asteroid.entity.position.x,
-          asteroid.entity.position.y
-        );
-      }
+    if (laserBody) {
+      const forceX = Math.cos(this.playerRotation) * this.LASER_SPEED * 0.001;
+      const forceY = Math.sin(this.playerRotation) * this.LASER_SPEED * 0.001;
+      physicsSystem.applyForce(laserBody, { x: forceX, y: forceY });
     }
-    // Small asteroids just disappear
+
+    this.lasers.push({
+      entity,
+      createdAt: now,
+    });
+
+    this.lastLaserTime = now;
   }
 
-  private handlePlayerDeath(): void {
-    this.lives--;
+  private updateLasers(deltaTime: number): void {
+    const now = performance.now();
+    const expiredLasers: LaserData[] = [];
 
-    if (this.lives <= 0) {
-      this.gameOver = true;
-      console.log('Game Over! Final Score:', this.score);
-    } else {
-      this.respawnPlayer();
+    this.lasers.forEach(laserData => {
+      if (now - laserData.createdAt > this.LASER_LIFETIME) {
+        expiredLasers.push(laserData);
+      }
+    });
+
+    // Remove expired lasers
+    expiredLasers.forEach(laserData => {
+      this.removeLaser(laserData);
+    });
+  }
+
+  private spawnAsteroidWave(): void {
+    const numAsteroids = Math.min(3 + Math.floor(this.score / 1000), 8);
+    for (let i = 0; i < numAsteroids; i++) {
+      this.createRandomAsteroid('large');
     }
   }
+
   private respawnPlayer(): void {
     if (!this.engine || !this.playerShip) return;
 
@@ -520,19 +478,17 @@ export class AsteroidsGame {
     const centerX = rendererSystem.getWidth() / 2;
     const centerY = rendererSystem.getHeight() / 2;
 
-    // Reset player position and rotation
-    this.playerShip.position.x = centerX;
-    this.playerShip.position.y = centerY;
+    // Reset player position and state
     this.playerRotation = 0;
 
-    // Update physics body
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const playerBody = allBodies.find(
       body => body.id === this.playerShip!.physicsBodyId
     );
+
     if (playerBody) {
-      physicsSystem.setPosition(playerBody, this.playerShip.position);
+      physicsSystem.setPosition(playerBody, { x: centerX, y: centerY });
       physicsSystem.setRotation(playerBody, this.playerRotation);
       // Stop any movement
       physicsSystem.applyForce(playerBody, {
@@ -541,6 +497,7 @@ export class AsteroidsGame {
       });
     }
   }
+
   private wrapScreenPositions(): void {
     if (!this.engine) return;
 
@@ -550,33 +507,17 @@ export class AsteroidsGame {
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
 
-    // Wrap player
-    if (this.playerShip) {
-      const playerBody = allBodies.find(
-        body => body.id === this.playerShip!.physicsBodyId
-      );
-      if (playerBody) {
-        this.wrapPhysicsBody(playerBody, width, height, physicsSystem);
-      }
-    }
+    // Wrap all our entities
+    const allEntities = [
+      this.playerShip,
+      ...this.lasers.map(l => l.entity),
+      ...this.asteroids.map(a => a.entity),
+    ].filter(entity => entity !== null);
 
-    // Wrap bullets
-    this.bullets.forEach(bullet => {
-      const bulletBody = allBodies.find(
-        body => body.id === bullet.entity.physicsBodyId
-      );
-      if (bulletBody) {
-        this.wrapPhysicsBody(bulletBody, width, height, physicsSystem);
-      }
-    });
-
-    // Wrap asteroids
-    this.asteroids.forEach(asteroid => {
-      const asteroidBody = allBodies.find(
-        body => body.id === asteroid.entity.physicsBodyId
-      );
-      if (asteroidBody) {
-        this.wrapPhysicsBody(asteroidBody, width, height, physicsSystem);
+    allEntities.forEach(entity => {
+      const body = allBodies.find(b => b.id === entity!.physicsBodyId);
+      if (body) {
+        this.wrapPhysicsBody(body, width, height, physicsSystem);
       }
     });
   }
@@ -612,7 +553,7 @@ export class AsteroidsGame {
     }
   }
 
-  // Public methods for UI
+  // Public API methods
   public getScore(): number {
     return this.score;
   }
@@ -624,19 +565,21 @@ export class AsteroidsGame {
   public isGameOver(): boolean {
     return this.gameOver;
   }
-  public restart(): void {
-    if (this.engine) {
-      // Clean up existing entities
-      [...this.bullets, ...this.asteroids].forEach(item => {
-        this.engine!.removeEntity(item.entity.id);
-      });
 
-      if (this.playerShip) {
-        this.engine.removeEntity(this.playerShip.id);
-      }
+  public restart(): void {
+    if (!this.engine) return;
+
+    // Remove all game entities
+    [...this.lasers, ...this.asteroids].forEach(item => {
+      this.engine!.removeEntity(item.entity.id);
+    });
+
+    if (this.playerShip) {
+      this.engine.removeEntity(this.playerShip.id);
     }
-    // Reset game state
-    this.bullets = [];
+
+    // Reset state
+    this.lasers = [];
     this.asteroids = [];
     this.playerShip = null;
     this.score = 0;
@@ -651,12 +594,13 @@ export class AsteroidsGame {
   public isReady(): boolean {
     return this.isInitialized;
   }
+
   public destroy(): void {
     if (this.isDestroyed) return;
 
     if (this.engine) {
       // Clean up all entities
-      [...this.bullets, ...this.asteroids].forEach(item => {
+      [...this.lasers, ...this.asteroids].forEach(item => {
         this.engine!.removeEntity(item.entity.id);
       });
 
@@ -664,8 +608,9 @@ export class AsteroidsGame {
         this.engine.removeEntity(this.playerShip.id);
       }
     }
+
     // Clear state
-    this.bullets = [];
+    this.lasers = [];
     this.asteroids = [];
     this.playerShip = null;
     this.engine = null;

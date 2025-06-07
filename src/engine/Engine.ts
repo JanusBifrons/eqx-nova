@@ -3,7 +3,12 @@ import type { IRendererSystem } from './interfaces/IRendererSystem';
 import { MatterPhysicsSystem } from './physics/MatterPhysicsSystem';
 import { PixiRendererSystem } from './renderer/PixiRendererSystem';
 import { EntityManager } from './entity/EntityManager';
-import type { Entity, RectangleConfig, CircleConfig } from './entity';
+import type {
+  Entity,
+  RectangleConfig,
+  CircleConfig,
+  PolygonConfig,
+} from './entity';
 import { InputSystem, type IInputSystem } from './input';
 
 export class Engine {
@@ -75,6 +80,11 @@ export class Engine {
   public createCircle(config: CircleConfig): Entity {
     return this.entityManager.createCircle(config);
   }
+
+  public createPolygon(config: PolygonConfig): Entity {
+    return this.entityManager.createPolygon(config);
+  }
+
   public removeEntity(entityId: string): void {
     this.entityManager.removeEntity(entityId);
   }
@@ -97,6 +107,7 @@ export class Engine {
       this.updateCallbacks.splice(index, 1);
     }
   }
+
   private gameLoop = (currentTime: number): void => {
     if (!this.isRunning) return;
 
