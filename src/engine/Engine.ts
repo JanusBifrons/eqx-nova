@@ -15,6 +15,11 @@ export class Engine {
   private animationFrameId: number | null = null;
   private lastTime = 0;
   private updateCallbacks: Array<(deltaTime: number) => void> = [];
+
+  // Frame timing smoothing
+  private frameTimeSamples: number[] = [];
+  private readonly MAX_FRAME_SAMPLES = 10;
+  private readonly TARGET_FRAME_TIME = 16.667; // 60 FPS
   constructor(
     physicsSystem?: IPhysicsSystem,
     rendererSystem?: IRendererSystem,
@@ -95,8 +100,14 @@ export class Engine {
   private gameLoop = (currentTime: number): void => {
     if (!this.isRunning) return;
 
-    const deltaTime = currentTime - this.lastTime;
+    const rawDeltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
+
+    // Use smoothed frame timing to prevent physics instability
+    let deltaTime = this.smoothFrameTime(rawDeltaTime);
+
+    // Cap delta time to prevent physics instability (Matter.js recommends <= 16.667ms)
+    deltaTime = Math.min(deltaTime, this.TARGET_FRAME_TIME);
 
     // Call registered update callbacks (for game logic)
     this.updateCallbacks.forEach(callback => callback(deltaTime));
@@ -113,6 +124,28 @@ export class Engine {
     // Schedule next frame
     this.animationFrameId = requestAnimationFrame(this.gameLoop);
   };
+
+  private smoothFrameTime(rawDeltaTime: number): number {
+    // Add current frame time to samples
+    this.frameTimeSamples.push(rawDeltaTime);
+
+    // Keep only recent samples
+    if (this.frameTimeSamples.length > this.MAX_FRAME_SAMPLES) {
+      this.frameTimeSamples.shift();
+    }
+
+    // Return smoothed average, but don't let it get too far from target
+    const average =
+      this.frameTimeSamples.reduce((sum, time) => sum + time, 0) /
+      this.frameTimeSamples.length;
+
+    // If the average is significantly different from target, bias towards target
+    if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
+      return (average + this.TARGET_FRAME_TIME) / 2;
+    }
+
+    return average;
+  }
   public destroy(): void {
     this.stop();
     this.inputSystem.destroy();

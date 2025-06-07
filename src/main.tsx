@@ -4,8 +4,16 @@ import { RouterProvider } from '@tanstack/react-router';
 import './index.css';
 import { router } from './router';
 
+// Temporarily disable StrictMode in development to prevent double initialization
+// This addresses the duplicate game initialization issue
+const isDevelopment = import.meta.env.DEV;
+
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
+  isDevelopment ? (
     <RouterProvider router={router} />
-  </StrictMode>
+  ) : (
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>
+  )
 );

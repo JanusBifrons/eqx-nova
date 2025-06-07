@@ -23,8 +23,25 @@ interface Bullet {
  * AsteroidsGame - Classic asteroids game implementation
  */
 export class AsteroidsGame {
+  private static instance: AsteroidsGame | null = null;
   private isInitialized = false;
+  private isDestroyed = false;
   private engine: Engine | null = null;
+
+  // Singleton pattern to prevent multiple instances
+  public static getInstance(): AsteroidsGame {
+    if (!AsteroidsGame.instance) {
+      AsteroidsGame.instance = new AsteroidsGame();
+    }
+    return AsteroidsGame.instance;
+  }
+
+  public static resetInstance(): void {
+    if (AsteroidsGame.instance) {
+      AsteroidsGame.instance.destroy();
+      AsteroidsGame.instance = null;
+    }
+  }
 
   // Game entities
   private playerShip: Entity | null = null;
@@ -49,8 +66,19 @@ export class AsteroidsGame {
   private lives = 3;
   private gameOver = false;
   private lastBulletTime: number = 0;
-
   public initialize(engine: Engine): void {
+    if (this.isDestroyed) {
+      console.warn('Cannot initialize destroyed game instance');
+      return;
+    }
+
+    if (this.isInitialized) {
+      console.warn(
+        'Game already initialized, skipping duplicate initialization'
+      );
+      return;
+    }
+
     this.engine = engine;
     this.setupGame();
     this.setupInputHandlers();
@@ -173,30 +201,26 @@ export class AsteroidsGame {
         frictionAir: 0, // No air resistance in space
         density: 0.001,
       },
-    });
-
-    // Apply initial velocity through physics
+    }); // Apply initial velocity through physics
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const asteroidBody = allBodies.find(
       body => body.id === entity.physicsBodyId
     );
 
+    // Calculate speed and angle once
+    const speed =
+      this.ASTEROID_MIN_SPEED +
+      Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
+    const angle = Math.random() * Math.PI * 2;
+
     if (asteroidBody) {
-      const speed =
-        this.ASTEROID_MIN_SPEED +
-        Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
-      const angle = Math.random() * Math.PI * 2;
       const forceX = Math.cos(angle) * speed * 0.001;
       const forceY = Math.sin(angle) * speed * 0.001;
       physicsSystem.applyForce(asteroidBody, { x: forceX, y: forceY });
     }
 
     // Store velocity for reference (though physics is now source of truth)
-    const speed =
-      this.ASTEROID_MIN_SPEED +
-      Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
-    const angle = Math.random() * Math.PI * 2;
     const velocity = {
       x: Math.cos(angle) * speed,
       y: Math.sin(angle) * speed,
@@ -367,12 +391,12 @@ export class AsteroidsGame {
       }
     });
   }
-
   private checkCollisions(): void {
     if (!this.playerShip || !this.engine) return;
 
     const bulletsToRemove: number[] = [];
     const asteroidsToRemove: number[] = [];
+    const asteroidsToBreak: Asteroid[] = []; // Track asteroids to break
 
     // Check bullet-asteroid collisions
     this.bullets.forEach((bullet, bulletIndex) => {
@@ -402,7 +426,10 @@ export class AsteroidsGame {
                 : 100;
           this.score += points;
 
-          this.breakAsteroid(asteroid);
+          // Store asteroid for breaking (avoid duplicates)
+          if (!asteroidsToBreak.includes(asteroid)) {
+            asteroidsToBreak.push(asteroid);
+          }
         }
       });
     });
@@ -439,13 +466,17 @@ export class AsteroidsGame {
         this.bullets.splice(index, 1);
       }
     });
-
     uniqueAsteroids.forEach(index => {
       if (index < this.asteroids.length) {
         const asteroid = this.asteroids[index];
         this.engine!.removeEntity(asteroid.entity.id);
         this.asteroids.splice(index, 1);
       }
+    });
+
+    // Break asteroids after removing them to avoid duplicates
+    asteroidsToBreak.forEach(asteroid => {
+      this.breakAsteroid(asteroid);
     });
   }
 
@@ -620,8 +651,9 @@ export class AsteroidsGame {
   public isReady(): boolean {
     return this.isInitialized;
   }
-
   public destroy(): void {
+    if (this.isDestroyed) return;
+
     if (this.engine) {
       // Clean up all entities
       [...this.bullets, ...this.asteroids].forEach(item => {
@@ -638,6 +670,7 @@ export class AsteroidsGame {
     this.playerShip = null;
     this.engine = null;
     this.isInitialized = false;
+    this.isDestroyed = true;
     this.keys.clear();
   }
 }

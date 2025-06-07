@@ -12,10 +12,28 @@ export function HomePage() {
   const [gameOver, setGameOver] = useState(false);
   useEffect(() => {
     if (!canvasRef.current) return;
+
+    // Clean up any existing instances first (for React Strict Mode)
+    if (engineRef.current) {
+      if ((engineRef.current as any).uiUpdateInterval) {
+        clearInterval((engineRef.current as any).uiUpdateInterval);
+      }
+      if ((engineRef.current as any).gameUpdateCallback) {
+        engineRef.current.unregisterUpdateCallback(
+          (engineRef.current as any).gameUpdateCallback
+        );
+      }
+      engineRef.current.destroy();
+      engineRef.current = null;
+    }
+
+    // Reset singleton instance to prevent double initialization
+    AsteroidsGame.resetInstance();
+
     const initializeEngine = async () => {
       try {
         const engine = new Engine();
-        const game = new AsteroidsGame();
+        const game = AsteroidsGame.getInstance();
         await engine.initialize(canvasRef.current!, false); // No boundaries for asteroids
         game.initialize(engine);
 
@@ -66,10 +84,10 @@ export function HomePage() {
         engineRef.current.destroy();
         engineRef.current = null;
       }
-      if (gameRef.current) {
-        gameRef.current.destroy();
-        gameRef.current = null;
-      }
+
+      // Clean up singleton instance
+      AsteroidsGame.resetInstance();
+      gameRef.current = null;
     };
   }, []);
   const handleRestart = () => {
