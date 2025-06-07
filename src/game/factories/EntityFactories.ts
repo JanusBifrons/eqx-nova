@@ -42,9 +42,7 @@ export class LaserFactory {
       const forceX = direction.x * this.LASER_SPEED * 0.001;
       const forceY = direction.y * this.LASER_SPEED * 0.001;
       physicsSystem.applyForce(laserBody, { x: forceX, y: forceY });
-    }
-
-    const velocity = {
+    }    const velocity = {
       x: direction.x * this.LASER_SPEED,
       y: direction.y * this.LASER_SPEED,
     };
@@ -110,9 +108,7 @@ export class AsteroidFactory {
       // Add gentle rotation for visual interest
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
-    }
-
-    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+    }    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -144,9 +140,7 @@ export class AsteroidFactory {
         x = -20;
         y = Math.random() * height;
         break;
-    }
-
-    return this.create(engine, { x, y }, size, onDestroy);
+    }    return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

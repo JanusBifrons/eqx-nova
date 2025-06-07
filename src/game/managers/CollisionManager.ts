@@ -57,9 +57,7 @@ export class CollisionManager {
     const player = this.playerManager.getPlayer();
     if (player?.physicsBodyId === physicsBodyId) {
       return player;
-    }
-
-    const laser = this.laserManager
+    }    const laser = this.laserManager
       .getAllLasers()
       .find(l => l.entity.physicsBodyId === physicsBodyId);
     if (laser) return laser.entity;

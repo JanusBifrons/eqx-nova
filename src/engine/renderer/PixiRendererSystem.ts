@@ -56,9 +56,7 @@ export class PixiRendererSystem implements IRendererSystem {
           console.warn('WebGL context is lost, skipping render');
           return;
         }
-      }
-
-      this.app.renderer.render(this.app.stage);
+      }      this.app.renderer.render(this.app.stage);
     } catch (error) {
       // Suppress frequent WebGL errors to avoid console spam
       if (
@@ -96,9 +94,7 @@ export class PixiRendererSystem implements IRendererSystem {
         graphics.fill(object.color ?? 0x16213e);
         graphics.stroke({ color: 0x0f3460, width: 2 });
       }
-    }
-
-    graphics.x = object.position.x;
+    }    graphics.x = object.position.x;
     graphics.y = object.position.y;
     graphics.rotation = object.angle;
 
@@ -107,9 +103,7 @@ export class PixiRendererSystem implements IRendererSystem {
       const screenPosition = this.cameraSystem.worldToScreen(object.position);
       graphics.x = screenPosition.x;
       graphics.y = screenPosition.y;
-    }
-
-    this.renderObjects.set(object.id, graphics);
+    }    this.renderObjects.set(object.id, graphics);
     this.gameContainer.addChild(graphics);
   }
   public updateRenderObject(

@@ -50,9 +50,7 @@ export class ShapeUtils {
         x: Math.cos(finalAngle) * finalRadius,
         y: Math.sin(finalAngle) * finalRadius,
       });
-    }
-
-    return points;
+    }    return points;
   }
 
   /**

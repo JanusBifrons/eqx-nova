@@ -143,17 +143,13 @@ export class GameEngineAdapter implements IGameEngine {
     } else if (body.position.x > bounds.width) {
       newX = 0;
       wrapped = true;
-    }
-
-    if (body.position.y < 0) {
+    }    if (body.position.y < 0) {
       newY = bounds.height;
       wrapped = true;
     } else if (body.position.y > bounds.height) {
       newY = 0;
       wrapped = true;
-    }
-
-    if (wrapped) {
+    }    if (wrapped) {
       physicsSystem.setPosition(body, { x: newX, y: newY });
     }
   }
@@ -181,9 +177,7 @@ export class GameEngineAdapter implements IGameEngine {
     // Basic gravity configuration (backwards compatibility)
     if (config.gravity) {
       physicsSystem.setGravity(config.gravity.x, config.gravity.y);
-    }
-
-    // Legacy air resistance support (backwards compatibility)
+    }    // Legacy air resistance support (backwards compatibility)
     if (typeof config.airResistance === 'number') {
       physicsSystem.setDefaultBodyProperties({
         frictionAir: config.airResistance
@@ -191,19 +185,13 @@ export class GameEngineAdapter implements IGameEngine {
       physicsSystem.updateExistingBodies({
         frictionAir: config.airResistance
       });
-    }
-
-    // Advanced world configuration
+    }    // Advanced world configuration
     if (config.world) {
       physicsSystem.configureWorld(config.world);
-    }
-
-    // Engine configuration
+    }    // Engine configuration
     if (config.engine) {
       physicsSystem.configureEngine(config.engine);
-    }
-
-    // Default body properties
+    }    // Default body properties
     if (config.defaultBodyProperties) {
       physicsSystem.setDefaultBodyProperties(config.defaultBodyProperties);
       // Optionally apply to existing bodies      physicsSystem.updateExistingBodies(config.defaultBodyProperties);

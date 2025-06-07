@@ -61,9 +61,7 @@ export class PlayerManager {
       const forceX = Math.cos(this.rotation) * this.THRUST_FORCE;
       const forceY = Math.sin(this.rotation) * this.THRUST_FORCE;
       this.gameEngine.applyForceToEntity(this.player, { x: forceX, y: forceY });
-    }
-
-    // Apply rotation
+    }    // Apply rotation
     this.gameEngine.setEntityRotation(this.player, this.rotation);
   }
 

@@ -158,9 +158,7 @@ export class Engine {
     // Keep only recent samples
     if (this.frameTimeSamples.length > this.MAX_FRAME_SAMPLES) {
       this.frameTimeSamples.shift();
-    }
-
-    // Return smoothed average, but don't let it get too far from target
+    }    // Return smoothed average, but don't let it get too far from target
     const average =
       this.frameTimeSamples.reduce((sum, time) => sum + time, 0) /
       this.frameTimeSamples.length;
@@ -168,9 +166,7 @@ export class Engine {
     // If the average is significantly different from target, bias towards target
     if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
       return (average + this.TARGET_FRAME_TIME) / 2;
-    }
-
-    return average;
+    }    return average;
   }
   public destroy(): void {
     this.stop();

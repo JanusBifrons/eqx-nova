@@ -25,9 +25,7 @@ export function HomePage() {
       }
       engineRef.current.destroy();
       engineRef.current = null;
-    }
-
-    // Reset singleton instance to prevent double initialization
+    }    // Reset singleton instance to prevent double initialization
     AsteroidsGame.resetInstance();
 
     const initializeEngine = async () => {
@@ -83,9 +81,7 @@ export function HomePage() {
         }
         engineRef.current.destroy();
         engineRef.current = null;
-      }
-
-      // Clean up singleton instance
+      }      // Clean up singleton instance
       AsteroidsGame.resetInstance();
       gameRef.current = null;
     };

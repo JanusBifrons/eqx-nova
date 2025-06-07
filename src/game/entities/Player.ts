@@ -83,6 +83,7 @@ export class Player {
   public update(deltaTime: number): void {
     if (this._isInvulnerable) {
       this._invulnerabilityTimer -= deltaTime;
+
       if (this._invulnerabilityTimer <= 0) {
         this._isInvulnerable = false;
         this._invulnerabilityTimer = 0;
@@ -97,9 +98,7 @@ export class Player {
   public takeDamage(): boolean {
     if (this._isInvulnerable) {
       return false;
-    }
-
-    this._lives--;
+    }    this._lives--;
 
     if (this._lives > 0) {
       // Make player temporarily invulnerable

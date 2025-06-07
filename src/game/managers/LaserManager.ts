@@ -28,9 +28,7 @@ export class LaserManager {
     const now = performance.now();
     if (now - this.lastFireTime < this.LASER_COOLDOWN) {
       return false;
-    }
-
-    const laserX = position.x + Math.cos(rotation) * 25;
+    }    const laserX = position.x + Math.cos(rotation) * 25;
     const laserY = position.y + Math.sin(rotation) * 25;
 
     const entity = this.gameEngine.createLaser(

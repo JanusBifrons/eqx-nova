@@ -74,9 +74,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
       // Ceiling
       this.createRectangle(width / 2, 10, width, 20, groundOptions);
-    }
-
-    // Set up collision event handling
+    }    // Set up collision event handling
     if (this.engine) {
       Events.on(this.engine, 'collisionStart', this.handleCollisionStart);
       Events.on(this.engine, 'collisionEnd', this.handleCollisionEnd);
@@ -98,9 +96,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   ): IPhysicsBody {
     if (!this.world) {
       throw new Error('Physics system not initialized');
-    }
-
-    // Merge options with defaults
+    }    // Merge options with defaults
     const finalOptions = {
       isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
       restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
@@ -128,9 +124,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   ): IPhysicsBody {
     if (!this.world) {
       throw new Error('Physics system not initialized');
-    }
-
-    // Merge options with defaults
+    }    // Merge options with defaults
     const finalOptions = {
       isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
       restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
@@ -158,9 +152,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   ): IPhysicsBody {
     if (!this.world) {
       throw new Error('Physics system not initialized');
-    }
-
-    // Convert Vector2D vertices to Matter.js format
+    }    // Convert Vector2D vertices to Matter.js format
     const matterVertices = vertices.map(v => ({ x: v.x, y: v.y }));
 
     // Merge options with defaults
@@ -252,29 +244,17 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (config.gravity) {
       this.engine.world.gravity.x = config.gravity.x;
       this.engine.world.gravity.y = config.gravity.y;
-    }
-
-    if (typeof config.gravityScale === 'number') {
+    }    if (typeof config.gravityScale === 'number') {
       this.engine.world.gravity.scale = config.gravityScale;
-    }
-
-    if (typeof config.constraintIterations === 'number') {
+    }    if (typeof config.constraintIterations === 'number') {
       this.engine.constraintIterations = config.constraintIterations;
-    }
-
-    if (typeof config.positionIterations === 'number') {
+    }    if (typeof config.positionIterations === 'number') {
       this.engine.positionIterations = config.positionIterations;
-    }
-
-    if (typeof config.velocityIterations === 'number') {
+    }    if (typeof config.velocityIterations === 'number') {
       this.engine.velocityIterations = config.velocityIterations;
-    }
-
-    if (typeof config.enableSleeping === 'boolean') {
+    }    if (typeof config.enableSleeping === 'boolean') {
       this.engine.enableSleeping = config.enableSleeping;
-    }
-
-    if (config.timing) {
+    }    if (config.timing) {
       if (typeof config.timing.timeScale === 'number') {
         this.engine.timing.timeScale = config.timing.timeScale;
       }
@@ -289,21 +269,13 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     if (typeof config.enableSleeping === 'boolean') {
       this.engine.enableSleeping = config.enableSleeping;
-    }
-
-    if (typeof config.positionIterations === 'number') {
+    }    if (typeof config.positionIterations === 'number') {
       this.engine.positionIterations = config.positionIterations;
-    }
-
-    if (typeof config.velocityIterations === 'number') {
+    }    if (typeof config.velocityIterations === 'number') {
       this.engine.velocityIterations = config.velocityIterations;
-    }
-
-    if (typeof config.constraintIterations === 'number') {
+    }    if (typeof config.constraintIterations === 'number') {
       this.engine.constraintIterations = config.constraintIterations;
-    }
-
-    if (config.timing) {
+    }    if (config.timing) {
       if (typeof config.timing.timeScale === 'number') {
         this.engine.timing.timeScale = config.timing.timeScale;
       }
@@ -324,37 +296,21 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
       if (typeof properties.restitution === 'number') {
         body.restitution = properties.restitution;
-      }
-
-      if (typeof properties.friction === 'number') {
+      }      if (typeof properties.friction === 'number') {
         body.friction = properties.friction;
-      }
-
-      if (typeof properties.frictionStatic === 'number') {
+      }      if (typeof properties.frictionStatic === 'number') {
         body.frictionStatic = properties.frictionStatic;
-      }
-
-      if (typeof properties.frictionAir === 'number') {
+      }      if (typeof properties.frictionAir === 'number') {
         body.frictionAir = properties.frictionAir;
-      }
-
-      if (typeof properties.density === 'number') {
+      }      if (typeof properties.density === 'number') {
         Body.setDensity(body, properties.density);
-      }
-
-      if (typeof properties.mass === 'number') {
+      }      if (typeof properties.mass === 'number') {
         Body.setMass(body, properties.mass);
-      }
-
-      if (typeof properties.inertia === 'number') {
+      }      if (typeof properties.inertia === 'number') {
         Body.setInertia(body, properties.inertia);
-      }
-
-      if (typeof properties.sleepThreshold === 'number') {
+      }      if (typeof properties.sleepThreshold === 'number') {
         body.sleepThreshold = properties.sleepThreshold;
-      }
-
-      if (typeof properties.slop === 'number') {
+      }      if (typeof properties.slop === 'number') {
         body.slop = properties.slop;
       }
     });

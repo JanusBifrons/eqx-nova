@@ -34,9 +34,7 @@ export class Laser {
     if (this.lifeTimeRemaining <= 0) {
       this.destroy();
       return true;
-    }
-
-    return false;
+    }    return false;
   }
 
   /**

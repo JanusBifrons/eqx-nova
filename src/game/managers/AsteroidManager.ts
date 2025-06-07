@@ -29,14 +29,10 @@ export class AsteroidManager {
     // 4 large asteroids
     for (let i = 0; i < 4; i++) {
       this.createRandomAsteroid('large');
-    }
-
-    // 3 medium asteroids for additional challenge and visual interest
+    }    // 3 medium asteroids for additional challenge and visual interest
     for (let i = 0; i < 3; i++) {
       this.createRandomAsteroid('medium');
-    }
-
-    console.log('Spawned initial asteroids: 4 large, 3 medium');
+    }    console.log('Spawned initial asteroids: 4 large, 3 medium');
   }
 
   public spawnAsteroidWave(score: number): void {
