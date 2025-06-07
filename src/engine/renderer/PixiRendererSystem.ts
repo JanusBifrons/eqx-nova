@@ -42,12 +42,14 @@ export class PixiRendererSystem implements IRendererSystem {
       console.error('Failed to initialize PixiJS renderer:', error);
       throw error;
     }
-  }
-  public render(): void {
+  } public render(): void {
     if (!this.app || !this.app.renderer) return;
 
     try {
-      // Check if WebGL context is lost
+      // Update world border to reflect current camera position (only if camera system exists)
+      if (this.cameraSystem) {
+        this.updateWorldBorder();
+      }      // Check if WebGL context is lost
       const canvas = this.app.canvas;
       if (canvas instanceof HTMLCanvasElement) {
         const context =
@@ -56,7 +58,8 @@ export class PixiRendererSystem implements IRendererSystem {
           console.warn('WebGL context is lost, skipping render');
           return;
         }
-      }      this.app.renderer.render(this.app.stage);
+      }
+      this.app.renderer.render(this.app.stage);
     } catch (error) {
       // Suppress frequent WebGL errors to avoid console spam
       if (
@@ -94,7 +97,8 @@ export class PixiRendererSystem implements IRendererSystem {
         graphics.fill(object.color ?? 0x16213e);
         graphics.stroke({ color: 0x0f3460, width: 2 });
       }
-    }    graphics.x = object.position.x;
+    }
+    graphics.x = object.position.x;
     graphics.y = object.position.y;
     graphics.rotation = object.angle;
 
@@ -103,7 +107,8 @@ export class PixiRendererSystem implements IRendererSystem {
       const screenPosition = this.cameraSystem.worldToScreen(object.position);
       graphics.x = screenPosition.x;
       graphics.y = screenPosition.y;
-    }    this.renderObjects.set(object.id, graphics);
+    }
+    this.renderObjects.set(object.id, graphics);
     this.gameContainer.addChild(graphics);
   }
   public updateRenderObject(
@@ -164,35 +169,100 @@ export class PixiRendererSystem implements IRendererSystem {
       this.app.destroy(true);
       this.app = null;
     }
+  } private createBorder(): void {
+    if (!this.app) return;
+
+    // Remove existing viewport border if it exists
+    const existingViewportBorder = this.app.stage.getChildByLabel('viewport-border');
+    if (existingViewportBorder) {
+      this.app.stage.removeChild(existingViewportBorder);
+      existingViewportBorder.destroy();
+    }    // Create viewport border (around the screen) - this should stay fixed
+    const viewportBorder = new Graphics();
+    viewportBorder.label = 'viewport-border';
+
+    // Draw a thick, bold rectangle that exactly matches the screen boundaries
+    const borderWidth = 8; // Much thicker border
+    viewportBorder.rect(borderWidth / 2, borderWidth / 2, this.app.screen.width - borderWidth, this.app.screen.height - borderWidth);
+    viewportBorder.stroke({ color: 0x00ff00, width: borderWidth }); // Bright green, thick border
+
+    // Ensure it's positioned at screen origin and never moves
+    viewportBorder.x = 0;
+    viewportBorder.y = 0;
+
+    // Add viewport border to stage (not game container) at the very top layer
+    this.app.stage.addChild(viewportBorder); // Add at the end so it's on top
+
+    // Create world border if camera system is available
+    this.createWorldBorderIfReady();
   }
+  private createWorldBorderIfReady(): void {
+    if (!this.app || !this.cameraSystem) {
+      // Camera system not ready yet, world border will be created later
+      return;
+    }    // Remove existing world border if it exists
+    const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
+    if (existingWorldBorder) {
+      this.app.stage.removeChild(existingWorldBorder);
+      existingWorldBorder.destroy();
+    }    // Create the world border
+    const worldBorder = new Graphics();
+    worldBorder.label = 'world-border';
 
-  private createBorder(): void {
-    if (!this.app) return; // Remove existing border if it exists
-    const existingBorder = this.app.stage.getChildByLabel('border');
-    if (existingBorder) {
-      this.app.stage.removeChild(existingBorder);
-      existingBorder.destroy();
-    }
-    // Create new border
-    const border = new Graphics();
-    border.label = 'border';
-    border.rect(0, 0, this.app.screen.width, this.app.screen.height);
-    border.stroke({ color: 0x0f3460, width: 10 });
+    // Add world border to stage after game container but before viewport border
+    // This way: game objects -> world border -> viewport border (on top)
+    const gameContainerIndex = this.app.stage.getChildIndex(this.gameContainer);
+    this.app.stage.addChildAt(worldBorder, gameContainerIndex + 1);
 
-    // Add border behind game objects
-    this.app.stage.addChildAt(border, 0);
+    // Draw the initial world border
+    this.updateWorldBorder();
   }
   private onResize = (): void => {
     if (this.app) {
       this.createBorder();
     }
   };
-
   public setCameraSystem(cameraSystem: ICameraSystem): void {
     this.cameraSystem = cameraSystem;
+    // Now that camera system is available, create the world border
+    this.createWorldBorderIfReady();
   }
 
   public getCameraSystem(): ICameraSystem | null {
     return this.cameraSystem;
+  }
+
+  private updateWorldBorder(): void {
+    if (!this.app || !this.cameraSystem) return;
+
+    const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
+    if (!existingWorldBorder) return;
+
+    const worldBorder = existingWorldBorder as Graphics;
+
+    // World dimensions are 4x the viewport size
+    const worldWidth = this.app.screen.width * 4;
+    const worldHeight = this.app.screen.height * 4;
+
+    // Define world boundary corners in world space
+    const topLeft = { x: 0, y: 0 };
+    const topRight = { x: worldWidth, y: 0 };
+    const bottomLeft = { x: 0, y: worldHeight };
+    const bottomRight = { x: worldWidth, y: worldHeight };
+
+    // Transform world corners to screen space
+    const screenTopLeft = this.cameraSystem.worldToScreen(topLeft);
+    const screenTopRight = this.cameraSystem.worldToScreen(topRight);
+    const screenBottomLeft = this.cameraSystem.worldToScreen(bottomLeft);
+    const screenBottomRight = this.cameraSystem.worldToScreen(bottomRight);
+
+    // Clear and redraw the world border using screen coordinates
+    worldBorder.clear();
+    worldBorder.moveTo(screenTopLeft.x, screenTopLeft.y);
+    worldBorder.lineTo(screenTopRight.x, screenTopRight.y);
+    worldBorder.lineTo(screenBottomRight.x, screenBottomRight.y);
+    worldBorder.lineTo(screenBottomLeft.x, screenBottomLeft.y);
+    worldBorder.lineTo(screenTopLeft.x, screenTopLeft.y); // Close the path
+    worldBorder.stroke({ color: 0xff6b6b, width: 4 }); // Red border for world boundary
   }
 }

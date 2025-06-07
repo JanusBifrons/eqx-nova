@@ -38,9 +38,7 @@ export class AsteroidManager {
     // 8 small asteroids for detail and visual interest
     for (let i = 0; i < 8; i++) {
       this.createRandomAsteroid('small');
-    }
-
-    // Then spawn additional asteroids throughout the interior space
+    }    // Then spawn additional asteroids throughout the interior space
     this.spawnInteriorAsteroids(12);
 
     console.log('Spawned initial asteroids: 35 at edges + 12 interior = 47 total asteroids');
@@ -62,9 +60,7 @@ export class AsteroidManager {
     }
     for (let i = 0; i < smallCount; i++) {
       this.createRandomAsteroid('small');
-    }
-
-    // At higher scores, also spawn some interior asteroids for added challenge
+    }    // At higher scores, also spawn some interior asteroids for added challenge
     if (score > 2000) {
       const interiorCount = Math.min(Math.floor(score / 2000) * 2, 6);
       this.spawnInteriorAsteroids(interiorCount);
@@ -175,15 +171,11 @@ export class AsteroidManager {
         if (distanceFromCenter > safeZoneRadius) {
           break;
         }
-      } while (attempts < maxAttempts);
-
-      // If we couldn't find a good position, fall back to edge spawning
+      } while (attempts < maxAttempts);      // If we couldn't find a good position, fall back to edge spawning
       if (attempts >= maxAttempts) {
         this.createRandomAsteroid('medium');
         continue;
-      }
-
-      // Randomly choose size with bias toward smaller asteroids for interior
+      }      // Randomly choose size with bias toward smaller asteroids for interior
       const sizeRandom = Math.random();
       let size: 'large' | 'medium' | 'small';
       if (sizeRandom < 0.3) {
@@ -192,12 +184,8 @@ export class AsteroidManager {
         size = 'medium';
       } else {
         size = 'small';
-      }
-
-      this.createAsteroid(size, x, y);
-    }
-
-    console.log(`Spawned ${count} interior asteroids throughout the game world`);
+      }      this.createAsteroid(size, x, y);
+    }    console.log(`Spawned ${count} interior asteroids throughout the game world`);
   }
 
   /**
@@ -224,14 +212,10 @@ export class AsteroidManager {
         } else {
           this.createRandomAsteroid('small');
         }
-      }
-
-      // Spawn interior asteroids
+      }      // Spawn interior asteroids
       if (interiorCount > 0) {
         this.spawnInteriorAsteroids(interiorCount);
-      }
-
-      console.log(`Maintaining asteroid density: spawned ${needed} asteroids (${edgeCount} edge, ${interiorCount} interior)`);
+      }      console.log(`Maintaining asteroid density: spawned ${needed} asteroids (${edgeCount} edge, ${interiorCount} interior)`);
     }
   }
 
