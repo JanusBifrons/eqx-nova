@@ -102,7 +102,6 @@ export class AsteroidsGame {
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
   }
-
   private setupEventHandlers(): void {
     if (!this.gameEngine || !this.inputManager || !this.collisionManager)
       return;
@@ -117,9 +116,8 @@ export class AsteroidsGame {
       this.collisionManager!.handleCollision(event);
     });
 
-    // Setup fire action
-    this.inputManager.onAction(' ', () => this.handleFireLaser());
-    this.inputManager.onAction('spacebar', () => this.handleFireLaser());
+    // Note: Continuous firing is now handled in the game loop (handleInput method)
+    // rather than using one-time action callbacks to avoid delay and interruption issues
   }
 
   private handleFireLaser(): void {
@@ -147,7 +145,6 @@ export class AsteroidsGame {
     this.wrapScreenPositions();
     this.checkForNewWave();
   }
-
   private handleInput(deltaTime: number): void {
     if (!this.inputManager || !this.playerManager) return;
 
@@ -163,6 +160,11 @@ export class AsteroidsGame {
 
     // Handle thrust
     this.playerManager.setThrust(this.inputManager.isThrustPressed());
+
+    // Handle continuous firing - check every frame if spacebar is held down
+    if (this.inputManager.isFirePressed()) {
+      this.handleFireLaser();
+    }
   }
 
   private updateManagers(deltaTime: number): void {

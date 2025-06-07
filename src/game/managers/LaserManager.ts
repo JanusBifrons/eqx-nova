@@ -15,10 +15,9 @@ export class LaserManager {
   private lasers: LaserData[] = [];
   private lastFireTime = 0;
   private gameEngine: IGameEngine;
-
   private readonly LASER_SPEED = 0.6;
   private readonly LASER_LIFETIME = 2000; // milliseconds
-  private readonly LASER_COOLDOWN = 150; // milliseconds
+  private readonly LASER_COOLDOWN = 100; // milliseconds - reduced for better continuous firing
   private readonly LASER_RADIUS = 2;
 
   constructor(gameEngine: IGameEngine) {
