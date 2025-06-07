@@ -149,6 +149,13 @@ Follow SOLID principles rigorously in all code:
 
 ## Development Workflow
 
+### Development Server Management
+
+- **Single Server Instance**: Only run one development server at a time to avoid port conflicts and confusion
+- **Prefer Build for Validation**: Use `npm run build` to validate TypeScript compilation and catch errors without starting a server
+- **Port Management**: If you need to run a different server, stop the current one first using Ctrl+C
+- **Development vs Production**: Use `npm run dev` for development with hot reload, `npm run build` for production validation
+
 ### Code Review Checklist
 
 - [ ] Follows SOLID principles

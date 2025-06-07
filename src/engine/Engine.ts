@@ -14,6 +14,7 @@ export class Engine {
   private isRunning = false;
   private animationFrameId: number | null = null;
   private lastTime = 0;
+  private updateCallbacks: Array<(deltaTime: number) => void> = [];
   constructor(
     physicsSystem?: IPhysicsSystem,
     rendererSystem?: IRendererSystem,
@@ -23,8 +24,15 @@ export class Engine {
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
     this.inputSystem = inputSystem ?? new InputSystem();
-    this.entityManager = new EntityManager(this.physicsSystem, this.rendererSystem);
-  } public async initialize(canvas: HTMLCanvasElement, createBoundaries: boolean = true): Promise<void> {
+    this.entityManager = new EntityManager(
+      this.physicsSystem,
+      this.rendererSystem
+    );
+  }
+  public async initialize(
+    canvas: HTMLCanvasElement,
+    createBoundaries: boolean = true
+  ): Promise<void> {
     // Initialize renderer first to get dimensions
     await this.rendererSystem.initialize(canvas);
 
@@ -62,7 +70,6 @@ export class Engine {
   public createCircle(config: CircleConfig): Entity {
     return this.entityManager.createCircle(config);
   }
-
   public removeEntity(entityId: string): void {
     this.entityManager.removeEntity(entityId);
   }
@@ -75,11 +82,24 @@ export class Engine {
     return this.entityManager.getAllEntities();
   }
 
+  public registerUpdateCallback(callback: (deltaTime: number) => void): void {
+    this.updateCallbacks.push(callback);
+  }
+
+  public unregisterUpdateCallback(callback: (deltaTime: number) => void): void {
+    const index = this.updateCallbacks.indexOf(callback);
+    if (index > -1) {
+      this.updateCallbacks.splice(index, 1);
+    }
+  }
   private gameLoop = (currentTime: number): void => {
     if (!this.isRunning) return;
 
     const deltaTime = currentTime - this.lastTime;
     this.lastTime = currentTime;
+
+    // Call registered update callbacks (for game logic)
+    this.updateCallbacks.forEach(callback => callback(deltaTime));
 
     // Update physics
     this.physicsSystem.update(deltaTime);

@@ -30,9 +30,7 @@ export class AsteroidsGame {
   private playerShip: Entity | null = null;
   private asteroids: Asteroid[] = [];
   private bullets: Bullet[] = [];
-
   // Player state
-  private playerVelocity: Vector2 = { x: 0, y: 0 };
   private playerRotation = 0;
   private playerThrust = false;
 
@@ -40,10 +38,7 @@ export class AsteroidsGame {
   private keys: Set<string> = new Set();
 
   // Game constants
-  private readonly PLAYER_THRUST = 0.0003;
   private readonly PLAYER_ROTATION_SPEED = 0.003;
-  private readonly PLAYER_MAX_SPEED = 0.4;
-  private readonly PLAYER_FRICTION = 0.98;
   private readonly BULLET_SPEED = 0.6;
   private readonly BULLET_LIFETIME = 2000; // milliseconds
   private readonly ASTEROID_MIN_SPEED = 0.05;
@@ -154,7 +149,6 @@ export class AsteroidsGame {
     }
     this.createAsteroid(size, x, y);
   }
-
   private createAsteroid(
     size: 'large' | 'medium' | 'small',
     x: number,
@@ -176,10 +170,29 @@ export class AsteroidsGame {
       options: {
         color: 0x888888,
         isStatic: false,
+        frictionAir: 0, // No air resistance in space
+        density: 0.001,
       },
     });
 
-    // Random velocity
+    // Apply initial velocity through physics
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const asteroidBody = allBodies.find(
+      body => body.id === entity.physicsBodyId
+    );
+
+    if (asteroidBody) {
+      const speed =
+        this.ASTEROID_MIN_SPEED +
+        Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
+      const angle = Math.random() * Math.PI * 2;
+      const forceX = Math.cos(angle) * speed * 0.001;
+      const forceY = Math.sin(angle) * speed * 0.001;
+      physicsSystem.applyForce(asteroidBody, { x: forceX, y: forceY });
+    }
+
+    // Store velocity for reference (though physics is now source of truth)
     const speed =
       this.ASTEROID_MIN_SPEED +
       Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
@@ -210,14 +223,13 @@ export class AsteroidsGame {
       }
     });
   }
-
-  private handleInput(deltaTime: number): void {
+  private handleInput(_deltaTime: number): void {
     // Rotation
     if (this.keys.has('a') || this.keys.has('arrowleft')) {
-      this.playerRotation -= this.PLAYER_ROTATION_SPEED * deltaTime;
+      this.playerRotation -= this.PLAYER_ROTATION_SPEED * _deltaTime;
     }
     if (this.keys.has('d') || this.keys.has('arrowright')) {
-      this.playerRotation += this.PLAYER_ROTATION_SPEED * deltaTime;
+      this.playerRotation += this.PLAYER_ROTATION_SPEED * _deltaTime;
     }
     // Thrust
     this.playerThrust = this.keys.has('w') || this.keys.has('arrowup');
@@ -227,52 +239,33 @@ export class AsteroidsGame {
       this.fireBullet();
     }
   }
-
-  private updatePlayer(deltaTime: number): void {
+  private updatePlayer(_deltaTime: number): void {
     if (!this.playerShip || !this.engine) return;
 
-    // Apply thrust
-    if (this.playerThrust) {
-      const thrustX =
-        Math.cos(this.playerRotation) * this.PLAYER_THRUST * deltaTime;
-      const thrustY =
-        Math.sin(this.playerRotation) * this.PLAYER_THRUST * deltaTime;
-
-      this.playerVelocity.x += thrustX;
-      this.playerVelocity.y += thrustY;
-    }
-    // Apply friction
-    this.playerVelocity.x *= this.PLAYER_FRICTION;
-    this.playerVelocity.y *= this.PLAYER_FRICTION;
-
-    // Limit max speed
-    const speed = Math.sqrt(
-      this.playerVelocity.x ** 2 + this.playerVelocity.y ** 2
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const playerBody = allBodies.find(
+      body => body.id === this.playerShip!.physicsBodyId
     );
-    if (speed > this.PLAYER_MAX_SPEED) {
-      this.playerVelocity.x =
-        (this.playerVelocity.x / speed) * this.PLAYER_MAX_SPEED;
-      this.playerVelocity.y =
-        (this.playerVelocity.y / speed) * this.PLAYER_MAX_SPEED;
-    }
-    // Update position
-    this.playerShip.position.x += this.playerVelocity.x * deltaTime;
-    this.playerShip.position.y += this.playerVelocity.y * deltaTime;
 
-    // Update physics body
-    if (this.engine) {
-      const physicsSystem = this.engine.getPhysicsSystem();
-      const allBodies = physicsSystem.getAllBodies();
-      const playerBody = allBodies.find(
-        body => body.id === this.playerShip!.physicsBodyId
-      );
-      if (playerBody) {
-        physicsSystem.setPosition(playerBody, this.playerShip.position);
-        physicsSystem.setRotation(playerBody, this.playerRotation);
-      }
+    if (!playerBody) return;
+
+    // Apply thrust as a force to the physics body
+    if (this.playerThrust) {
+      const thrustForce = 0.0005; // Adjust as needed
+      const forceX = Math.cos(this.playerRotation) * thrustForce;
+      const forceY = Math.sin(this.playerRotation) * thrustForce;
+
+      physicsSystem.applyForce(playerBody, { x: forceX, y: forceY });
     }
+
+    // Apply rotation directly to physics body
+    physicsSystem.setRotation(playerBody, this.playerRotation);
+
+    // Sync entity position from physics body (physics is source of truth)
+    this.playerShip.position = playerBody.position;
+    this.playerShip.angle = playerBody.angle;
   }
-
   private fireBullet(): void {
     if (!this.playerShip || !this.engine) return;
 
@@ -282,6 +275,7 @@ export class AsteroidsGame {
         this.playerShip.position.x + Math.cos(this.playerRotation) * 25;
       const bulletY =
         this.playerShip.position.y + Math.sin(this.playerRotation) * 25;
+
       const entity = this.engine.createCircle({
         x: bulletX,
         y: bulletY,
@@ -289,8 +283,25 @@ export class AsteroidsGame {
         options: {
           color: 0xffff00,
           isStatic: false,
+          frictionAir: 0, // No air resistance for bullets
+          density: 0.001, // Light bullets
         },
       });
+
+      // Apply initial force to the bullet using physics
+      const physicsSystem = this.engine.getPhysicsSystem();
+      const allBodies = physicsSystem.getAllBodies();
+      const bulletBody = allBodies.find(
+        body => body.id === entity.physicsBodyId
+      );
+
+      if (bulletBody) {
+        const forceX =
+          Math.cos(this.playerRotation) * this.BULLET_SPEED * 0.001;
+        const forceY =
+          Math.sin(this.playerRotation) * this.BULLET_SPEED * 0.001;
+        physicsSystem.applyForce(bulletBody, { x: forceX, y: forceY });
+      }
 
       const bullet: Bullet = {
         entity,
@@ -305,28 +316,24 @@ export class AsteroidsGame {
       this.lastBulletTime = now;
     }
   }
-
   private updateBullets(deltaTime: number): void {
     if (!this.engine) return;
 
     const bulletsToRemove: number[] = [];
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
 
     this.bullets.forEach((bullet, index) => {
-      // Update position
-      bullet.entity.position.x += bullet.velocity.x * deltaTime;
-      bullet.entity.position.y += bullet.velocity.y * deltaTime;
+      // Sync position from physics body (physics is source of truth)
+      const bulletBody = allBodies.find(
+        body => body.id === bullet.entity.physicsBodyId
+      );
 
-      // Update physics body
-      if (this.engine) {
-        const physicsSystem = this.engine.getPhysicsSystem();
-        const allBodies = physicsSystem.getAllBodies();
-        const bulletBody = allBodies.find(
-          body => body.id === bullet.entity.physicsBodyId
-        );
-        if (bulletBody) {
-          physicsSystem.setPosition(bulletBody, bullet.entity.position);
-        }
+      if (bulletBody) {
+        bullet.entity.position = bulletBody.position;
+        bullet.entity.angle = bulletBody.angle;
       }
+
       // Update lifetime
       bullet.lifeTime -= deltaTime;
 
@@ -342,25 +349,21 @@ export class AsteroidsGame {
       this.bullets.splice(index, 1);
     });
   }
-
-  private updateAsteroids(deltaTime: number): void {
+  private updateAsteroids(_deltaTime: number): void {
     if (!this.engine) return;
 
-    this.asteroids.forEach(asteroid => {
-      // Update position
-      asteroid.entity.position.x += asteroid.velocity.x * deltaTime;
-      asteroid.entity.position.y += asteroid.velocity.y * deltaTime;
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
 
-      // Update physics body
-      if (this.engine) {
-        const physicsSystem = this.engine.getPhysicsSystem();
-        const allBodies = physicsSystem.getAllBodies();
-        const asteroidBody = allBodies.find(
-          body => body.id === asteroid.entity.physicsBodyId
-        );
-        if (asteroidBody) {
-          physicsSystem.setPosition(asteroidBody, asteroid.entity.position);
-        }
+    this.asteroids.forEach(asteroid => {
+      // Sync position from physics body (physics is source of truth)
+      const asteroidBody = allBodies.find(
+        body => body.id === asteroid.entity.physicsBodyId
+      );
+
+      if (asteroidBody) {
+        asteroid.entity.position = asteroidBody.position;
+        asteroid.entity.angle = asteroidBody.angle;
       }
     });
   }
@@ -479,7 +482,6 @@ export class AsteroidsGame {
       this.respawnPlayer();
     }
   }
-
   private respawnPlayer(): void {
     if (!this.engine || !this.playerShip) return;
 
@@ -487,56 +489,96 @@ export class AsteroidsGame {
     const centerX = rendererSystem.getWidth() / 2;
     const centerY = rendererSystem.getHeight() / 2;
 
+    // Reset player position and rotation
     this.playerShip.position.x = centerX;
     this.playerShip.position.y = centerY;
-    this.playerVelocity.x = 0;
-    this.playerVelocity.y = 0;
     this.playerRotation = 0;
 
     // Update physics body
-    if (this.engine) {
-      const physicsSystem = this.engine.getPhysicsSystem();
-      const allBodies = physicsSystem.getAllBodies();
-      const playerBody = allBodies.find(
-        body => body.id === this.playerShip!.physicsBodyId
-      );
-      if (playerBody) {
-        physicsSystem.setPosition(playerBody, this.playerShip.position);
-        physicsSystem.setRotation(playerBody, this.playerRotation);
-      }
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const playerBody = allBodies.find(
+      body => body.id === this.playerShip!.physicsBodyId
+    );
+    if (playerBody) {
+      physicsSystem.setPosition(playerBody, this.playerShip.position);
+      physicsSystem.setRotation(playerBody, this.playerRotation);
+      // Stop any movement
+      physicsSystem.applyForce(playerBody, {
+        x: -playerBody.velocity.x * 0.1,
+        y: -playerBody.velocity.y * 0.1,
+      });
     }
   }
-
   private wrapScreenPositions(): void {
     if (!this.engine) return;
 
     const rendererSystem = this.engine.getRendererSystem();
     const width = rendererSystem.getWidth();
     const height = rendererSystem.getHeight();
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
 
     // Wrap player
     if (this.playerShip) {
-      this.wrapPosition(this.playerShip, width, height);
+      const playerBody = allBodies.find(
+        body => body.id === this.playerShip!.physicsBodyId
+      );
+      if (playerBody) {
+        this.wrapPhysicsBody(playerBody, width, height, physicsSystem);
+      }
     }
+
     // Wrap bullets
     this.bullets.forEach(bullet => {
-      this.wrapPosition(bullet.entity, width, height);
+      const bulletBody = allBodies.find(
+        body => body.id === bullet.entity.physicsBodyId
+      );
+      if (bulletBody) {
+        this.wrapPhysicsBody(bulletBody, width, height, physicsSystem);
+      }
     });
 
     // Wrap asteroids
     this.asteroids.forEach(asteroid => {
-      this.wrapPosition(asteroid.entity, width, height);
+      const asteroidBody = allBodies.find(
+        body => body.id === asteroid.entity.physicsBodyId
+      );
+      if (asteroidBody) {
+        this.wrapPhysicsBody(asteroidBody, width, height, physicsSystem);
+      }
     });
   }
 
-  private wrapPosition(entity: Entity, width: number, height: number): void {
-    if (entity.position.x < 0) entity.position.x = width;
+  private wrapPhysicsBody(
+    body: any,
+    width: number,
+    height: number,
+    physicsSystem: any
+  ): void {
+    let newX = body.position.x;
+    let newY = body.position.y;
+    let wrapped = false;
 
-    if (entity.position.x > width) entity.position.x = 0;
+    if (body.position.x < 0) {
+      newX = width;
+      wrapped = true;
+    } else if (body.position.x > width) {
+      newX = 0;
+      wrapped = true;
+    }
 
-    if (entity.position.y < 0) entity.position.y = height;
+    if (body.position.y < 0) {
+      newY = height;
+      wrapped = true;
+    } else if (body.position.y > height) {
+      newY = 0;
+      wrapped = true;
+    }
 
-    if (entity.position.y > height) entity.position.y = 0;
+    if (wrapped) {
+      physicsSystem.setPosition(body, { x: newX, y: newY });
+    }
   }
 
   // Public methods for UI
@@ -551,7 +593,6 @@ export class AsteroidsGame {
   public isGameOver(): boolean {
     return this.gameOver;
   }
-
   public restart(): void {
     if (this.engine) {
       // Clean up existing entities
@@ -570,7 +611,6 @@ export class AsteroidsGame {
     this.score = 0;
     this.lives = 3;
     this.gameOver = false;
-    this.playerVelocity = { x: 0, y: 0 };
     this.playerRotation = 0;
 
     // Reinitialize
