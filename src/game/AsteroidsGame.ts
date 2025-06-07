@@ -7,7 +7,6 @@ import {
   AsteroidManager,
   CollisionManager,
   InputManager,
-  GameStateManager,
 } from './managers';
 
 /**
@@ -28,10 +27,8 @@ export class AsteroidsGame {
   private gameEngine: IGameEngine | null = null;
   private playerManager: PlayerManager | null = null;
   private laserManager: LaserManager | null = null;
-  private asteroidManager: AsteroidManager | null = null;
-  private collisionManager: CollisionManager | null = null;
+  private asteroidManager: AsteroidManager | null = null;  private collisionManager: CollisionManager | null = null;
   private inputManager: InputManager | null = null;
-  private gameStateManager: GameStateManager | null = null;
 
   // Singleton pattern
   public static getInstance(): AsteroidsGame {
@@ -71,22 +68,15 @@ export class AsteroidsGame {
 
   private setupManagers(engine: Engine): void {
     // Create game engine adapter (Dependency Inversion Principle)
-    this.gameEngine = new GameEngineAdapter(engine);
-
-    // Initialize managers with their single responsibilities
-    this.gameStateManager = new GameStateManager();
+    this.gameEngine = new GameEngineAdapter(engine);    // Initialize managers with their single responsibilities
     this.playerManager = new PlayerManager(this.gameEngine);
     this.laserManager = new LaserManager(this.gameEngine);
     this.asteroidManager = new AsteroidManager(this.gameEngine);
-    this.inputManager = new InputManager();
-
-    // Collision manager orchestrates interactions between other managers
+    this.inputManager = new InputManager();// Collision manager orchestrates interactions between other managers
     this.collisionManager = new CollisionManager(
       this.playerManager,
       this.laserManager,
-      this.asteroidManager,
-      (points: number) => this.gameStateManager!.addScore(points),
-      () => this.handleGameOver()
+      this.asteroidManager
     );
   }
   private setupGame(): void {
@@ -153,7 +143,6 @@ export class AsteroidsGame {
     // Note: Continuous firing is now handled in the game loop (handleInput method)
     // rather than using one-time action callbacks to avoid delay and interruption issues
   }
-
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
@@ -165,14 +154,8 @@ export class AsteroidsGame {
       this.playerManager.getRotation()
     );
   }
-
-  private handleGameOver(): void {
-    this.gameStateManager!.setGameOver(true);
-    console.log('Game Over! Final Score:', this.gameStateManager!.getScore());
-  }
-
   public update(deltaTime: number): void {
-    if (!this.isInitialized || this.gameStateManager!.isGameOver()) return;
+    if (!this.isInitialized) return;
 
     this.handleInput(deltaTime);
     this.updateManagers(deltaTime);
@@ -227,28 +210,22 @@ export class AsteroidsGame {
       this.gameEngine!.wrapEntityPosition(asteroidData.entity, dimensions);
     });
   }
-
   private checkForNewWave(): void {
     if (this.asteroidManager!.getAsteroidCount() === 0) {
-      this.asteroidManager!.spawnAsteroidWave(
-        this.gameStateManager!.getScore()
-      );
+      this.asteroidManager!.spawnAsteroidWave(0); // No score, just spawn next wave
     }
   }
-
   // Public API methods
   public getScore(): number {
-    return this.gameStateManager?.getScore() ?? 0;
+    return 0; // No scoring system
   }
-
   public getLives(): number {
-    return this.playerManager?.getLives() ?? 0;
+    return 1; // Player always has 1 life (no death)
   }
 
   public isGameOver(): boolean {
-    return this.gameStateManager?.isGameOver() ?? false;
+    return false; // No game over
   }
-
   public restart(): void {
     if (!this.isInitialized) return;
 
@@ -256,7 +233,6 @@ export class AsteroidsGame {
     this.playerManager!.destroy();
     this.laserManager!.destroy();
     this.asteroidManager!.destroy();
-    this.gameStateManager!.reset();
 
     // Recreate initial state
     this.playerManager!.createPlayer();
@@ -266,7 +242,6 @@ export class AsteroidsGame {
   public isReady(): boolean {
     return this.isInitialized;
   }
-
   public destroy(): void {
     if (this.isDestroyed) return;
 
@@ -283,7 +258,6 @@ export class AsteroidsGame {
     this.asteroidManager = null;
     this.collisionManager = null;
     this.inputManager = null;
-    this.gameStateManager = null;
 
     this.isInitialized = false;
     this.isDestroyed = true;

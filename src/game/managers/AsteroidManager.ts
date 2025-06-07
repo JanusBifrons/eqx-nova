@@ -116,20 +116,8 @@ export class AsteroidManager {
   public getAllAsteroids(): AsteroidData[] {
     return [...this.asteroids];
   }
-
   public getAsteroidCount(): number {
     return this.asteroids.length;
-  }
-
-  public getScoreForSize(size: 'large' | 'medium' | 'small'): number {
-    switch (size) {
-      case 'large':
-        return 20;
-      case 'medium':
-        return 50;
-      case 'small':
-        return 100;
-    }
   }
 
   public destroy(): void {

@@ -12,21 +12,15 @@ export class CollisionManager {
   private playerManager: PlayerManager;
   private laserManager: LaserManager;
   private asteroidManager: AsteroidManager;
-  private onScoreChange: (points: number) => void;
-  private onPlayerDestroyed: () => void;
 
   constructor(
     playerManager: PlayerManager,
     laserManager: LaserManager,
-    asteroidManager: AsteroidManager,
-    onScoreChange: (points: number) => void,
-    onPlayerDestroyed: () => void
+    asteroidManager: AsteroidManager
   ) {
     this.playerManager = playerManager;
     this.laserManager = laserManager;
     this.asteroidManager = asteroidManager;
-    this.onScoreChange = onScoreChange;
-    this.onPlayerDestroyed = onPlayerDestroyed;
   }
 
   public handleCollision(event: CollisionEvent): void {
@@ -48,15 +42,13 @@ export class CollisionManager {
 
     if (laserData && asteroidData) {
       this.handleLaserAsteroidCollision(laserData, asteroidData);
-    }
-
-    // Check player-asteroid collisions
+    }    // Check player-asteroid collisions
     const isPlayerA = entityA === this.playerManager.getPlayer();
     const isPlayerB = entityB === this.playerManager.getPlayer();
     const playerAsteroidData =
       asteroidData && (isPlayerA || isPlayerB) ? asteroidData : null;
 
-    if (playerAsteroidData && !this.playerManager.isInvulnerable()) {
+    if (playerAsteroidData) {
       this.handlePlayerAsteroidCollision(playerAsteroidData);
     }
   }
@@ -79,7 +71,6 @@ export class CollisionManager {
 
     return null;
   }
-
   private handleLaserAsteroidCollision(
     laserData: any,
     asteroidData: any
@@ -87,21 +78,12 @@ export class CollisionManager {
     // Remove laser
     this.laserManager.removeLaser(laserData);
 
-    // Add score
-    const points = this.asteroidManager.getScoreForSize(asteroidData.size);
-    this.onScoreChange(points);
-
-    // Break asteroid
+    // Break asteroid (no scoring)
     this.asteroidManager.breakAsteroid(asteroidData);
   }
 
   private handlePlayerAsteroidCollision(_asteroidData: any): void {
-    const gameOver = this.playerManager.takeDamage();
-
-    if (gameOver) {
-      this.onPlayerDestroyed();
-    } else {
-      this.playerManager.respawn();
-    }
+    // Player no longer takes damage from asteroids
+    // Collision is detected but ignored
   }
 }

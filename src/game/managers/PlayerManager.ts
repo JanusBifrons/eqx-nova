@@ -9,14 +9,10 @@ export class PlayerManager {
   private player: Entity | null = null;
   private rotation = 0;
   private thrust = false;
-  private lives = 3;
-  private invulnerable = false;
-  private invulnerabilityTimer = 0;
   private gameEngine: IGameEngine;
 
   private readonly ROTATION_SPEED = 0.003;
   private readonly THRUST_FORCE = 0.0005;
-  private readonly INVULNERABILITY_DURATION = 3000;
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
@@ -48,47 +44,13 @@ export class PlayerManager {
   public setRotation(rotation: number): void {
     this.rotation = rotation;
   }
-
   public setThrust(thrust: boolean): void {
     this.thrust = thrust;
   }
-
-  public getLives(): number {
-    return this.lives;
-  }
-
-  public takeDamage(): boolean {
-    if (this.invulnerable) return false;
-
-    this.lives--;
-    this.makeInvulnerable();
-
-    return this.lives <= 0;
-  }
-
-  public isInvulnerable(): boolean {
-    return this.invulnerable;
-  }
-
-  private makeInvulnerable(): void {
-    this.invulnerable = true;
-    this.invulnerabilityTimer = this.INVULNERABILITY_DURATION;
-  }
-
-  public update(deltaTime: number): void {
+  public update(_deltaTime: number): void {
     if (!this.player) return;
 
-    this.updateInvulnerability(deltaTime);
     this.updateMovement();
-  }
-
-  private updateInvulnerability(deltaTime: number): void {
-    if (this.invulnerable) {
-      this.invulnerabilityTimer -= deltaTime;
-      if (this.invulnerabilityTimer <= 0) {
-        this.invulnerable = false;
-      }
-    }
   }
 
   private updateMovement(): void {
@@ -130,7 +92,6 @@ export class PlayerManager {
       }
     }
   }
-
   public respawn(): void {
     if (!this.player) return;
 
@@ -144,8 +105,6 @@ export class PlayerManager {
 
     // Stop any movement
     this.gameEngine.applyForceToEntity(this.player, { x: 0, y: 0 });
-
-    this.makeInvulnerable();
   }
 
   public destroy(): void {
