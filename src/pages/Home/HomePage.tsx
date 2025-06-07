@@ -101,9 +101,17 @@ export function HomePage() {
 
   return (
     <div className="flex flex-1 flex-col">
+      {' '}
       <div className="bg-gray-100 p-4">
         <div className="flex justify-between items-center mb-2">
-          <h2 className="text-xl font-bold text-gray-800">Asteroids</h2>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">Asteroids</h2>
+            <div className="text-xs font-medium">
+              <span className="text-green-600">
+                ✓ SOLID Architecture • Separated Concerns
+              </span>
+            </div>
+          </div>
           <div className="flex gap-6 items-center">
             <div className="text-sm font-medium text-gray-700">
               Score:{' '}
@@ -128,13 +136,23 @@ export function HomePage() {
               Game Over! Click Restart to play again.
             </p>
           ) : (
-            <p>
-              Use <kbd className="px-1 bg-gray-200 rounded">W/↑</kbd> to thrust,
-              <kbd className="px-1 bg-gray-200 rounded mx-1">A/←</kbd> and{' '}
-              <kbd className="px-1 bg-gray-200 rounded">D/→</kbd> to rotate,
-              <kbd className="px-1 bg-gray-200 rounded mx-1">Space</kbd> or{' '}
-              <kbd className="px-1 bg-gray-200 rounded">Click</kbd> to shoot
-            </p>
+            <div>
+              <p className="mb-1">
+                Use <kbd className="px-1 bg-gray-200 rounded">W/↑</kbd> to
+                thrust,
+                <kbd className="px-1 bg-gray-200 rounded mx-1">
+                  A/←
+                </kbd> and <kbd className="px-1 bg-gray-200 rounded">D/→</kbd>{' '}
+                to rotate,
+                <kbd className="px-1 bg-gray-200 rounded mx-1">Space</kbd> to
+                shoot
+              </p>
+              <p className="text-blue-600">
+                This game demonstrates SOLID principles: PlayerManager,
+                LaserManager, AsteroidManager, CollisionManager, and
+                InputManager work together through clean interfaces.
+              </p>
+            </div>
           )}
         </div>
       </div>

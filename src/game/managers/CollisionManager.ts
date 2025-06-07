@@ -1,0 +1,107 @@
+import type { Entity } from '../../engine/entity';
+import type { CollisionEvent } from '../../engine/interfaces/IPhysicsSystem';
+import type { PlayerManager } from './PlayerManager';
+import type { LaserManager } from './LaserManager';
+import type { AsteroidManager } from './AsteroidManager';
+
+/**
+ * CollisionManager - Handles collision detection and resolution
+ * Following Single Responsibility Principle
+ */
+export class CollisionManager {
+  private playerManager: PlayerManager;
+  private laserManager: LaserManager;
+  private asteroidManager: AsteroidManager;
+  private onScoreChange: (points: number) => void;
+  private onPlayerDestroyed: () => void;
+
+  constructor(
+    playerManager: PlayerManager,
+    laserManager: LaserManager,
+    asteroidManager: AsteroidManager,
+    onScoreChange: (points: number) => void,
+    onPlayerDestroyed: () => void
+  ) {
+    this.playerManager = playerManager;
+    this.laserManager = laserManager;
+    this.asteroidManager = asteroidManager;
+    this.onScoreChange = onScoreChange;
+    this.onPlayerDestroyed = onPlayerDestroyed;
+  }
+
+  public handleCollision(event: CollisionEvent): void {
+    const { bodyA, bodyB } = event;
+
+    // Find which entities these bodies belong to
+    const entityA = this.findEntityByPhysicsBodyId(bodyA.id);
+    const entityB = this.findEntityByPhysicsBodyId(bodyB.id);
+
+    if (!entityA || !entityB) return;
+
+    // Check laser-asteroid collisions
+    const laserData =
+      this.laserManager.findLaserByEntity(entityA) ||
+      this.laserManager.findLaserByEntity(entityB);
+    const asteroidData =
+      this.asteroidManager.findAsteroidByEntity(entityA) ||
+      this.asteroidManager.findAsteroidByEntity(entityB);
+
+    if (laserData && asteroidData) {
+      this.handleLaserAsteroidCollision(laserData, asteroidData);
+    }
+
+    // Check player-asteroid collisions
+    const isPlayerA = entityA === this.playerManager.getPlayer();
+    const isPlayerB = entityB === this.playerManager.getPlayer();
+    const playerAsteroidData =
+      asteroidData && (isPlayerA || isPlayerB) ? asteroidData : null;
+
+    if (playerAsteroidData && !this.playerManager.isInvulnerable()) {
+      this.handlePlayerAsteroidCollision(playerAsteroidData);
+    }
+  }
+
+  private findEntityByPhysicsBodyId(physicsBodyId: string): Entity | null {
+    const player = this.playerManager.getPlayer();
+    if (player?.physicsBodyId === physicsBodyId) {
+      return player;
+    }
+
+    const laser = this.laserManager
+      .getAllLasers()
+      .find(l => l.entity.physicsBodyId === physicsBodyId);
+    if (laser) return laser.entity;
+
+    const asteroid = this.asteroidManager
+      .getAllAsteroids()
+      .find(a => a.entity.physicsBodyId === physicsBodyId);
+    if (asteroid) return asteroid.entity;
+
+    return null;
+  }
+
+  private handleLaserAsteroidCollision(
+    laserData: any,
+    asteroidData: any
+  ): void {
+    // Remove laser
+    this.laserManager.removeLaser(laserData);
+
+    // Add score
+    const points = this.asteroidManager.getScoreForSize(asteroidData.size);
+    this.onScoreChange(points);
+
+    // Break asteroid
+    this.asteroidManager.breakAsteroid(asteroidData);
+  }
+
+  private handlePlayerAsteroidCollision(_asteroidData: any): void {
+    const gameOver = this.playerManager.takeDamage();
+
+    if (gameOver) {
+      this.onPlayerDestroyed();
+    } else {
+      this.playerManager.respawn();
+    }
+  }
+}

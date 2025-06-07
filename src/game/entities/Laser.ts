@@ -1,4 +1,3 @@
-import type { Engine } from '../../engine';
 import type { Entity } from '../../engine/entity';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 

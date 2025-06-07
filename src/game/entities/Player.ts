@@ -111,12 +111,11 @@ export class Player {
       return true;
     }
   }
-
   /**
    * Reset player position and state after respawn
-   * @param position New position to spawn at
+   * @param _position New position to spawn at
    */
-  public respawn(position: Vector2D): void {
+  public respawn(_position: Vector2D): void {
     this._rotation = 0;
     this._thrust = false;
     this._isInvulnerable = true;
