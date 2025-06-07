@@ -1,7 +1,9 @@
 import type { IPhysicsSystem } from './interfaces/IPhysicsSystem';
 import type { IRendererSystem } from './interfaces/IRendererSystem';
+import type { ICameraSystem } from './interfaces/ICamera';
 import { MatterPhysicsSystem } from './physics/MatterPhysicsSystem';
 import { PixiRendererSystem } from './renderer/PixiRendererSystem';
+import { CameraSystem } from './camera/CameraSystem';
 import { EntityManager } from './entity/EntityManager';
 import type {
   Entity,
@@ -15,6 +17,7 @@ export class Engine {
   private physicsSystem: IPhysicsSystem;
   private rendererSystem: IRendererSystem;
   private inputSystem: IInputSystem;
+  private cameraSystem: ICameraSystem;
   private entityManager: EntityManager;
   private isRunning = false;
   private animationFrameId: number | null = null;
@@ -25,31 +28,43 @@ export class Engine {
   private frameTimeSamples: number[] = [];
   private readonly MAX_FRAME_SAMPLES = 10;
   private readonly TARGET_FRAME_TIME = 16.667; // 60 FPS
+
   constructor(
     physicsSystem?: IPhysicsSystem,
     rendererSystem?: IRendererSystem,
-    inputSystem?: IInputSystem
+    inputSystem?: IInputSystem,
+    cameraSystem?: ICameraSystem
   ) {
     // Use dependency injection with defaults (follows DIP)
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
     this.inputSystem = inputSystem ?? new InputSystem();
+    this.cameraSystem = cameraSystem ?? new CameraSystem();
     this.entityManager = new EntityManager(
       this.physicsSystem,
       this.rendererSystem
     );
-  }
-  public async initialize(
+  } public async initialize(
     canvas: HTMLCanvasElement,
     createBoundaries: boolean = true
   ): Promise<void> {
     // Initialize renderer first to get dimensions
     await this.rendererSystem.initialize(canvas);
 
-    // Initialize physics with canvas dimensions
-    const width = this.rendererSystem.getWidth();
-    const height = this.rendererSystem.getHeight();
-    this.physicsSystem.initialize(width, height, createBoundaries);
+    // Get canvas dimensions for viewport
+    const canvasWidth = this.rendererSystem.getWidth();
+    const canvasHeight = this.rendererSystem.getHeight();
+
+    // Initialize camera system with viewport dimensions
+    this.cameraSystem.initialize(canvasWidth, canvasHeight);
+
+    // Connect camera system to renderer
+    this.rendererSystem.setCameraSystem(this.cameraSystem);
+
+    // Initialize physics with expanded world dimensions (4x larger)
+    const worldWidth = canvasWidth * 4;
+    const worldHeight = canvasHeight * 4;
+    this.physicsSystem.initialize(worldWidth, worldHeight, createBoundaries);
 
     // Initialize input system with canvas element
     this.inputSystem.initialize(canvas);
@@ -176,8 +191,11 @@ export class Engine {
   public getInputSystem(): IInputSystem {
     return this.inputSystem;
   }
-
   public getEntityManager(): EntityManager {
     return this.entityManager;
+  }
+
+  public getCameraSystem(): ICameraSystem {
+    return this.cameraSystem;
   }
 }

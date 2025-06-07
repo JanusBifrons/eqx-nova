@@ -27,7 +27,7 @@ export class AsteroidsGame {
   private gameEngine: IGameEngine | null = null;
   private playerManager: PlayerManager | null = null;
   private laserManager: LaserManager | null = null;
-  private asteroidManager: AsteroidManager | null = null;  private collisionManager: CollisionManager | null = null;
+  private asteroidManager: AsteroidManager | null = null; private collisionManager: CollisionManager | null = null;
   private inputManager: InputManager | null = null;
 
   // Singleton pattern
@@ -120,11 +120,14 @@ export class AsteroidsGame {
           timeScale: 1.0,
         }
       }
-    });
-
-    // Create initial game objects
+    });    // Create initial game objects
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
+
+    // Log initial camera setup
+    const cameraSystem = this.gameEngine.getCameraSystem();
+    const viewport = cameraSystem.getCamera().getViewport();
+    console.log('Camera system initialized with viewport:', viewport.width, 'x', viewport.height);
   }
   private setupEventHandlers(): void {
     if (!this.gameEngine || !this.inputManager || !this.collisionManager)
@@ -153,12 +156,12 @@ export class AsteroidsGame {
       player.position,
       this.playerManager.getRotation()
     );
-  }
-  public update(deltaTime: number): void {
+  } public update(deltaTime: number): void {
     if (!this.isInitialized) return;
 
     this.handleInput(deltaTime);
     this.updateManagers(deltaTime);
+    this.updateCamera();
     this.wrapScreenPositions();
     this.checkForNewWave();
   }
@@ -183,10 +186,25 @@ export class AsteroidsGame {
       this.handleFireLaser();
     }
   }
-
   private updateManagers(deltaTime: number): void {
     this.playerManager!.update(deltaTime);
     this.laserManager!.update(deltaTime);
+  }
+  private updateCamera(): void {
+    if (!this.gameEngine || !this.playerManager) return;
+
+    const player = this.playerManager.getPlayer();
+    if (player) {
+      // Make camera follow the player
+      this.gameEngine.lookAt(player);
+
+      // Log camera position for debugging
+      const cameraSystem = this.gameEngine.getCameraSystem();
+      const cameraPos = cameraSystem.getCamera().getPosition();
+      if (Math.random() < 0.01) { // Log only occasionally to avoid spam
+        console.log(`Camera following player at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+      }
+    }
   }
 
   private wrapScreenPositions(): void {

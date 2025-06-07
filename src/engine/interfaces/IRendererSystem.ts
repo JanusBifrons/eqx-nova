@@ -1,4 +1,5 @@
 import type { Vector2D } from './IPhysicsSystem';
+import type { ICameraSystem } from './ICamera';
 
 export interface RenderableObject {
   id: string;
@@ -22,4 +23,8 @@ export interface IRendererSystem {
   destroy(): void;
   getWidth(): number;
   getHeight(): number;
+
+  // Camera support
+  setCameraSystem(cameraSystem: ICameraSystem): void;
+  getCameraSystem(): ICameraSystem | null;
 }

@@ -4,11 +4,13 @@ import type {
   RenderableObject,
 } from '../interfaces/IRendererSystem';
 import type { Vector2D } from '../interfaces/IPhysicsSystem';
+import type { ICameraSystem } from '../interfaces/ICamera';
 
 export class PixiRendererSystem implements IRendererSystem {
   private app: Application | null = null;
   private renderObjects: Map<string, Graphics> = new Map();
   private gameContainer: Container = new Container();
+  private cameraSystem: ICameraSystem | null = null;
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     try {
       // Create PixiJS application
@@ -100,10 +102,16 @@ export class PixiRendererSystem implements IRendererSystem {
     graphics.y = object.position.y;
     graphics.rotation = object.angle;
 
+    // Apply camera transformation if camera system is available
+    if (this.cameraSystem) {
+      const screenPosition = this.cameraSystem.worldToScreen(object.position);
+      graphics.x = screenPosition.x;
+      graphics.y = screenPosition.y;
+    }
+
     this.renderObjects.set(object.id, graphics);
     this.gameContainer.addChild(graphics);
   }
-
   public updateRenderObject(
     id: string,
     position: Vector2D,
@@ -111,8 +119,16 @@ export class PixiRendererSystem implements IRendererSystem {
   ): void {
     const graphics = this.renderObjects.get(id);
     if (graphics) {
-      graphics.x = position.x;
-      graphics.y = position.y;
+      // Apply camera transformation if camera system is available
+      if (this.cameraSystem) {
+        const screenPosition = this.cameraSystem.worldToScreen(position);
+        graphics.x = screenPosition.x;
+        graphics.y = screenPosition.y;
+      } else {
+        // Fallback to world coordinates if no camera system
+        graphics.x = position.x;
+        graphics.y = position.y;
+      }
       graphics.rotation = angle;
     }
   }
@@ -172,10 +188,17 @@ export class PixiRendererSystem implements IRendererSystem {
     // Add border behind game objects
     this.app.stage.addChildAt(border, 0);
   }
-
   private onResize = (): void => {
     if (this.app) {
       this.createBorder();
     }
   };
+
+  public setCameraSystem(cameraSystem: ICameraSystem): void {
+    this.cameraSystem = cameraSystem;
+  }
+
+  public getCameraSystem(): ICameraSystem | null {
+    return this.cameraSystem;
+  }
 }

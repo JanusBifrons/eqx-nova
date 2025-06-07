@@ -4,6 +4,7 @@ import type {
   CollisionEvent,
 } from '../../engine/interfaces/IPhysicsSystem';
 import type { KeyboardInputEvent } from '../../engine/input';
+import type { ICameraSystem } from '../../engine/interfaces/ICamera';
 
 /**
  * Game-specific engine interface following Interface Segregation Principle
@@ -39,9 +40,12 @@ export interface IGameEngine {
   // Event handling
   onInput(callback: (event: KeyboardInputEvent) => void): void;
   onCollision(callback: (event: CollisionEvent) => void): void;
-
   // Physics configuration
   configurePhysics(config: PhysicsConfig): void;
+
+  // Camera operations
+  getCameraSystem(): ICameraSystem;
+  lookAt(target: Vector2D | Entity): void;
 }
 
 export interface PhysicsConfig {

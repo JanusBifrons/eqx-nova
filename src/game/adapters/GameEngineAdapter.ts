@@ -6,6 +6,7 @@ import type {
 } from '../../engine/interfaces/IPhysicsSystem';
 import type { KeyboardInputEvent } from '../../engine/input';
 import type { IGameEngine, PhysicsConfig } from '../interfaces/IGameEngine';
+import type { ICameraSystem } from '../../engine/interfaces/ICamera';
 import { ShapeUtils } from '../utils/ShapeUtils';
 
 /**
@@ -156,12 +157,12 @@ export class GameEngineAdapter implements IGameEngine {
       physicsSystem.setPosition(body, { x: newX, y: newY });
     }
   }
-
   public getWorldDimensions(): { width: number; height: number } {
     const rendererSystem = this.engine.getRendererSystem();
+    // Return the expanded world dimensions (4x the viewport size)
     return {
-      width: rendererSystem.getWidth(),
-      height: rendererSystem.getHeight(),
+      width: rendererSystem.getWidth() * 4,
+      height: rendererSystem.getHeight() * 4,
     };
   }
 
@@ -205,8 +206,17 @@ export class GameEngineAdapter implements IGameEngine {
     // Default body properties
     if (config.defaultBodyProperties) {
       physicsSystem.setDefaultBodyProperties(config.defaultBodyProperties);
-      // Optionally apply to existing bodies
-      physicsSystem.updateExistingBodies(config.defaultBodyProperties);
+      // Optionally apply to existing bodies      physicsSystem.updateExistingBodies(config.defaultBodyProperties);
     }
+  }
+
+  public getCameraSystem(): ICameraSystem {
+    return this.engine.getCameraSystem();
+  }
+
+  public lookAt(target: Vector2D | Entity): void {
+    const cameraSystem = this.engine.getCameraSystem();
+    const camera = cameraSystem.getCamera();
+    camera.lookAt(target);
   }
 }

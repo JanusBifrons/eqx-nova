@@ -17,7 +17,6 @@ export class PlayerManager {
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
   }
-
   public createPlayer(): void {
     const dimensions = this.gameEngine.getWorldDimensions();
     const centerX = dimensions.width / 2;
@@ -31,6 +30,7 @@ export class PlayerManager {
     this.thrust = false;
 
     console.log('Player created at center:', centerX, centerY);
+    console.log('World dimensions:', dimensions.width, 'x', dimensions.height);
   }
 
   public getPlayer(): Entity | null {
