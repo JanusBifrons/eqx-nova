@@ -30,7 +30,9 @@ export interface PolygonConfig {
 
 export class EntityFactory {
   private entityIdCounter = 0;
+
   private physicsSystem: IPhysicsSystem;
+
   private rendererSystem: IRendererSystem;
 
   constructor(physicsSystem: IPhysicsSystem, rendererSystem: IRendererSystem) {

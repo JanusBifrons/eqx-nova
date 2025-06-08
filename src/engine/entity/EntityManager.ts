@@ -13,9 +13,13 @@ import type {
 
 export class EntityManager {
   private entities: Map<string, Entity> = new Map();
+
   private physicsBodyToEntityMap: Map<string, string> = new Map();
+
   private entityFactory: EntityFactory;
+
   private physicsSystem: IPhysicsSystem;
+
   private rendererSystem: IRendererSystem;
 
   constructor(physicsSystem: IPhysicsSystem, rendererSystem: IRendererSystem) {
@@ -28,25 +32,29 @@ export class EntityManager {
     const entity = this.entityFactory.createRectangle(config);
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
-    return entity;
+
+return entity;
   }
 
   public createCircle(config: CircleConfig): Entity {
     const entity = this.entityFactory.createCircle(config);
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
-    return entity;
+
+return entity;
   }
 
   public createPolygon(config: PolygonConfig): Entity {
     const entity = this.entityFactory.createPolygon(config);
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
-    return entity;
+
+return entity;
   }
 
   public removeEntity(entityId: string): void {
     const entity = this.entities.get(entityId);
+
     if (!entity) return;
 
     // Find and remove physics body
@@ -54,6 +62,7 @@ export class EntityManager {
     const physicsBody = allBodies.find(
       body => body.id === entity.physicsBodyId
     );
+
     if (physicsBody) {
       this.physicsSystem.removeBody(physicsBody);
     }
@@ -86,8 +95,10 @@ export class EntityManager {
 
     allBodies.forEach((body: IPhysicsBody) => {
       const entityId = this.physicsBodyToEntityMap.get(body.id);
+
       if (entityId) {
         const entity = this.entities.get(entityId);
+
         if (entity && entity.isActive) {
           entity.position = body.position;
           entity.angle = body.angle;

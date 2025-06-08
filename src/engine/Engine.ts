@@ -15,18 +15,28 @@ import { InputSystem, type IInputSystem } from './input';
 
 export class Engine {
   private physicsSystem: IPhysicsSystem;
+
   private rendererSystem: IRendererSystem;
+
   private inputSystem: IInputSystem;
+
   private cameraSystem: ICameraSystem;
+
   private entityManager: EntityManager;
+
   private isRunning = false;
+
   private animationFrameId: number | null = null;
+
   private lastTime = 0;
+
   private updateCallbacks: Array<(deltaTime: number) => void> = [];
 
   // Frame timing smoothing
   private frameTimeSamples: number[] = [];
+
   private readonly MAX_FRAME_SAMPLES = 10;
+
   private readonly TARGET_FRAME_TIME = 16.667; // 60 FPS
 
   constructor(
@@ -44,7 +54,9 @@ export class Engine {
       this.physicsSystem,
       this.rendererSystem
     );
-  } public async initialize(
+  }
+
+  public async initialize(
     canvas: HTMLCanvasElement,
     createBoundaries: boolean = true
   ): Promise<void> {
@@ -118,6 +130,7 @@ export class Engine {
 
   public unregisterUpdateCallback(callback: (deltaTime: number) => void): void {
     const index = this.updateCallbacks.indexOf(callback);
+
     if (index > -1) {
       this.updateCallbacks.splice(index, 1);
     }
@@ -158,7 +171,8 @@ export class Engine {
     // Keep only recent samples
     if (this.frameTimeSamples.length > this.MAX_FRAME_SAMPLES) {
       this.frameTimeSamples.shift();
-    }    // Return smoothed average, but don't let it get too far from target
+    }
+    // Return smoothed average, but don't let it get too far from target
     const average =
       this.frameTimeSamples.reduce((sum, time) => sum + time, 0) /
       this.frameTimeSamples.length;
@@ -166,8 +180,10 @@ export class Engine {
     // If the average is significantly different from target, bias towards target
     if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
       return (average + this.TARGET_FRAME_TIME) / 2;
-    }    return average;
+    }
+return average;
   }
+
   public destroy(): void {
     this.stop();
     this.inputSystem.destroy();
@@ -175,6 +191,7 @@ export class Engine {
     this.physicsSystem.destroy();
     this.rendererSystem.destroy();
   }
+
   // Getters for access to systems (if needed)
   public getPhysicsSystem(): IPhysicsSystem {
     return this.physicsSystem;
@@ -187,6 +204,7 @@ export class Engine {
   public getInputSystem(): IInputSystem {
     return this.inputSystem;
   }
+
   public getEntityManager(): EntityManager {
     return this.entityManager;
   }

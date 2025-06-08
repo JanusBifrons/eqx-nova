@@ -6,7 +6,9 @@ import type { KeyboardInputEvent } from '../../engine/input';
  */
 export class InputManager {
   private keys: Set<string> = new Set();
+
   private actionCallbacks: Map<string, () => void> = new Map();
+
   public handleInputEvent(event: KeyboardInputEvent): void {
     const key = event.key.toLowerCase();
 
@@ -16,6 +18,7 @@ export class InputManager {
       // Handle one-time actions (only for non-continuous actions)
       // Note: Continuous actions like firing should be handled in the game loop
       const callback = this.actionCallbacks.get(key);
+
       if (callback) {
         callback();
       }

@@ -12,13 +12,19 @@ export interface EntityOptions {
 
 export class Entity {
   public readonly id: string;
+
   public readonly type: 'rectangle' | 'circle' | 'polygon';
+
   public readonly physicsBodyId: string;
+
   public readonly renderObjectId: string;
 
   private _position: Vector2D = { x: 0, y: 0 };
+
   private _angle: number = 0;
+
   private _isActive: boolean = true;
+
   constructor(
     id: string,
     type: 'rectangle' | 'circle' | 'polygon',

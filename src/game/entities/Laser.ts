@@ -7,8 +7,11 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
  */
 export class Laser {
   public readonly entity: Entity;
+
   public readonly velocity: Vector2D;
+
   private lifeTimeRemaining: number;
+
   private readonly onDestroy: (laser: Laser) => void;
 
   constructor(
@@ -33,8 +36,10 @@ export class Laser {
 
     if (this.lifeTimeRemaining <= 0) {
       this.destroy();
-      return true;
-    }    return false;
+
+return true;
+    }
+return false;
   }
 
   /**

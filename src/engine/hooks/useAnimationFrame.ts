@@ -19,10 +19,10 @@ export function useAnimationFrame(
     previousTimeRef.current = time;
     requestRef.current = requestAnimationFrame(animate);
   };
-
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
-    return () => {
+
+return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }

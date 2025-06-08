@@ -8,9 +8,13 @@ import type { ICameraSystem } from '../interfaces/ICamera';
 
 export class PixiRendererSystem implements IRendererSystem {
   private app: Application | null = null;
+
   private renderObjects: Map<string, Graphics> = new Map();
+
   private gameContainer: Container = new Container();
+
   private cameraSystem: ICameraSystem | null = null;
+
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     try {
       // Create PixiJS application
@@ -40,23 +44,30 @@ export class PixiRendererSystem implements IRendererSystem {
       this.app.renderer.on('resize', this.onResize);
     } catch (error) {
       console.error('Failed to initialize PixiJS renderer:', error);
+
       throw error;
     }
-  } public render(): void {
+  }
+
+  public render(): void {
     if (!this.app || !this.app.renderer) return;
 
     try {
       // Update world border to reflect current camera position (only if camera system exists)
       if (this.cameraSystem) {
         this.updateWorldBorder();
-      }      // Check if WebGL context is lost
+      }
+      // Check if WebGL context is lost
       const canvas = this.app.canvas;
+
       if (canvas instanceof HTMLCanvasElement) {
         const context =
           canvas.getContext('webgl') || canvas.getContext('webgl2');
+
         if (context && context.isContextLost()) {
           console.warn('WebGL context is lost, skipping render');
-          return;
+
+return;
         }
       }
       this.app.renderer.render(this.app.stage);
@@ -72,6 +83,7 @@ export class PixiRendererSystem implements IRendererSystem {
       console.warn('Render error (possibly due to context loss):', error);
     }
   }
+
   public createRenderObject(object: RenderableObject): void {
     if (!this.app) return;
 
@@ -92,6 +104,7 @@ export class PixiRendererSystem implements IRendererSystem {
       graphics.stroke({ color: 0x0f3460, width: 2 });
     } else if (object.type === 'polygon') {
       const vertices = object.vertices ?? [];
+
       if (vertices.length >= 3) {
         graphics.poly(vertices.map(v => ({ x: v.x, y: v.y })));
         graphics.fill(object.color ?? 0x16213e);
@@ -111,12 +124,14 @@ export class PixiRendererSystem implements IRendererSystem {
     this.renderObjects.set(object.id, graphics);
     this.gameContainer.addChild(graphics);
   }
+
   public updateRenderObject(
     id: string,
     position: Vector2D,
     angle: number
   ): void {
     const graphics = this.renderObjects.get(id);
+
     if (graphics) {
       // Apply camera transformation if camera system is available
       if (this.cameraSystem) {
@@ -134,6 +149,7 @@ export class PixiRendererSystem implements IRendererSystem {
 
   public removeRenderObject(id: string): void {
     const graphics = this.renderObjects.get(id);
+
     if (graphics) {
       this.gameContainer.removeChild(graphics);
       graphics.destroy();
@@ -169,21 +185,30 @@ export class PixiRendererSystem implements IRendererSystem {
       this.app.destroy(true);
       this.app = null;
     }
-  } private createBorder(): void {
+  }
+
+  private createBorder(): void {
     if (!this.app) return;
 
     // Remove existing viewport border if it exists
-    const existingViewportBorder = this.app.stage.getChildByLabel('viewport-border');
+    const existingViewportBorder =
+      this.app.stage.getChildByLabel('viewport-border');
+
     if (existingViewportBorder) {
       this.app.stage.removeChild(existingViewportBorder);
       existingViewportBorder.destroy();
-    }    // Create viewport border (around the screen) - this should stay fixed
+    } // Create viewport border (around the screen) - this should stay fixed
     const viewportBorder = new Graphics();
     viewportBorder.label = 'viewport-border';
 
     // Draw a thick, bold rectangle that exactly matches the screen boundaries
     const borderWidth = 8; // Much thicker border
-    viewportBorder.rect(borderWidth / 2, borderWidth / 2, this.app.screen.width - borderWidth, this.app.screen.height - borderWidth);
+    viewportBorder.rect(
+      borderWidth / 2,
+      borderWidth / 2,
+      this.app.screen.width - borderWidth,
+      this.app.screen.height - borderWidth
+    );
     viewportBorder.stroke({ color: 0x00ff00, width: borderWidth }); // Bright green, thick border
 
     // Ensure it's positioned at screen origin and never moves
@@ -196,16 +221,20 @@ export class PixiRendererSystem implements IRendererSystem {
     // Create world border if camera system is available
     this.createWorldBorderIfReady();
   }
+
   private createWorldBorderIfReady(): void {
     if (!this.app || !this.cameraSystem) {
       // Camera system not ready yet, world border will be created later
       return;
-    }    // Remove existing world border if it exists
+    }
+    // Remove existing world border if it exists
     const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
+
     if (existingWorldBorder) {
       this.app.stage.removeChild(existingWorldBorder);
       existingWorldBorder.destroy();
-    }    // Create the world border
+    }
+    // Create the world border
     const worldBorder = new Graphics();
     worldBorder.label = 'world-border';
 
@@ -217,11 +246,13 @@ export class PixiRendererSystem implements IRendererSystem {
     // Draw the initial world border
     this.updateWorldBorder();
   }
+
   private onResize = (): void => {
     if (this.app) {
       this.createBorder();
     }
   };
+
   public setCameraSystem(cameraSystem: ICameraSystem): void {
     this.cameraSystem = cameraSystem;
     // Now that camera system is available, create the world border
@@ -236,6 +267,7 @@ export class PixiRendererSystem implements IRendererSystem {
     if (!this.app || !this.cameraSystem) return;
 
     const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
+
     if (!existingWorldBorder) return;
 
     const worldBorder = existingWorldBorder as Graphics;

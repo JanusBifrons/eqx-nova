@@ -10,7 +10,9 @@ import type { AsteroidManager } from './AsteroidManager';
  */
 export class CollisionManager {
   private playerManager: PlayerManager;
+
   private laserManager: LaserManager;
+
   private asteroidManager: AsteroidManager;
 
   constructor(
@@ -42,39 +44,50 @@ export class CollisionManager {
 
     if (laserData && asteroidData) {
       this.handleLaserAsteroidCollision(laserData, asteroidData);
-    }    // Check player-asteroid collisions (traditional player or composite ship parts)
-    const isPlayerCollision = this.isPlayerEntity(entityA) || this.isPlayerEntity(entityB);
-    const playerAsteroidData = asteroidData && isPlayerCollision ? asteroidData : null;
+    } // Check player-asteroid collisions (traditional player or composite ship parts)
+    const isPlayerCollision =
+      this.isPlayerEntity(entityA) || this.isPlayerEntity(entityB);
+    const playerAsteroidData =
+      asteroidData && isPlayerCollision ? asteroidData : null;
 
     if (playerAsteroidData) {
       this.handlePlayerAsteroidCollision(playerAsteroidData, entityA, entityB);
     }
   }
+
   private findEntityByPhysicsBodyId(physicsBodyId: string): Entity | null {
     // Check traditional player
     const player = this.playerManager.getPlayer();
+
     if (player?.physicsBodyId === physicsBodyId) {
       return player;
-    }    // Check composite ship parts
+    }
+    // Check composite ship parts
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip) {
       const parts = compositeShip.parts;
       const part = parts.find(p => p.entity.physicsBodyId === physicsBodyId);
+
       if (part) return part.entity;
-    }    // Check lasers
+    }
+    // Check lasers
     const laser = this.laserManager
       .getAllLasers()
       .find(l => l.entity.physicsBodyId === physicsBodyId);
+
     if (laser) return laser.entity;
 
     // Check asteroids
     const asteroid = this.asteroidManager
       .getAllAsteroids()
       .find(a => a.entity.physicsBodyId === physicsBodyId);
+
     if (asteroid) return asteroid.entity;
 
     return null;
   }
+
   private handleLaserAsteroidCollision(
     laserData: any,
     asteroidData: any
@@ -85,12 +98,18 @@ export class CollisionManager {
     // Break asteroid (no scoring)
     this.asteroidManager.breakAsteroid(asteroidData);
   }
-  private handlePlayerAsteroidCollision(_asteroidData: any, entityA: Entity, entityB: Entity): void {
+
+  private handlePlayerAsteroidCollision(
+    _asteroidData: any,
+    entityA: Entity,
+    entityB: Entity
+  ): void {
     // Determine which entity is the player entity
     const playerEntity = this.isPlayerEntity(entityA) ? entityA : entityB;
 
     // For composite ships, handle part-by-part damage
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip && playerEntity) {
       // Find which part was hit
       const parts = compositeShip.parts;
@@ -99,7 +118,10 @@ export class CollisionManager {
       if (hitPart && !compositeShip.isInvulnerable) {
         // Damage the specific part that was hit
         compositeShip.takeDamage();
-        console.log('Composite ship hit! Parts remaining:', parts.filter(p => !p.isDestroyed).length);
+        console.log(
+          'Composite ship hit! Parts remaining:',
+          parts.filter(p => !p.isDestroyed).length
+        );
       }
     }
 
@@ -110,13 +132,18 @@ export class CollisionManager {
   private isPlayerEntity(entity: Entity): boolean {
     // Check if entity is traditional player
     const player = this.playerManager.getPlayer();
+
     if (player && entity === player) {
       return true;
-    }    // Check if entity is part of composite ship
+    }
+    // Check if entity is part of composite ship
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip) {
       const parts = compositeShip.parts;
-      return parts.some(part => part.entity === entity);
-    }    return false;
+
+return parts.some(part => part.entity === entity);
+    }
+return false;
   }
 }

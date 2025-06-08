@@ -21,6 +21,7 @@ export class GameEngineAdapter implements IGameEngine {
   constructor(engine: Engine) {
     this.engine = engine;
   }
+
   public createTriangularShip(position: Vector2D, size: number): Entity {
     const triangleVertices = ShapeUtils.createTriangle(size);
 
@@ -35,19 +36,40 @@ export class GameEngineAdapter implements IGameEngine {
         density: 0.001,
       },
     });
-  } public createCompositeShip(position: Vector2D, numParts?: number): CompositeShip {
+  }
+
+  public createCompositeShip(
+    position: Vector2D,
+    numParts?: number
+  ): CompositeShip {
     const shipId = `composite-ship-${Date.now()}`;
 
     // Allow customization of part count
     if (numParts === 1) {
-      return CompositeShipFactory.createSinglePartShip(this.engine, position, shipId);
+      return CompositeShipFactory.createSinglePartShip(
+        this.engine,
+        position,
+        shipId
+      );
     } else if (numParts === 3) {
-      return CompositeShipFactory.createThreePartShip(this.engine, position, shipId);
+      return CompositeShipFactory.createThreePartShip(
+        this.engine,
+        position,
+        shipId
+      );
     } else if (numParts === 4) {
-      return CompositeShipFactory.createFourPartShip(this.engine, position, shipId);
+      return CompositeShipFactory.createFourPartShip(
+        this.engine,
+        position,
+        shipId
+      );
     } else {
       // Default to 2-part ship
-      return CompositeShipFactory.createTwoPartShip(this.engine, position, shipId);
+      return CompositeShipFactory.createTwoPartShip(
+        this.engine,
+        position,
+        shipId
+      );
     }
   }
 
@@ -128,7 +150,10 @@ export class GameEngineAdapter implements IGameEngine {
     }
   }
 
-  public setEntityAngularVelocity(entity: Entity, angularVelocity: number): void {
+  public setEntityAngularVelocity(
+    entity: Entity,
+    angularVelocity: number
+  ): void {
     const physicsSystem = this.engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const body = allBodies.find(b => b.id === entity.physicsBodyId);
@@ -170,6 +195,7 @@ export class GameEngineAdapter implements IGameEngine {
       physicsSystem.setPosition(body, { x: newX, y: newY });
     }
   }
+
   public getWorldDimensions(): { width: number; height: number } {
     const rendererSystem = this.engine.getRendererSystem();
     // Return the expanded world dimensions (4x the viewport size)
@@ -188,6 +214,7 @@ export class GameEngineAdapter implements IGameEngine {
     const physicsSystem = this.engine.getPhysicsSystem();
     physicsSystem.onCollisionStart(callback);
   }
+
   public configurePhysics(config: PhysicsConfig): void {
     const physicsSystem = this.engine.getPhysicsSystem() as any; // Cast to access extended methods
 
@@ -198,10 +225,10 @@ export class GameEngineAdapter implements IGameEngine {
     // Legacy air resistance support (backwards compatibility)
     if (typeof config.airResistance === 'number') {
       physicsSystem.setDefaultBodyProperties({
-        frictionAir: config.airResistance
+        frictionAir: config.airResistance,
       });
       physicsSystem.updateExistingBodies({
-        frictionAir: config.airResistance
+        frictionAir: config.airResistance,
       });
     }
     // Advanced world configuration

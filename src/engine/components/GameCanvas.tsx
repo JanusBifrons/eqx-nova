@@ -7,11 +7,7 @@ interface GameCanvasProps {
 export const GameCanvas = forwardRef<HTMLCanvasElement, GameCanvasProps>(
   ({ className = '' }, ref) => {
     return (
-      <canvas
-        ref={ref}
-        className={className}
-        style={{ cursor: 'crosshair' }}
-      />
+      <canvas ref={ref} className={className} style={{ cursor: 'crosshair' }} />
     );
   }
 );

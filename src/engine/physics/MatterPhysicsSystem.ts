@@ -1,4 +1,12 @@
-import { Engine, World, Bodies, Body, Vector, Events, Constraint } from 'matter-js';
+import {
+  Engine,
+  World,
+  Bodies,
+  Body,
+  Vector,
+  Events,
+  Constraint,
+} from 'matter-js';
 import type {
   IPhysicsSystem,
   IPhysicsBody,
@@ -13,6 +21,7 @@ import type {
 
 class MatterPhysicsBody implements IPhysicsBody {
   private body: Body;
+
   public id: string;
 
   constructor(body: Body, id: string) {
@@ -43,6 +52,7 @@ class MatterPhysicsBody implements IPhysicsBody {
 
 class MatterConstraint implements IConstraint {
   private constraint: any;
+
   public id: string;
 
   constructor(constraint: any, id: string) {
@@ -57,23 +67,34 @@ class MatterConstraint implements IConstraint {
 
 export class MatterPhysicsSystem implements IPhysicsSystem {
   private engine: Engine | null = null;
+
   private world: World | null = null;
-  private bodies: Map<string, MatterPhysicsBody> = new Map(); private constraints: Map<string, MatterConstraint> = new Map();
+
+  private bodies: Map<string, MatterPhysicsBody> = new Map();
+
+  private constraints: Map<string, MatterConstraint> = new Map();
+
   private bodyIdCounter = 0;
+
   private constraintIdCounter = 0;
+
   private collisionStartCallbacks: CollisionCallback[] = [];
+
   private collisionEndCallbacks: CollisionCallback[] = [];
-  private defaultBodyProperties: any = {};  public initialize(
+
+  private defaultBodyProperties: any = {};
+
+  public initialize(
     width: number,
     height: number,
     createBoundaries: boolean = true
   ): void {
     // Create Matter.js engine
     this.engine = Engine.create();
-    this.world = this.engine.world;    // Configure engine for stable but rigid constraints
-    this.engine.constraintIterations = 8;   // Moderate increase from default 2
-    this.engine.positionIterations = 6;     // Keep default for stability
-    this.engine.velocityIterations = 4;     // Keep default for stability
+    this.world = this.engine.world; // Configure engine for stable but rigid constraints
+    this.engine.constraintIterations = 8; // Moderate increase from default 2
+    this.engine.positionIterations = 6; // Keep default for stability
+    this.engine.velocityIterations = 4; // Keep default for stability
 
     // Set default gravity
     this.engine.world.gravity.y = 1;
@@ -108,6 +129,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     // Convert deltaTime from milliseconds to seconds and run engine
     Engine.update(this.engine, deltaTime);
   }
+
   public createRectangle(
     x: number,
     y: number,
@@ -120,12 +142,16 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     }
     // Merge options with defaults
     const finalOptions = {
-      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
-      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      isStatic:
+        options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution:
+        options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
       friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      frictionAir:
+        options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
       density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
-      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+      isSensor:
+        options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
     };
 
     const body = Bodies.rectangle(x, y, width, height, finalOptions);
@@ -138,6 +164,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     return physicsBody;
   }
+
   public createCircle(
     x: number,
     y: number,
@@ -149,12 +176,16 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     }
     // Merge options with defaults
     const finalOptions = {
-      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
-      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      isStatic:
+        options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution:
+        options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
       friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      frictionAir:
+        options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
       density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
-      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+      isSensor:
+        options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
     };
 
     const body = Bodies.circle(x, y, radius, finalOptions);
@@ -167,6 +198,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     return physicsBody;
   }
+
   public createPolygon(
     x: number,
     y: number,
@@ -181,13 +213,18 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     // Merge options with defaults
     const finalOptions = {
-      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
-      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      isStatic:
+        options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution:
+        options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
       friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      frictionAir:
+        options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
       density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
-      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
-    };    const body = Bodies.fromVertices(x, y, [matterVertices], finalOptions);
+      isSensor:
+        options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+    };
+    const body = Bodies.fromVertices(x, y, [matterVertices], finalOptions);
 
     const id = `body_${this.bodyIdCounter++}`;
     const physicsBody = new MatterPhysicsBody(body, id);
@@ -207,7 +244,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (!this.world) {
       throw new Error('Physics system not initialized');
     }
-
     // Create individual body parts
     const bodyParts: Body[] = [];
 
@@ -216,12 +252,36 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
       // Merge part-specific options with defaults and global options
       const finalOptions = {
-        isStatic: part.options?.isStatic ?? options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
-        restitution: part.options?.restitution ?? options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
-        friction: part.options?.friction ?? options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
-        frictionAir: part.options?.frictionAir ?? options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
-        density: part.options?.density ?? options.density ?? this.defaultBodyProperties.density ?? 0.001,
-        isSensor: part.options?.isSensor ?? options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+        isStatic:
+          part.options?.isStatic ??
+          options.isStatic ??
+          this.defaultBodyProperties.isStatic ??
+          false,
+        restitution:
+          part.options?.restitution ??
+          options.restitution ??
+          this.defaultBodyProperties.restitution ??
+          0.3,
+        friction:
+          part.options?.friction ??
+          options.friction ??
+          this.defaultBodyProperties.friction ??
+          0.1,
+        frictionAir:
+          part.options?.frictionAir ??
+          options.frictionAir ??
+          this.defaultBodyProperties.frictionAir ??
+          0.01,
+        density:
+          part.options?.density ??
+          options.density ??
+          this.defaultBodyProperties.density ??
+          0.001,
+        isSensor:
+          part.options?.isSensor ??
+          options.isSensor ??
+          this.defaultBodyProperties.isSensor ??
+          false,
       };
 
       switch (part.type) {
@@ -229,14 +289,27 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
           if (part.radius === undefined) {
             throw new Error('Circle part must have radius defined');
           }
-          body = Bodies.circle(x + part.x, y + part.y, part.radius, finalOptions);
+          body = Bodies.circle(
+            x + part.x,
+            y + part.y,
+            part.radius,
+            finalOptions
+          );
           break;
 
         case 'rectangle':
           if (part.width === undefined || part.height === undefined) {
-            throw new Error('Rectangle part must have width and height defined');
+            throw new Error(
+              'Rectangle part must have width and height defined'
+            );
           }
-          body = Bodies.rectangle(x + part.x, y + part.y, part.width, part.height, finalOptions);
+          body = Bodies.rectangle(
+            x + part.x,
+            y + part.y,
+            part.width,
+            part.height,
+            finalOptions
+          );
           break;
 
         case 'polygon':
@@ -244,26 +317,33 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
             throw new Error('Polygon part must have vertices defined');
           }
           const matterVertices = part.vertices.map(v => ({ x: v.x, y: v.y }));
-          body = Bodies.fromVertices(x + part.x, y + part.y, [matterVertices], finalOptions);
+          body = Bodies.fromVertices(
+            x + part.x,
+            y + part.y,
+            [matterVertices],
+            finalOptions
+          );
           break;
 
         default:
           throw new Error(`Unknown part type: ${(part as any).type}`);
       }
-
       bodyParts.push(body);
     }
-
     // Create compound body from parts
     const compoundBody = Body.create({
       parts: bodyParts,
       // Apply final options to compound body
-      isStatic: options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
-      restitution: options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      isStatic:
+        options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution:
+        options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
       friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
-      frictionAir: options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      frictionAir:
+        options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
       density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
-      isSensor: options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+      isSensor:
+        options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
     });
 
     // Set the position of the compound body
@@ -282,6 +362,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (!this.world) return;
 
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
       World.remove(this.world, matterBody.matterBody);
       this.bodies.delete(body.id);
@@ -291,8 +372,10 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   public getAllBodies(): IPhysicsBody[] {
     return Array.from(this.bodies.values());
   }
+
   public applyForce(body: IPhysicsBody, force: Vector2D): void {
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
       Body.applyForce(
         matterBody.matterBody,
@@ -304,6 +387,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
   public setPosition(body: IPhysicsBody, position: Vector2D): void {
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
       Body.setPosition(
         matterBody.matterBody,
@@ -314,6 +398,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
   public setRotation(body: IPhysicsBody, angle: number): void {
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
       Body.setAngle(matterBody.matterBody, angle);
     }
@@ -321,13 +406,18 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
   public setVelocity(body: IPhysicsBody, velocity: Vector2D): void {
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
-      Body.setVelocity(matterBody.matterBody, Vector.create(velocity.x, velocity.y));
+      Body.setVelocity(
+        matterBody.matterBody,
+        Vector.create(velocity.x, velocity.y)
+      );
     }
   }
 
   public setAngularVelocity(body: IPhysicsBody, angularVelocity: number): void {
     const matterBody = this.bodies.get(body.id);
+
     if (matterBody) {
       Body.setAngularVelocity(matterBody.matterBody, angularVelocity);
     }
@@ -340,25 +430,32 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     }
   }
 
-  public createConstraint(bodyA: IPhysicsBody, bodyB: IPhysicsBody, options: ConstraintOptions = {}): IConstraint {
+  public createConstraint(
+    bodyA: IPhysicsBody,
+    bodyB: IPhysicsBody,
+    options: ConstraintOptions = {}
+  ): IConstraint {
     if (!this.world) {
       throw new Error('Physics system not initialized');
     }
-
     const matterBodyA = this.bodies.get(bodyA.id);
     const matterBodyB = this.bodies.get(bodyB.id);
 
     if (!matterBodyA || !matterBodyB) {
       throw new Error('One or both bodies not found in physics system');
-    }    // Create Matter.js constraint
+    } // Create Matter.js constraint
     const constraint = Constraint.create({
       bodyA: matterBodyA.matterBody,
       bodyB: matterBodyB.matterBody,
       stiffness: options.stiffness ?? 1.0,
       damping: options.damping ?? 0.1,
-      length: options.length ?? 0,  // 0 means use current distance
-      pointA: options.pointA ? { x: options.pointA.x, y: options.pointA.y } : undefined,
-      pointB: options.pointB ? { x: options.pointB.x, y: options.pointB.y } : undefined
+      length: options.length ?? 0, // 0 means use current distance
+      pointA: options.pointA
+        ? { x: options.pointA.x, y: options.pointA.y }
+        : undefined,
+      pointB: options.pointB
+        ? { x: options.pointB.x, y: options.pointB.y }
+        : undefined,
     });
 
     const id = `constraint_${this.constraintIdCounter++}`;
@@ -374,6 +471,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (!this.world) return;
 
     const matterConstraint = this.constraints.get(constraint.id);
+
     if (matterConstraint) {
       World.remove(this.world, matterConstraint.matterConstraint);
       this.constraints.delete(constraint.id);
@@ -441,9 +539,10 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     // Store defaults for future body creation
     this.defaultBodyProperties = { ...defaults };
   }
+
   public updateExistingBodies(properties: any): void {
     // Apply properties to all existing bodies
-    this.bodies.forEach((physicsBody) => {
+    this.bodies.forEach(physicsBody => {
       const body = physicsBody.matterBody;
 
       if (typeof properties.restitution === 'number') {
@@ -475,6 +574,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       }
     });
   }
+
   public destroy(): void {
     if (this.engine) {
       Engine.clear(this.engine);
@@ -539,6 +639,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         return physicsBody;
       }
     }
-    return null;
+return null;
   }
 }

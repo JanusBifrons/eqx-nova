@@ -4,6 +4,7 @@
  */
 export class GameStateManager {
   private score = 0;
+
   private gameOver = false;
 
   public getScore(): number {

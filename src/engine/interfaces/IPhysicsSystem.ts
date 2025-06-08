@@ -36,14 +36,14 @@ export interface ConstraintOptions {
   stiffness?: number;
   damping?: number;
   length?: number;
-  pointA?: Vector2D;  // Anchor point on bodyA (local coordinates)
-  pointB?: Vector2D;  // Anchor point on bodyB (local coordinates)
+  pointA?: Vector2D; // Anchor point on bodyA (local coordinates)
+  pointB?: Vector2D; // Anchor point on bodyB (local coordinates)
 }
 
 export interface CompoundBodyPart {
   type: 'circle' | 'rectangle' | 'polygon';
-  x: number;  // Relative to compound body center
-  y: number;  // Relative to compound body center
+  x: number; // Relative to compound body center
+  y: number; // Relative to compound body center
   // For circle
   radius?: number;
   // For rectangle
@@ -69,7 +69,8 @@ export interface IPhysicsSystem {
     y: number,
     radius: number,
     options?: PhysicsBodyOptions
-  ): IPhysicsBody;  createPolygon(
+  ): IPhysicsBody;
+  createPolygon(
     x: number,
     y: number,
     vertices: Vector2D[],
@@ -89,7 +90,11 @@ export interface IPhysicsSystem {
   setVelocity(body: IPhysicsBody, velocity: Vector2D): void;
   setAngularVelocity(body: IPhysicsBody, angularVelocity: number): void;
   setGravity(x: number, y: number): void;
-  createConstraint(bodyA: IPhysicsBody, bodyB: IPhysicsBody, options?: ConstraintOptions): IConstraint;
+  createConstraint(
+    bodyA: IPhysicsBody,
+    bodyB: IPhysicsBody,
+    options?: ConstraintOptions
+  ): IConstraint;
   removeConstraint(constraint: IConstraint): void;
   onCollisionStart(callback: CollisionCallback): void;
   onCollisionEnd(callback: CollisionCallback): void;

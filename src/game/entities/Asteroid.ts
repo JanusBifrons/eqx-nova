@@ -9,9 +9,13 @@ export type AsteroidSize = 'large' | 'medium' | 'small';
  */
 export class Asteroid {
   public readonly entity: Entity;
+
   public readonly size: AsteroidSize;
+
   public readonly velocity: Vector2D;
+
   public readonly baseRadius: number;
+
   private readonly onDestroy: (asteroid: Asteroid) => void;
 
   constructor(

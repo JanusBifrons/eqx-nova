@@ -13,11 +13,17 @@ interface LaserData {
  */
 export class LaserManager {
   private lasers: LaserData[] = [];
+
   private lastFireTime = 0;
+
   private gameEngine: IGameEngine;
+
   private readonly LASER_SPEED = 0.6;
+
   private readonly LASER_LIFETIME = 2000; // milliseconds
+
   private readonly LASER_COOLDOWN = 100; // milliseconds - reduced for better continuous firing
+
   private readonly LASER_RADIUS = 2;
 
   constructor(gameEngine: IGameEngine) {
@@ -26,9 +32,11 @@ export class LaserManager {
 
   public fireLaser(position: Vector2D, rotation: number): boolean {
     const now = performance.now();
+
     if (now - this.lastFireTime < this.LASER_COOLDOWN) {
       return false;
-    }    const laserX = position.x + Math.cos(rotation) * 25;
+    }
+    const laserX = position.x + Math.cos(rotation) * 25;
     const laserY = position.y + Math.sin(rotation) * 25;
 
     const entity = this.gameEngine.createLaser(
@@ -47,7 +55,8 @@ export class LaserManager {
     });
 
     this.lastFireTime = now;
-    return true;
+
+return true;
   }
 
   public update(_deltaTime: number): void {
@@ -75,6 +84,7 @@ export class LaserManager {
 
   public removeLaser(laserData: LaserData): void {
     const index = this.lasers.indexOf(laserData);
+
     if (index > -1) {
       this.lasers.splice(index, 1);
       this.gameEngine.removeEntity(laserData.entity.id);

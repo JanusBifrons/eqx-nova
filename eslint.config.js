@@ -4,6 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 import customRules from './eslint-custom-rules.js';
+import prettierConfig from 'eslint-config-prettier';
 
 export default tseslint.config(
   { ignores: ['dist', '.vite'] },
@@ -27,25 +28,52 @@ export default tseslint.config(
       ],
       '@typescript-eslint/explicit-member-accessibility': 'off', // Disabled in favor of custom rule
       'custom/add-public-modifier': 'error',
+      
+      // Spacing and formatting rules (non-conflicting with Prettier)
+      'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: false }],
+      'newline-before-return': 'error',
       'padding-line-between-statements': [
         'error',
-        // Require blank line before if statements (but not after opening braces)
-        {
-          blankLine: 'always',
-          prev: ['*'],
-          next: 'if',
-        },
-        // Require blank line before function declarations
+        // Require blank line before and after function declarations/expressions
         {
           blankLine: 'always',
           prev: '*',
-          next: 'function',
+          next: ['function', 'class'],
         },
-        // Require blank line after function declarations
         {
           blankLine: 'always',
-          prev: 'function',
+          prev: ['function', 'class'],
           next: '*',
+        },
+        // Require blank line after variable declarations when followed by functions or classes
+        {
+          blankLine: 'always',
+          prev: ['const', 'let', 'var'],
+          next: ['function', 'class'],
+        },
+        // Require blank line before if statements
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: 'if',
+        },
+        // Require blank line before for/while loops
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: ['for', 'while', 'do'],
+        },
+        // Require blank line before switch statements
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: 'switch',
+        },
+        // Require blank line before try/catch blocks
+        {
+          blankLine: 'always',
+          prev: '*',
+          next: ['try', 'throw'],
         },
         // Exception: Don't require blank lines between consecutive imports
         {
@@ -53,19 +81,21 @@ export default tseslint.config(
           prev: 'import',
           next: 'import',
         },
-        // Exception: Don't require blank lines at the start of blocks
+        // Exception: Don't require blank lines between consecutive variable declarations
+        {
+          blankLine: 'any',
+          prev: ['const', 'let', 'var'],
+          next: ['const', 'let', 'var'],
+        },
+        // Exception: Allow no blank line at the start of blocks
         {
           blankLine: 'never',
           prev: 'block-like',
           next: '*',
         },
-        // Exception: Allow no blank line after variable declarations when followed by related code
-        {
-          blankLine: 'any',
-          prev: ['const', 'let', 'var'],
-          next: '*',
-        },
       ],
     },
-  }
+  },
+  // Apply Prettier config last to disable conflicting rules
+  prettierConfig
 );

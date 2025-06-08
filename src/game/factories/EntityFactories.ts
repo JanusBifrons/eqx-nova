@@ -13,6 +13,7 @@ import { CompositeShipFactory } from './CompositeShipFactory';
  */
 export class LaserFactory {
   private static readonly LASER_SPEED = 0.6;
+
   private static readonly LASER_LIFETIME = 2000; // milliseconds
 
   public static create(
@@ -64,6 +65,7 @@ export class AsteroidFactory {
     medium: 25,
     small: 15,
   };
+
   private static readonly SPEED_RANGE = {
     min: 0.5,
     max: 1.5,
@@ -96,7 +98,7 @@ export class AsteroidFactory {
         frictionAir: 0,
         density: 0.001,
       },
-    });    // Apply velocity
+    }); // Apply velocity
     const finalVelocity = velocity ?? this.generateRandomVelocity();
     const physicsSystem = engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
@@ -112,7 +114,7 @@ export class AsteroidFactory {
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
-    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -145,7 +147,7 @@ export class AsteroidFactory {
         y = Math.random() * height;
         break;
     }
-    return this.create(engine, { x, y }, size, onDestroy);
+return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

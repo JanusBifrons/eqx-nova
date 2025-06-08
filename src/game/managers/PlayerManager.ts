@@ -9,28 +9,42 @@ import type { CompositeShip } from '../entities/CompositeShip';
  */
 export class PlayerManager {
   private player: Entity | null = null;
+
   private compositeShip: CompositeShip | null = null;
+
   private useCompositeShip: boolean = true; // Flag to switch between ship types
+
   private rotation = 0;
+
   private thrust = false;
+
   private gameEngine: IGameEngine;
 
   private readonly ROTATION_SPEED = 0.003;
+
   private readonly THRUST_FORCE = 0.0005;
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
-  } public createPlayer(): void {
+  }
+
+  public createPlayer(): void {
     const dimensions = this.gameEngine.getWorldDimensions();
     const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;    if (this.useCompositeShip) {
+    const centerY = dimensions.height / 2;
+
+    if (this.useCompositeShip) {
       // Create composite ship with two parts to test constraint length fix
       this.compositeShip = this.gameEngine.createCompositeShip(
         { x: centerX, y: centerY },
-        2   // Two parts to test constraint length fix
+        2 // Two parts to test constraint length fix
       );
       this.player = null; // Clear traditional player
-      console.log('Two-part composite ship created at center:', centerX, centerY);
+      console.log(
+        'Two-part composite ship created at center:',
+        centerX,
+        centerY
+      );
     } else {
       // Create traditional triangular ship
       this.player = this.gameEngine.createTriangularShip(
@@ -44,13 +58,16 @@ export class PlayerManager {
     this.thrust = false;
 
     console.log('World dimensions:', dimensions.width, 'x', dimensions.height);
-  } public getPlayer(): Entity | null {
+  }
+
+  public getPlayer(): Entity | null {
     if (this.useCompositeShip && this.compositeShip) {
       // For composite ships, return the first part's entity for compatibility
       const parts = this.compositeShip.parts;
-      return parts.length > 0 ? parts[0].entity : null;
+
+return parts.length > 0 ? parts[0].entity : null;
     }
-    return this.player;
+return this.player;
   }
 
   public getCompositeShip(): CompositeShip | null {
@@ -64,9 +81,12 @@ export class PlayerManager {
   public setRotation(rotation: number): void {
     this.rotation = rotation;
   }
+
   public setThrust(thrust: boolean): void {
     this.thrust = thrust;
-  } public update(deltaTime: number): void {
+  }
+
+  public update(deltaTime: number): void {
     if (this.useCompositeShip && this.compositeShip) {
       // Update composite ship internal state first
       this.compositeShip.update(deltaTime);
@@ -125,7 +145,9 @@ export class PlayerManager {
           break;
       }
     }
-  } public respawn(): void {
+  }
+
+  public respawn(): void {
     const dimensions = this.gameEngine.getWorldDimensions();
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
@@ -137,12 +159,16 @@ export class PlayerManager {
       this.compositeShip.respawn({ x: centerX, y: centerY });
     } else if (this.player) {
       // Respawn traditional player
-      this.gameEngine.setEntityPosition(this.player, { x: centerX, y: centerY });
+      this.gameEngine.setEntityPosition(this.player, {
+        x: centerX,
+        y: centerY,
+      });
       this.gameEngine.setEntityRotation(this.player, this.rotation);
       // Stop any movement
       this.gameEngine.applyForceToEntity(this.player, { x: 0, y: 0 });
     }
   }
+
   public destroy(): void {
     if (this.useCompositeShip && this.compositeShip) {
       // Destroy composite ship
@@ -161,6 +187,6 @@ export class PlayerManager {
     } else if (this.player) {
       return this.player.position;
     }
-    return null;
+return null;
   }
 }

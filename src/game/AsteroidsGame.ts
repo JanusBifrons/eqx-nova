@@ -20,14 +20,22 @@ import {
  */
 export class AsteroidsGame {
   private static instance: AsteroidsGame | null = null;
+
   private isInitialized = false;
+
   private isDestroyed = false;
 
   // Managers - each handles a specific concern
   private gameEngine: IGameEngine | null = null;
+
   private playerManager: PlayerManager | null = null;
+
   private laserManager: LaserManager | null = null;
-  private asteroidManager: AsteroidManager | null = null; private collisionManager: CollisionManager | null = null;
+
+  private asteroidManager: AsteroidManager | null = null;
+
+  private collisionManager: CollisionManager | null = null;
+
   private inputManager: InputManager | null = null;
 
   // Singleton pattern
@@ -35,7 +43,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-    return AsteroidsGame.instance;
+return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -48,13 +56,15 @@ export class AsteroidsGame {
   public initialize(engine: Engine): void {
     if (this.isDestroyed) {
       console.warn('Cannot initialize destroyed game instance');
-      return;
+
+return;
     }
     if (this.isInitialized) {
       console.warn(
         'Game already initialized, skipping duplicate initialization'
       );
-      return;
+
+return;
     }
     this.setupManagers(engine);
     this.setupGame();
@@ -66,17 +76,18 @@ export class AsteroidsGame {
 
   private setupManagers(engine: Engine): void {
     // Create game engine adapter (Dependency Inversion Principle)
-    this.gameEngine = new GameEngineAdapter(engine);    // Initialize managers with their single responsibilities
+    this.gameEngine = new GameEngineAdapter(engine); // Initialize managers with their single responsibilities
     this.playerManager = new PlayerManager(this.gameEngine);
     this.laserManager = new LaserManager(this.gameEngine);
     this.asteroidManager = new AsteroidManager(this.gameEngine);
-    this.inputManager = new InputManager();// Collision manager orchestrates interactions between other managers
+    this.inputManager = new InputManager(); // Collision manager orchestrates interactions between other managers
     this.collisionManager = new CollisionManager(
       this.playerManager,
       this.laserManager,
       this.asteroidManager
     );
   }
+
   private setupGame(): void {
     if (!this.gameEngine) return;
 
@@ -95,7 +106,7 @@ export class AsteroidsGame {
         velocityIterations: 4,
         timing: {
           timeScale: 1.0, // Normal time flow
-        }
+        },
       },
 
       // Default body properties for space objects
@@ -116,17 +127,23 @@ export class AsteroidsGame {
         constraintIterations: 2, // Minimal constraints in space
         timing: {
           timeScale: 1.0,
-        }
-      }
-    });    // Create initial game objects
+        },
+      },
+    }); // Create initial game objects
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
 
     // Log initial camera setup
     const cameraSystem = this.gameEngine.getCameraSystem();
     const viewport = cameraSystem.getCamera().getViewport();
-    console.log('Camera system initialized with viewport:', viewport.width, 'x', viewport.height);
+    console.log(
+      'Camera system initialized with viewport:',
+      viewport.width,
+      'x',
+      viewport.height
+    );
   }
+
   private setupEventHandlers(): void {
     if (!this.gameEngine || !this.inputManager || !this.collisionManager)
       return;
@@ -144,17 +161,21 @@ export class AsteroidsGame {
     // Note: Continuous firing is now handled in the game loop (handleInput method)
     // rather than using one-time action callbacks to avoid delay and interruption issues
   }
+
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
     const player = this.playerManager.getPlayer();
+
     if (!player) return;
 
     this.laserManager.fireLaser(
       player.position,
       this.playerManager.getRotation()
     );
-  } public update(deltaTime: number): void {
+  }
+
+  public update(deltaTime: number): void {
     if (!this.isInitialized) return;
 
     this.handleInput(deltaTime);
@@ -163,6 +184,7 @@ export class AsteroidsGame {
     this.wrapScreenPositions();
     this.checkForNewWave();
   }
+
   private handleInput(deltaTime: number): void {
     if (!this.inputManager || !this.playerManager) return;
 
@@ -182,16 +204,21 @@ export class AsteroidsGame {
     if (this.inputManager.isFirePressed()) {
       this.handleFireLaser();
     }
-  } private updateManagers(deltaTime: number): void {
+  }
+
+  private updateManagers(deltaTime: number): void {
     this.playerManager!.update(deltaTime);
     this.laserManager!.update(deltaTime);
 
     // Maintain asteroid density in the expanded game world
     this.asteroidManager!.maintainAsteroidDensity(40);
-  } private updateCamera(): void {
+  }
+
+  private updateCamera(): void {
     if (!this.gameEngine || !this.playerManager) return;
 
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip) {
       // For composite ships, track the center position
       const centerPos = compositeShip.centerPosition;
@@ -200,12 +227,17 @@ export class AsteroidsGame {
       // Log camera position for debugging
       const cameraSystem = this.gameEngine.getCameraSystem();
       const cameraPos = cameraSystem.getCamera().getPosition();
-      if (Math.random() < 0.01) { // Log only occasionally to avoid spam
-        console.log(`Camera following composite ship at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+
+      if (Math.random() < 0.01) {
+        // Log only occasionally to avoid spam
+        console.log(
+          `Camera following composite ship at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`
+        );
       }
     } else {
       // Fall back to traditional player tracking
       const player = this.playerManager.getPlayer();
+
       if (player) {
         // Make camera follow the player
         this.gameEngine.lookAt(player);
@@ -213,12 +245,17 @@ export class AsteroidsGame {
         // Log camera position for debugging
         const cameraSystem = this.gameEngine.getCameraSystem();
         const cameraPos = cameraSystem.getCamera().getPosition();
-        if (Math.random() < 0.01) { // Log only occasionally to avoid spam
-          console.log(`Camera following player at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+
+        if (Math.random() < 0.01) {
+          // Log only occasionally to avoid spam
+          console.log(
+            `Camera following player at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`
+          );
         }
       }
     }
   }
+
   private wrapScreenPositions(): void {
     if (!this.gameEngine) return;
 
@@ -226,6 +263,7 @@ export class AsteroidsGame {
 
     // Wrap player (traditional or composite)
     const compositeShip = this.playerManager!.getCompositeShip();
+
     if (compositeShip) {
       // For composite ships, wrap all parts
       const parts = compositeShip.parts;
@@ -235,10 +273,12 @@ export class AsteroidsGame {
     } else {
       // Traditional player wrapping
       const player = this.playerManager!.getPlayer();
+
       if (player) {
         this.gameEngine.wrapEntityPosition(player, dimensions);
       }
-    }    // Wrap lasers
+    }
+    // Wrap lasers
     this.laserManager!.getAllLasers().forEach(laserData => {
       this.gameEngine!.wrapEntityPosition(laserData.entity, dimensions);
     });
@@ -248,15 +288,18 @@ export class AsteroidsGame {
       this.gameEngine!.wrapEntityPosition(asteroidData.entity, dimensions);
     });
   }
+
   private checkForNewWave(): void {
     if (this.asteroidManager!.getAsteroidCount() === 0) {
       this.asteroidManager!.spawnAsteroidWave(0); // No score, just spawn next wave
     }
   }
+
   // Public API methods
   public getScore(): number {
     return 0; // No scoring system
   }
+
   public getLives(): number {
     return 1; // Player always has 1 life (no death)
   }
@@ -264,6 +307,7 @@ export class AsteroidsGame {
   public isGameOver(): boolean {
     return false; // No game over
   }
+
   public restart(): void {
     if (!this.isInitialized) return;
 
@@ -280,6 +324,7 @@ export class AsteroidsGame {
   public isReady(): boolean {
     return this.isInitialized;
   }
+
   public destroy(): void {
     if (this.isDestroyed) return;
 

@@ -8,10 +8,15 @@ import type { MouseInputEvent } from '../engine/input';
  */
 export class Game {
   private isInitialized = false;
+
   private engine: Engine | null = null;
+
   private dynamicEntities: Entity[] = [];
+
   private spawnTimer = 0;
+
   private readonly SPAWN_INTERVAL = 2000; // milliseconds
+
   public initialize(engine: Engine): void {
     this.engine = engine;
     this.setupPhysicsDemo();
@@ -29,7 +34,8 @@ export class Game {
     if (this.spawnTimer >= this.SPAWN_INTERVAL) {
       this.spawnRandomObject();
       this.spawnTimer = 0;
-    }    // Clean up objects that have fallen too far
+    }
+    // Clean up objects that have fallen too far
     this.cleanupFallenObjects();
   }
 
@@ -56,7 +62,7 @@ export class Game {
       y: height * 0.4,
       width: 150,
       height: 20,
-      options: { isStatic: true, color: 0x4a9eff }
+      options: { isStatic: true, color: 0x4a9eff },
     });
 
     this.engine.createRectangle({
@@ -64,7 +70,7 @@ export class Game {
       y: height * 0.6,
       width: 150,
       height: 20,
-      options: { isStatic: true, color: 0x4a9eff }
+      options: { isStatic: true, color: 0x4a9eff },
     });
 
     this.engine.createRectangle({
@@ -72,7 +78,7 @@ export class Game {
       y: height * 0.8,
       width: 200,
       height: 20,
-      options: { isStatic: true, color: 0x4a9eff }
+      options: { isStatic: true, color: 0x4a9eff },
     });
   }
 
@@ -84,7 +90,7 @@ export class Game {
 
     // Create some initial boxes and circles
     for (let i = 0; i < 3; i++) {
-      const x = width * 0.2 + (i * width * 0.3);
+      const x = width * 0.2 + i * width * 0.3;
 
       // Box
       const box = this.engine.createRectangle({
@@ -92,7 +98,7 @@ export class Game {
         y: 50,
         width: 40,
         height: 40,
-        options: { color: 0x16213e }
+        options: { color: 0x16213e },
       });
       this.dynamicEntities.push(box);
 
@@ -101,7 +107,7 @@ export class Game {
         x: x,
         y: 100,
         radius: 20,
-        options: { color: 0xaa4465 }
+        options: { color: 0xaa4465 },
       });
       this.dynamicEntities.push(circle);
     }
@@ -129,7 +135,7 @@ export class Game {
         y: y,
         width: size,
         height: size,
-        options: { color }
+        options: { color },
       });
     } else {
       // Create circle
@@ -139,9 +145,10 @@ export class Game {
         x: x,
         y: y,
         radius: radius,
-        options: { color }
+        options: { color },
       });
-    }    this.dynamicEntities.push(entity);
+    }
+    this.dynamicEntities.push(entity);
   }
 
   private cleanupFallenObjects(): void {
@@ -160,7 +167,7 @@ export class Game {
     });
 
     // Remove fallen objects (in reverse order to maintain indices)
-    entitiesToRemove.reverse().forEach((index) => {
+    entitiesToRemove.reverse().forEach(index => {
       const entity = this.dynamicEntities[index];
       this.engine!.removeEntity(entity.id);
       this.dynamicEntities.splice(index, 1);
@@ -187,20 +194,27 @@ export class Game {
     const explosionForce = 0.01;
     const explosionRadius = 100;
 
-    this.dynamicEntities.forEach((entity) => {
+    this.dynamicEntities.forEach(entity => {
       const dx = entity.position.x - x;
       const dy = entity.position.y - y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < explosionRadius && distance > 0) {
-        const force = explosionForce * (explosionRadius - distance) / explosionRadius;
+        const force =
+          (explosionForce * (explosionRadius - distance)) / explosionRadius;
         const forceX = (dx / distance) * force;
         const forceY = (dy / distance) * force - 0.02; // Add upward bias        // Get the physics body for this entity and apply force
+
         if (this.engine) {
           const allBodies = this.engine.getPhysicsSystem().getAllBodies();
-          const physicsBody = allBodies.find(body => body.id === entity.physicsBodyId);
+          const physicsBody = allBodies.find(
+            body => body.id === entity.physicsBodyId
+          );
+
           if (physicsBody) {
-            this.engine.getPhysicsSystem().applyForce(physicsBody, { x: forceX, y: forceY });
+            this.engine
+              .getPhysicsSystem()
+              .applyForce(physicsBody, { x: forceX, y: forceY });
           }
         }
       }
@@ -208,12 +222,13 @@ export class Game {
 
     // Also spawn a new object at click location
     let newEntity: Entity;
+
     if (Math.random() > 0.5) {
       newEntity = this.engine.createCircle({
         x: x,
         y: y,
         radius: 15,
-        options: { color: 0xff6b6b }
+        options: { color: 0xff6b6b },
       });
     } else {
       newEntity = this.engine.createRectangle({
@@ -221,7 +236,7 @@ export class Game {
         y: y,
         width: 30,
         height: 30,
-        options: { color: 0x4ecdc4 }
+        options: { color: 0x4ecdc4 },
       });
     }
     this.dynamicEntities.push(newEntity);

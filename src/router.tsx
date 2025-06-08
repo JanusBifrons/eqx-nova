@@ -2,7 +2,11 @@ import { createRouter } from '@tanstack/react-router';
 import { rootRoute, homeRoute, aboutRoute, physicsDemoRoute } from './routes';
 
 // Create the route tree
-const routeTree = rootRoute.addChildren([homeRoute, aboutRoute, physicsDemoRoute]);
+const routeTree = rootRoute.addChildren([
+  homeRoute,
+  aboutRoute,
+  physicsDemoRoute,
+]);
 
 // Create the router
 export const router = createRouter({ routeTree });

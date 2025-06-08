@@ -7,12 +7,19 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
  */
 export class Player {
   public readonly entity: Entity;
+
   private _rotation: number = 0;
+
   private _thrust: boolean = false;
+
   private _lives: number = 3;
+
   private _isInvulnerable: boolean = false;
+
   private _invulnerabilityTimer: number = 0;
+
   private readonly INVULNERABILITY_DURATION = 3000; // 3 seconds
+
   private readonly onDestroy: (player: Player) => void;
 
   constructor(entity: Entity, onDestroy: (player: Player) => void) {
@@ -98,18 +105,22 @@ export class Player {
   public takeDamage(): boolean {
     if (this._isInvulnerable) {
       return false;
-    }    this._lives--;
+    }
+    this._lives--;
 
     if (this._lives > 0) {
       // Make player temporarily invulnerable
       this._isInvulnerable = true;
       this._invulnerabilityTimer = this.INVULNERABILITY_DURATION;
-      return false;
+
+return false;
     } else {
       this.destroy();
-      return true;
+
+return true;
     }
   }
+
   /**
    * Reset player position and state after respawn
    * @param _position New position to spawn at

@@ -12,9 +12,14 @@ interface AsteroidData {
  * Following Single Responsibility Principle
  */
 export class AsteroidManager {
-  private asteroids: AsteroidData[] = []; private gameEngine: IGameEngine;
+  private asteroids: AsteroidData[] = [];
+
+  private gameEngine: IGameEngine;
+
   private readonly ASTEROID_MIN_SPEED = 0.3; // Slightly slower for better control in expanded space
+
   private readonly ASTEROID_MAX_SPEED = 2.0; // Increased max speed for variety
+
   private readonly SIZE_MAP = {
     large: 40,
     medium: 25,
@@ -23,7 +28,9 @@ export class AsteroidManager {
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
-  } public spawnInitialAsteroids(): void {
+  }
+
+  public spawnInitialAsteroids(): void {
     // Spawn many more asteroids to fill the expanded game space (4x viewport)
 
     // First spawn asteroids at the edges
@@ -38,18 +45,23 @@ export class AsteroidManager {
     // 8 small asteroids for detail and visual interest
     for (let i = 0; i < 8; i++) {
       this.createRandomAsteroid('small');
-    }    // Then spawn additional asteroids throughout the interior space
+    }
+    // Then spawn additional asteroids throughout the interior space
     this.spawnInteriorAsteroids(12);
 
-    console.log('Spawned initial asteroids: 35 at edges + 12 interior = 47 total asteroids');
-  } public spawnAsteroidWave(score: number): void {
+    console.log(
+      'Spawned initial asteroids: 35 at edges + 12 interior = 47 total asteroids'
+    );
+  }
+
+  public spawnAsteroidWave(score: number): void {
     // Scale asteroid count for the expanded game space
     // Base of 8 asteroids, increasing by 2 for every 500 points, max of 20
     const numAsteroids = Math.min(8 + Math.floor(score / 500) * 2, 20);
 
     // Spawn a mix of sizes for variety
     const largeCount = Math.floor(numAsteroids * 0.5); // 50% large
-    const mediumCount = Math.floor(numAsteroids * 0.3); // 30% medium  
+    const mediumCount = Math.floor(numAsteroids * 0.3); // 30% medium
     const smallCount = numAsteroids - largeCount - mediumCount; // 20% small
 
     for (let i = 0; i < largeCount; i++) {
@@ -60,13 +72,18 @@ export class AsteroidManager {
     }
     for (let i = 0; i < smallCount; i++) {
       this.createRandomAsteroid('small');
-    }    // At higher scores, also spawn some interior asteroids for added challenge
+    }
+    // At higher scores, also spawn some interior asteroids for added challenge
     if (score > 2000) {
       const interiorCount = Math.min(Math.floor(score / 2000) * 2, 6);
       this.spawnInteriorAsteroids(interiorCount);
-      console.log(`Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} edge) + ${interiorCount} interior`);
+      console.log(
+        `Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} edge) + ${interiorCount} interior`
+      );
     } else {
-      console.log(`Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} total)`);
+      console.log(
+        `Spawned asteroid wave: ${largeCount} large, ${mediumCount} medium, ${smallCount} small (${numAsteroids} total)`
+      );
     }
   }
 
@@ -77,7 +94,9 @@ export class AsteroidManager {
       dimensions.height
     );
     this.createAsteroid(size, position.x, position.y);
-  } public createAsteroid(
+  }
+
+  public createAsteroid(
     size: 'large' | 'medium' | 'small',
     x: number,
     y: number
@@ -89,7 +108,7 @@ export class AsteroidManager {
       { x, y },
       this.SIZE_MAP[size],
       vertices
-    );    // Apply initial linear velocity for gentle movement
+    ); // Apply initial linear velocity for gentle movement
     const speed =
       this.ASTEROID_MIN_SPEED +
       Math.random() * (this.ASTEROID_MAX_SPEED - this.ASTEROID_MIN_SPEED);
@@ -102,8 +121,11 @@ export class AsteroidManager {
 
     // Add gentle rotation for visual interest
     const angularVelocity = (Math.random() - 0.5) * 0.02; // Random rotation between -0.01 and 0.01 rad/frame
-    this.gameEngine.setEntityAngularVelocity(entity, angularVelocity); this.asteroids.push({ entity, size });
-    console.log(`Created ${size} asteroid at (${x.toFixed(1)}, ${y.toFixed(1)}) with velocity (${velocityX.toFixed(2)}, ${velocityY.toFixed(2)}) pixels/frame, angular velocity: ${angularVelocity.toFixed(4)} rad/frame`);
+    this.gameEngine.setEntityAngularVelocity(entity, angularVelocity);
+    this.asteroids.push({ entity, size });
+    console.log(
+      `Created ${size} asteroid at (${x.toFixed(1)}, ${y.toFixed(1)}) with velocity (${velocityX.toFixed(2)}, ${velocityY.toFixed(2)}) pixels/frame, angular velocity: ${angularVelocity.toFixed(4)} rad/frame`
+    );
   }
 
   public breakAsteroid(asteroidData: AsteroidData): void {
@@ -131,6 +153,7 @@ export class AsteroidManager {
 
   public removeAsteroid(asteroidData: AsteroidData): void {
     const index = this.asteroids.indexOf(asteroidData);
+
     if (index > -1) {
       this.asteroids.splice(index, 1);
       this.gameEngine.removeEntity(asteroidData.entity.id);
@@ -139,7 +162,9 @@ export class AsteroidManager {
 
   public getAllAsteroids(): AsteroidData[] {
     return [...this.asteroids];
-  } public getAsteroidCount(): number {
+  }
+
+  public getAsteroidCount(): number {
     return this.asteroids.length;
   }
 
@@ -171,21 +196,28 @@ export class AsteroidManager {
         if (distanceFromCenter > safeZoneRadius) {
           break;
         }
-      } while (attempts < maxAttempts);      // If we couldn't find a good position, fall back to edge spawning
+      } while (attempts < maxAttempts);
+      // If we couldn't find a good position, fall back to edge spawning
       if (attempts >= maxAttempts) {
         this.createRandomAsteroid('medium');
         continue;
-      }      // Randomly choose size with bias toward smaller asteroids for interior
+      }
+      // Randomly choose size with bias toward smaller asteroids for interior
       const sizeRandom = Math.random();
       let size: 'large' | 'medium' | 'small';
+
       if (sizeRandom < 0.3) {
         size = 'large';
       } else if (sizeRandom < 0.7) {
         size = 'medium';
       } else {
         size = 'small';
-      }      this.createAsteroid(size, x, y);
-    }    console.log(`Spawned ${count} interior asteroids throughout the game world`);
+      }
+      this.createAsteroid(size, x, y);
+    }
+    console.log(
+      `Spawned ${count} interior asteroids throughout the game world`
+    );
   }
 
   /**
@@ -205,6 +237,7 @@ export class AsteroidManager {
       // Spawn edge asteroids
       for (let i = 0; i < edgeCount; i++) {
         const sizeRandom = Math.random();
+
         if (sizeRandom < 0.4) {
           this.createRandomAsteroid('large');
         } else if (sizeRandom < 0.8) {
@@ -212,10 +245,14 @@ export class AsteroidManager {
         } else {
           this.createRandomAsteroid('small');
         }
-      }      // Spawn interior asteroids
+      }
+      // Spawn interior asteroids
       if (interiorCount > 0) {
         this.spawnInteriorAsteroids(interiorCount);
-      }      console.log(`Maintaining asteroid density: spawned ${needed} asteroids (${edgeCount} edge, ${interiorCount} interior)`);
+      }
+      console.log(
+        `Maintaining asteroid density: spawned ${needed} asteroids (${edgeCount} edge, ${interiorCount} interior)`
+      );
     }
   }
 

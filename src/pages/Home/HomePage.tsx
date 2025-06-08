@@ -25,7 +25,8 @@ export function HomePage() {
       }
       engineRef.current.destroy();
       engineRef.current = null;
-    }    // Reset singleton instance to prevent double initialization
+    }
+    // Reset singleton instance to prevent double initialization
     AsteroidsGame.resetInstance();
 
     const initializeEngine = async () => {
@@ -65,9 +66,9 @@ export function HomePage() {
         console.error('Failed to initialize game engine:', error);
       }
     };
-
     initializeEngine();
-    return () => {
+
+return () => {
       if (engineRef.current) {
         // Clear UI update interval if it exists
         if ((engineRef.current as any).uiUpdateInterval) {
@@ -81,7 +82,8 @@ export function HomePage() {
         }
         engineRef.current.destroy();
         engineRef.current = null;
-      }      // Clean up singleton instance
+      }
+      // Clean up singleton instance
       AsteroidsGame.resetInstance();
       gameRef.current = null;
     };
@@ -94,8 +96,7 @@ export function HomePage() {
       setGameOver(false);
     }
   };
-
-  return (
+return (
     <div className="flex flex-1 flex-col">
       {' '}
       <div className="bg-gray-100 p-4">
