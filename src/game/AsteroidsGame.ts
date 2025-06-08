@@ -188,35 +188,57 @@ export class AsteroidsGame {
 
     // Maintain asteroid density in the expanded game world
     this.asteroidManager!.maintainAsteroidDensity(40);
-  }
-  private updateCamera(): void {
+  } private updateCamera(): void {
     if (!this.gameEngine || !this.playerManager) return;
 
-    const player = this.playerManager.getPlayer();
-    if (player) {
-      // Make camera follow the player
-      this.gameEngine.lookAt(player);
+    const compositeShip = this.playerManager.getCompositeShip();
+    if (compositeShip) {
+      // For composite ships, track the center position
+      const centerPos = compositeShip.centerPosition;
+      this.gameEngine.lookAt(centerPos);
 
       // Log camera position for debugging
       const cameraSystem = this.gameEngine.getCameraSystem();
       const cameraPos = cameraSystem.getCamera().getPosition();
       if (Math.random() < 0.01) { // Log only occasionally to avoid spam
-        console.log(`Camera following player at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+        console.log(`Camera following composite ship at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+      }
+    } else {
+      // Fall back to traditional player tracking
+      const player = this.playerManager.getPlayer();
+      if (player) {
+        // Make camera follow the player
+        this.gameEngine.lookAt(player);
+
+        // Log camera position for debugging
+        const cameraSystem = this.gameEngine.getCameraSystem();
+        const cameraPos = cameraSystem.getCamera().getPosition();
+        if (Math.random() < 0.01) { // Log only occasionally to avoid spam
+          console.log(`Camera following player at (${cameraPos.x.toFixed(1)}, ${cameraPos.y.toFixed(1)})`);
+        }
       }
     }
   }
-
   private wrapScreenPositions(): void {
     if (!this.gameEngine) return;
 
     const dimensions = this.gameEngine.getWorldDimensions();
 
-    // Wrap player
-    const player = this.playerManager!.getPlayer();
-    if (player) {
-      this.gameEngine.wrapEntityPosition(player, dimensions);
-    }
-    // Wrap lasers
+    // Wrap player (traditional or composite)
+    const compositeShip = this.playerManager!.getCompositeShip();
+    if (compositeShip) {
+      // For composite ships, wrap all parts
+      const parts = compositeShip.parts;
+      parts.forEach(part => {
+        this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
+      });
+    } else {
+      // Traditional player wrapping
+      const player = this.playerManager!.getPlayer();
+      if (player) {
+        this.gameEngine.wrapEntityPosition(player, dimensions);
+      }
+    }    // Wrap lasers
     this.laserManager!.getAllLasers().forEach(laserData => {
       this.gameEngine!.wrapEntityPosition(laserData.entity, dimensions);
     });

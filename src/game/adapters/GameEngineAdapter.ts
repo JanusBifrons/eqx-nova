@@ -8,6 +8,8 @@ import type { KeyboardInputEvent } from '../../engine/input';
 import type { IGameEngine, PhysicsConfig } from '../interfaces/IGameEngine';
 import type { ICameraSystem } from '../../engine/interfaces/ICamera';
 import { ShapeUtils } from '../utils/ShapeUtils';
+import { CompositeShipFactory } from '../factories/CompositeShipFactory';
+import type { CompositeShip } from '../entities/CompositeShip';
 
 /**
  * GameEngineAdapter - Adapts the core Engine to the game-specific interface
@@ -19,7 +21,6 @@ export class GameEngineAdapter implements IGameEngine {
   constructor(engine: Engine) {
     this.engine = engine;
   }
-
   public createTriangularShip(position: Vector2D, size: number): Entity {
     const triangleVertices = ShapeUtils.createTriangle(size);
 
@@ -34,6 +35,19 @@ export class GameEngineAdapter implements IGameEngine {
         density: 0.001,
       },
     });
+  }
+  public createCompositeShip(position: Vector2D, partSize: number, numParts?: number): CompositeShip {
+    const shipId = `composite-ship-${Date.now()}`;
+
+    // Default to 2-part ship, but allow customization
+    if (numParts === 3) {
+      return CompositeShipFactory.createThreePartShip(this.engine, position, shipId);
+    } else if (numParts === 4) {
+      return CompositeShipFactory.createFourPartShip(this.engine, position, shipId);
+    } else {
+      // Default to 2-part ship
+      return CompositeShipFactory.createTwoPartShip(this.engine, position, shipId);
+    }
   }
 
   public createAsteroid(
@@ -143,13 +157,15 @@ export class GameEngineAdapter implements IGameEngine {
     } else if (body.position.x > bounds.width) {
       newX = 0;
       wrapped = true;
-    }    if (body.position.y < 0) {
+    }
+    if (body.position.y < 0) {
       newY = bounds.height;
       wrapped = true;
     } else if (body.position.y > bounds.height) {
       newY = 0;
       wrapped = true;
-    }    if (wrapped) {
+    }
+    if (wrapped) {
       physicsSystem.setPosition(body, { x: newX, y: newY });
     }
   }
@@ -177,7 +193,8 @@ export class GameEngineAdapter implements IGameEngine {
     // Basic gravity configuration (backwards compatibility)
     if (config.gravity) {
       physicsSystem.setGravity(config.gravity.x, config.gravity.y);
-    }    // Legacy air resistance support (backwards compatibility)
+    }
+    // Legacy air resistance support (backwards compatibility)
     if (typeof config.airResistance === 'number') {
       physicsSystem.setDefaultBodyProperties({
         frictionAir: config.airResistance
@@ -185,13 +202,16 @@ export class GameEngineAdapter implements IGameEngine {
       physicsSystem.updateExistingBodies({
         frictionAir: config.airResistance
       });
-    }    // Advanced world configuration
+    }
+    // Advanced world configuration
     if (config.world) {
       physicsSystem.configureWorld(config.world);
-    }    // Engine configuration
+    }
+    // Engine configuration
     if (config.engine) {
       physicsSystem.configureEngine(config.engine);
-    }    // Default body properties
+    }
+    // Default body properties
     if (config.defaultBodyProperties) {
       physicsSystem.setDefaultBodyProperties(config.defaultBodyProperties);
       // Optionally apply to existing bodies      physicsSystem.updateExistingBodies(config.defaultBodyProperties);

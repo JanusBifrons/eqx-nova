@@ -3,7 +3,9 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import { Laser } from '../entities/Laser';
 import { Asteroid, type AsteroidSize } from '../entities/Asteroid';
 import { Player } from '../entities/Player';
+import { CompositeShip } from '../entities/CompositeShip';
 import { ShapeUtils } from '../shapes/ShapeUtils';
+import { CompositeShipFactory } from './CompositeShipFactory';
 
 /**
  * LaserFactory - Creates laser entities
@@ -42,7 +44,8 @@ export class LaserFactory {
       const forceX = direction.x * this.LASER_SPEED * 0.001;
       const forceY = direction.y * this.LASER_SPEED * 0.001;
       physicsSystem.applyForce(laserBody, { x: forceX, y: forceY });
-    }    const velocity = {
+    }
+    const velocity = {
       x: direction.x * this.LASER_SPEED,
       y: direction.y * this.LASER_SPEED,
     };
@@ -108,7 +111,8 @@ export class AsteroidFactory {
       // Add gentle rotation for visual interest
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
-    }    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+    }
+    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -140,7 +144,8 @@ export class AsteroidFactory {
         x = -20;
         y = Math.random() * height;
         break;
-    }    return this.create(engine, { x, y }, size, onDestroy);
+    }
+    return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {
@@ -183,5 +188,21 @@ export class PlayerFactory {
     });
 
     return new Player(entity, onDestroy);
+  }
+
+  /**
+   * Create a composite ship player (new ship system)
+   */
+  public static createCompositeShip(
+    engine: Engine,
+    position: Vector2D,
+    onDestroy: (ship: CompositeShip) => void
+  ): CompositeShip {
+    return CompositeShipFactory.createTwoPartShip(
+      engine,
+      position,
+      'player_ship',
+      onDestroy
+    );
   }
 }

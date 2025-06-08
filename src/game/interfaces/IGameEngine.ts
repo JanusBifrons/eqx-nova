@@ -5,6 +5,7 @@ import type {
 } from '../../engine/interfaces/IPhysicsSystem';
 import type { KeyboardInputEvent } from '../../engine/input';
 import type { ICameraSystem } from '../../engine/interfaces/ICamera';
+import type { CompositeShip } from '../entities/CompositeShip';
 
 /**
  * Game-specific engine interface following Interface Segregation Principle
@@ -13,6 +14,7 @@ import type { ICameraSystem } from '../../engine/interfaces/ICamera';
 export interface IGameEngine {
   // Entity creation
   createTriangularShip(position: Vector2D, size: number): Entity;
+  createCompositeShip(position: Vector2D, partSize: number, numParts?: number): CompositeShip;
   createAsteroid(
     position: Vector2D,
     size: number,
