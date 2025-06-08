@@ -35,12 +35,13 @@ export class GameEngineAdapter implements IGameEngine {
         density: 0.001,
       },
     });
-  }
-  public createCompositeShip(position: Vector2D, partSize: number, numParts?: number): CompositeShip {
+  } public createCompositeShip(position: Vector2D, numParts?: number): CompositeShip {
     const shipId = `composite-ship-${Date.now()}`;
 
-    // Default to 2-part ship, but allow customization
-    if (numParts === 3) {
+    // Allow customization of part count
+    if (numParts === 1) {
+      return CompositeShipFactory.createSinglePartShip(this.engine, position, shipId);
+    } else if (numParts === 3) {
       return CompositeShipFactory.createThreePartShip(this.engine, position, shipId);
     } else if (numParts === 4) {
       return CompositeShipFactory.createFourPartShip(this.engine, position, shipId);

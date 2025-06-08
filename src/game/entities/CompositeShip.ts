@@ -1,5 +1,5 @@
 import type { Engine } from '../../engine';
-import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
+import type { Vector2D, IConstraint, IPhysicsBody, CompoundBodyPart } from '../../engine/interfaces/IPhysicsSystem';
 import type { ICompositeShip, IShipPart } from '../interfaces/ICompositeShip';
 import { ShipPart } from './ShipPart';
 
@@ -12,13 +12,15 @@ export class CompositeShip implements ICompositeShip {
     private readonly _id: string;
     private readonly _parts: ShipPart[];
     private readonly _engine: Engine;
+    private readonly _constraints: IConstraint[] = [];
+    private _compoundBody: IPhysicsBody | null = null;  // Single rigid body for all parts
     private _centerPosition: Vector2D;
     private _rotation: number = 0;
-    private _thrust: boolean = false; private _lives: number;
+    private _thrust: boolean = false;private _lives: number;
     private _isInvulnerable: boolean = false;
     private _invulnerabilityTimer: number = 0;
     private _collisionRadius: number;
-    private _onDestroy?: (ship: CompositeShip) => void; constructor(
+    private _onDestroy?: (ship: CompositeShip) => void;    constructor(
         id: string,
         parts: ShipPart[],
         engine: Engine,
@@ -27,14 +29,15 @@ export class CompositeShip implements ICompositeShip {
         onDestroy?: (ship: CompositeShip) => void
     ) {
         this._id = id;
-        this._parts = [...parts]; this._engine = engine;
+        this._parts = [...parts];
+        this._engine = engine;
         this._lives = lives;
         this._centerPosition = { ...centerPosition }; // Use the provided center position
         this._collisionRadius = this.calculateCollisionRadius();
         this._onDestroy = onDestroy;
 
-        // Connect all parts to each other initially
-        this.connectAllParts();
+        // Create a single compound body instead of using constraints
+        this.createCompoundBody();
     }
 
     public get id(): string {
@@ -82,11 +85,14 @@ export class CompositeShip implements ICompositeShip {
             x: Math.cos(this._rotation),
             y: Math.sin(this._rotation)
         };
-    }
-
-    public setRotation(angle: number): void {
+    }    public setRotation(angle: number): void {
         this._rotation = angle;
-        this.updateAllPartPositions();
+
+        // Apply rotation to the compound body
+        if (this._compoundBody) {
+            const physicsSystem = this._engine.getPhysicsSystem();
+            physicsSystem.setRotation(this._compoundBody, angle);
+        }
     }
 
     public setThrust(thrusting: boolean): void {
@@ -120,14 +126,13 @@ export class CompositeShip implements ICompositeShip {
                 // Respawn with fewer parts
                 this.respawnWithRemainingParts();
             }
-        }        // Make invulnerable briefly after taking damage
+        }
+        // Make invulnerable briefly after taking damage
         this._isInvulnerable = true;
         this._invulnerabilityTimer = 2000; // 2 seconds
 
         return false; // Ship damaged but not destroyed
-    }
-
-    public respawn(position: Vector2D): void {
+    }    public respawn(position: Vector2D): void {
         this._centerPosition = { ...position };
         this._rotation = 0;
         this._thrust = false;
@@ -140,11 +145,24 @@ export class CompositeShip implements ICompositeShip {
                 // 50% chance to restore each destroyed part
                 this.restorePart(part as ShipPart);
             }
-        }); this.connectAllParts();
-        this.updateAllPartPositions();
-    }
+        });
 
-    public update(deltaTime: number): void {
+        // Remove old compound body
+        if (this._compoundBody) {
+            const physicsSystem = this._engine.getPhysicsSystem();
+            physicsSystem.removeBody(this._compoundBody);
+            this._compoundBody = null;
+        }
+
+        // Clean up old constraints
+        this.cleanupConstraints();
+
+        // Recreate compound body at new position
+        this.createCompoundBody();
+        
+        // Reconnect parts logically
+        this.connectAllParts();
+    }    public update(deltaTime: number): void {
         // Update invulnerability timer
         if (this._isInvulnerable) {
             this._invulnerabilityTimer -= deltaTime;
@@ -152,39 +170,68 @@ export class CompositeShip implements ICompositeShip {
             if (this._invulnerabilityTimer <= 0) {
                 this._isInvulnerable = false;
             }
-        }        // Update center position based on physics of connected parts
+        }
+
+        // Update center position based on physics of compound body
         this.updateCenterPosition();
+    }public destroy(): void {
+        // Remove the compound body
+        if (this._compoundBody) {
+            const physicsSystem = this._engine.getPhysicsSystem();
+            physicsSystem.removeBody(this._compoundBody);
+            this._compoundBody = null;
+        }
 
-        // Update all part positions
-        this.updateAllPartPositions();
-
-        // Apply floating physics to disconnected parts
-        this._parts.forEach(part => {
-            if (!part.isConnected && !part.isDestroyed) {
-                (part as ShipPart).applyFloatingPhysics(this._engine);
-            }
+        // Clean up all physics constraints (if any remain)
+        const physicsSystem = this._engine.getPhysicsSystem();
+        this._constraints.forEach(constraint => {
+            physicsSystem.removeConstraint(constraint);
         });
-    }
+        this._constraints.length = 0;
 
-    public destroy(): void {
+        // Destroy all parts
         this._parts.forEach(part => part.destroy());
 
         if (this._onDestroy) {
             this._onDestroy(this);
         }
-    }
-
-    public destroyPart(partId: string): void {
+    }public destroyPart(partId: string): void {
         const part = this._parts.find(p => p.partId === partId);
         if (part && !part.isDestroyed) {
+            // First, remove any constraints connected to this part
+            const partPhysicsBodyId = part.entity.physicsBodyId;
+            const physicsSystem = this._engine.getPhysicsSystem();
+            const allBodies = physicsSystem.getAllBodies();
+            const partBody = allBodies.find(body => body.id === partPhysicsBodyId);
+
+            if (partBody) {
+                // Find and remove constraints involving this part
+                const constraintsToRemove: IConstraint[] = [];
+                this._constraints.forEach(constraint => {
+                    // Note: We can't easily check if a constraint involves a specific body
+                    // without extending the constraint interface. For now, we'll rebuild all constraints
+                    constraintsToRemove.push(constraint);
+                });
+
+                // Remove all constraints and rebuild them without the destroyed part
+                constraintsToRemove.forEach(constraint => {
+                    physicsSystem.removeConstraint(constraint);
+                });
+                this._constraints.length = 0;
+            }
+
+            // Destroy the part
             part.destroy();
 
-            // Disconnect this part from others
+            // Disconnect this part from others logically
             this._parts.forEach(otherPart => {
                 if (otherPart.partId !== partId) {
                     (otherPart as ShipPart).disconnectFromPart(partId);
                 }
             });
+
+            // Rebuild constraints for remaining parts
+            this.connectAllParts();
 
             // Check for isolated parts and disconnect them
             this.updatePartConnections();
@@ -201,7 +248,8 @@ export class CompositeShip implements ICompositeShip {
         const activeParts = this.getActiveParts();
         if (activeParts.length === 0) {
             return { x: 0, y: 0 };
-        }        // Calculate the actual center of mass based on physics positions
+        }
+        // Calculate the actual center of mass based on physics positions
         let totalX = 0;
         let totalY = 0;
 
@@ -230,62 +278,80 @@ export class CompositeShip implements ICompositeShip {
         });
 
         return maxDistance;
-    }
+    }    private cleanupConstraints(): void {
+        // Remove all existing constraints (if any)
+        const physicsSystem = this._engine.getPhysicsSystem();
+        this._constraints.forEach(constraint => {
+            physicsSystem.removeConstraint(constraint);
+        });
+        this._constraints.length = 0;
+    }private connectAllParts(): void {
+        // With compound bodies, parts are naturally connected
+        // Just maintain logical connections for game logic
+        const activeParts = this._parts.filter(part => !part.isDestroyed);
 
-    private connectAllParts(): void {
-        // Connect adjacent parts (simplified - could be more sophisticated)
-        this._parts.forEach((part, index) => {
-            this._parts.forEach((otherPart, otherIndex) => {
-                if (index !== otherIndex && !part.isDestroyed && !otherPart.isDestroyed) {
+        activeParts.forEach(part => {
+            activeParts.forEach(otherPart => {
+                if (part.partId !== otherPart.partId) {
                     (part as ShipPart).connectToPart(otherPart.partId);
                 }
             });
         });
-    } private updateAllPartPositions(): void {
-        this._parts.forEach(part => {
-            if (!part.isDestroyed && part.isConnected) {
-                part.updatePosition(this._centerPosition, this._rotation, this._engine);
-            }
-        });
-    }
-
-    private updateCenterPosition(): void {
-        // Get physics position from the first active connected part
-        const activeParts = this.getActiveParts().filter(part => part.isConnected);
-        if (activeParts.length > 0) {
-            const firstPart = activeParts[0];
-
-            // Calculate center based on first part's physics position
-            const cos = Math.cos(this._rotation);
-            const sin = Math.sin(this._rotation);
-
-            const relPos = firstPart.relativePosition;
-            const rotatedX = relPos.x * cos - relPos.y * sin;
-            const rotatedY = relPos.x * sin + relPos.y * cos;
-
+    }    private updateCenterPosition(): void {
+        // Get physics position from the compound body
+        if (this._compoundBody) {
             this._centerPosition = {
-                x: firstPart.position.x - rotatedX,
-                y: firstPart.position.y - rotatedY
+                x: this._compoundBody.position.x,
+                y: this._compoundBody.position.y
             };
+            this._rotation = this._compoundBody.angle;
+            
+            // Update individual part render objects based on compound body
+            this.updatePartRenderObjects();
         }
     }
 
-    private applyThrustForce(): void {
-        const thrustMagnitude = 0.002;
-        const forceX = Math.cos(this._rotation) * thrustMagnitude;
-        const forceY = Math.sin(this._rotation) * thrustMagnitude;
+    private updatePartRenderObjects(): void {
+        if (!this._compoundBody) return;
 
-        // Apply thrust to all connected parts
-        const activeParts = this.getActiveParts().filter(part => part.isConnected);
-        const physicsSystem = this._engine.getPhysicsSystem();
-        const allBodies = physicsSystem.getAllBodies();
+        const rendererSystem = this._engine.getRendererSystem();
+        const activeParts = this.getActiveParts();
 
         activeParts.forEach(part => {
-            const physicsBody = allBodies.find(body => body.id === part.entity.physicsBodyId);
-            if (physicsBody) {
-                physicsSystem.applyForce(physicsBody, { x: forceX, y: forceY });
-            }
+            // Calculate the world position of this part based on compound body position and rotation
+            const cos = Math.cos(this._compoundBody!.angle);
+            const sin = Math.sin(this._compoundBody!.angle);
+
+            const rotatedX = part.relativePosition.x * cos - part.relativePosition.y * sin;
+            const rotatedY = part.relativePosition.x * sin + part.relativePosition.y * cos;
+
+            const worldPosition = {
+                x: this._compoundBody!.position.x + rotatedX,
+                y: this._compoundBody!.position.y + rotatedY
+            };
+
+            // Update the entity position (for consistency)
+            part.entity.position = worldPosition;
+            part.entity.angle = this._compoundBody!.angle;
+
+            // Update the render object directly
+            rendererSystem.updateRenderObject(
+                part.entity.renderObjectId,
+                worldPosition,
+                this._compoundBody!.angle
+            );
         });
+    }private applyThrustForce(): void {
+        if (!this._compoundBody) return;
+
+        // Base thrust magnitude - same as traditional player ship
+        const baseThrustMagnitude = 0.002;
+
+        // Apply thrust force to the compound body
+        const physicsSystem = this._engine.getPhysicsSystem();
+        const forceX = Math.cos(this._rotation) * baseThrustMagnitude;
+        const forceY = Math.sin(this._rotation) * baseThrustMagnitude;
+        physicsSystem.applyForce(this._compoundBody, { x: forceX, y: forceY });
     }
 
     private updatePartConnections(): void {
@@ -307,17 +373,62 @@ export class CompositeShip implements ICompositeShip {
                 }
             }
         });
-    }
-
-    private respawnWithRemainingParts(): void {
+    } private respawnWithRemainingParts(): void {
         // Reset position but keep destroyed parts destroyed
         // This creates a smaller ship for the next life
         this._centerPosition = this.calculateCenterPosition();
         this._collisionRadius = this.calculateCollisionRadius();
-        this.updateAllPartPositions();
+        // Let physics constraints handle positioning naturally
     } private restorePart(_part: ShipPart): void {
         // This would need to recreate the entity and physics body
         // For now, just mark as not destroyed (simplified)
         // In a full implementation, would need to recreate the Entity
+    }
+
+    private createCompoundBody(): void {
+        const physicsSystem = this._engine.getPhysicsSystem();
+        const activeParts = this.getActiveParts();
+        
+        if (activeParts.length === 0) return;
+
+        // Create compound body parts from ship parts
+        const compoundParts: CompoundBodyPart[] = activeParts.map(part => {
+            // Assuming parts are squares (rectangles)
+            return {
+                type: 'rectangle' as const,
+                x: part.relativePosition.x,
+                y: part.relativePosition.y,
+                width: part.size,
+                height: part.size,
+                options: {
+                    density: 0.01,
+                    friction: 0.3,
+                    frictionAir: 0.02
+                }
+            };
+        });
+
+        // Remove individual physics bodies for parts
+        activeParts.forEach(part => {
+            const allBodies = physicsSystem.getAllBodies();
+            const physicsBody = allBodies.find(body => body.id === part.entity.physicsBodyId);
+            if (physicsBody) {
+                physicsSystem.removeBody(physicsBody);
+            }
+        });
+
+        // Create the compound body
+        this._compoundBody = physicsSystem.createCompoundBody(
+            this._centerPosition.x,
+            this._centerPosition.y,
+            compoundParts,
+            {
+                density: 0.01,
+                friction: 0.3,
+                frictionAir: 0.02
+            }
+        );
+
+        console.log(`Created compound body with ${compoundParts.length} parts at position (${this._centerPosition.x}, ${this._centerPosition.y})`);
     }
 }

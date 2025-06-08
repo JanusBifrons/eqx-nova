@@ -23,17 +23,14 @@ export class PlayerManager {
   } public createPlayer(): void {
     const dimensions = this.gameEngine.getWorldDimensions();
     const centerX = dimensions.width / 2;
-    const centerY = dimensions.height / 2;
-
-    if (this.useCompositeShip) {
-      // Create composite ship (2 parts by default)
+    const centerY = dimensions.height / 2;    if (this.useCompositeShip) {
+      // Create composite ship with two parts to test constraint length fix
       this.compositeShip = this.gameEngine.createCompositeShip(
         { x: centerX, y: centerY },
-        16, // Part size
-        2   // Number of parts
+        2   // Two parts to test constraint length fix
       );
       this.player = null; // Clear traditional player
-      console.log('Composite ship created at center:', centerX, centerY);
+      console.log('Two-part composite ship created at center:', centerX, centerY);
     } else {
       // Create traditional triangular ship
       this.player = this.gameEngine.createTriangularShip(
@@ -42,7 +39,8 @@ export class PlayerManager {
       );
       this.compositeShip = null; // Clear composite ship
       console.log('Traditional player created at center:', centerX, centerY);
-    }    this.rotation = 0;
+    }
+    this.rotation = 0;
     this.thrust = false;
 
     console.log('World dimensions:', dimensions.width, 'x', dimensions.height);

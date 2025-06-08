@@ -14,7 +14,7 @@ import type { CompositeShip } from '../entities/CompositeShip';
 export interface IGameEngine {
   // Entity creation
   createTriangularShip(position: Vector2D, size: number): Entity;
-  createCompositeShip(position: Vector2D, partSize: number, numParts?: number): CompositeShip;
+  createCompositeShip(position: Vector2D, numParts?: number): CompositeShip;
   createAsteroid(
     position: Vector2D,
     size: number,

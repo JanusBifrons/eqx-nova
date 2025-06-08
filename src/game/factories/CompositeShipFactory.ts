@@ -29,9 +29,9 @@ export class CompositeShipFactory {
             shipId,
             {
                 color: config.partColor,
-                density: 0.001,
+                density: 0.01,      // Increased from 0.001 - more realistic mass
                 friction: 0.3,
-                frictionAir: 0.01
+                frictionAir: 0.02   // Increased air resistance for better control
             }
         ); return new CompositeShip(
             shipId,
@@ -41,6 +41,30 @@ export class CompositeShipFactory {
             config.lives ?? 3,
             onDestroy
         );
+    }
+
+    /**
+     * Create a single-part ship for testing (simplest possible composite ship)
+     */
+    public static createSinglePartShip(
+        engine: Engine,
+        position: Vector2D,
+        shipId: string,
+        onDestroy?: (ship: CompositeShip) => void
+    ): CompositeShip {
+        const partSize = 16; // Size of the single square part
+
+        const config: CompositeShipConfig = {
+            centerPosition: position,
+            partSize,
+            partPositions: [
+                { x: 0, y: 0 }  // Single part at center
+            ],
+            partColor: 0x00ff00, // Green
+            lives: 3
+        };
+
+        return this.create(engine, config, shipId, onDestroy);
     }
 
     /**
