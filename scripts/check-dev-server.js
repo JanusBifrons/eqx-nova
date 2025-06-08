@@ -3,7 +3,7 @@
 import { spawn } from 'child_process';
 import http from 'http';
 
-const DEFAULT_PORT = 5173;
+const DEFAULT_PORT = 3000;
 
 function checkPort(port) {
   return new Promise((resolve) => {
