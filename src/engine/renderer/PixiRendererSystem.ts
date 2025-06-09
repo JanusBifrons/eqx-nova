@@ -67,7 +67,7 @@ export class PixiRendererSystem implements IRendererSystem {
         if (context && context.isContextLost()) {
           console.warn('WebGL context is lost, skipping render');
 
-return;
+          return;
         }
       }
       this.app.renderer.render(this.app.stage);

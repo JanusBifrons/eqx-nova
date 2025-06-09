@@ -1,5 +1,6 @@
 import type { Engine } from '../engine';
 import type { IGameEngine } from './interfaces/IGameEngine';
+import type { MouseInputEvent } from '../engine/input';
 import { GameEngineAdapter } from './adapters/GameEngineAdapter';
 import {
   PlayerManager,
@@ -38,6 +39,11 @@ export class AsteroidsGame {
 
   private inputManager: InputManager | null = null;
 
+  // Mouse interaction state
+  private cursorDot: any = null; // Entity for cursor visualization
+
+  private mouseWorldPosition: { x: number; y: number } | null = null;
+
   // Singleton pattern
   public static getInstance(): AsteroidsGame {
     if (!AsteroidsGame.instance) {
@@ -57,14 +63,14 @@ return AsteroidsGame.instance;
     if (this.isDestroyed) {
       console.warn('Cannot initialize destroyed game instance');
 
-return;
+      return;
     }
     if (this.isInitialized) {
       console.warn(
         'Game already initialized, skipping duplicate initialization'
       );
 
-return;
+      return;
     }
     this.setupManagers(engine);
     this.setupGame();
@@ -156,7 +162,18 @@ return;
     // Setup collision handling
     this.gameEngine.onCollision(event => {
       this.collisionManager!.handleCollision(event);
-    });
+    }); // Setup mouse click handling for asteroid spawning
+    // Use right-click for asteroid spawning to avoid conflicts with left-click dragging
+    const engine = (this.gameEngine as any).engine; // Access underlying engine
+
+    if (engine) {
+      const inputSystem = engine.getInputSystem();
+      inputSystem.addEventListener('mouse', (event: MouseInputEvent) => {
+        if (event.action === 'down' && event.button === 'right') {
+          this.handleMouseClick(event.position);
+        }
+      });
+    }
 
     // Note: Continuous firing is now handled in the game loop (handleInput method)
     // rather than using one-time action callbacks to avoid delay and interruption issues
@@ -179,6 +196,7 @@ return;
     if (!this.isInitialized) return;
 
     this.handleInput(deltaTime);
+    this.updateMouse(); // Handle mouse cursor dot and interactions
     this.updateManagers(deltaTime);
     this.updateCamera();
     this.wrapScreenPositions();
@@ -344,5 +362,55 @@ return;
 
     this.isInitialized = false;
     this.isDestroyed = true;
+  }
+
+  private updateMouse(): void {
+    if (!this.gameEngine) return;
+
+    // Get current mouse position in screen space
+    const screenMousePos = this.gameEngine.getMousePosition();
+
+    if (!screenMousePos) {
+      // No mouse position available
+      if (this.cursorDot) {
+        this.gameEngine.removeEntity(this.cursorDot.id);
+        this.cursorDot = null;
+      }
+      this.mouseWorldPosition = null;
+
+      return;
+    }
+    // Convert to world space using camera system
+    const cameraSystem = this.gameEngine.getCameraSystem();
+    this.mouseWorldPosition = cameraSystem.screenToWorld(screenMousePos);
+
+    // Update or create cursor dot at world position
+    if (this.cursorDot) {
+      this.gameEngine.setEntityPosition(
+        this.cursorDot,
+        this.mouseWorldPosition
+      );
+    } else {
+      // Create cursor dot
+      this.cursorDot = this.gameEngine.createDebugMarker(
+        this.mouseWorldPosition,
+        0x00ff00
+      );
+    }
+  }
+
+  private handleMouseClick(screenPosition: { x: number; y: number }): void {
+    if (!this.gameEngine || !this.asteroidManager) return;
+
+    // Convert screen position to world position using camera system
+    const cameraSystem = this.gameEngine.getCameraSystem();
+    const worldPosition = cameraSystem.screenToWorld(screenPosition);
+
+    // Spawn an asteroid at the click location
+    this.asteroidManager.createAsteroid(
+      'medium',
+      worldPosition.x,
+      worldPosition.y
+    );
   }
 }

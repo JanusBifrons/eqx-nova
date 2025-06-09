@@ -40,6 +40,18 @@ export interface ConstraintOptions {
   pointB?: Vector2D; // Anchor point on bodyB (local coordinates)
 }
 
+export interface IMouseConstraint {
+  id: string;
+  isActive: boolean;
+  position: Vector2D | null;
+  constrainedBody: IPhysicsBody | null;
+}
+
+export interface MouseConstraintOptions {
+  stiffness?: number;
+  damping?: number;
+}
+
 export interface CompoundBodyPart {
   type: 'circle' | 'rectangle' | 'polygon';
   x: number; // Relative to compound body center
@@ -96,6 +108,12 @@ export interface IPhysicsSystem {
     options?: ConstraintOptions
   ): IConstraint;
   removeConstraint(constraint: IConstraint): void;
+  createMouseConstraint(options?: MouseConstraintOptions): IMouseConstraint;
+  updateMouseConstraint(
+    mouseConstraint: IMouseConstraint,
+    worldPosition: Vector2D
+  ): void;
+  removeMouseConstraint(mouseConstraint: IMouseConstraint): void;
   onCollisionStart(callback: CollisionCallback): void;
   onCollisionEnd(callback: CollisionCallback): void;
   destroy(): void;

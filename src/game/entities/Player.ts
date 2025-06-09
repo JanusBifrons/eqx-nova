@@ -113,11 +113,11 @@ export class Player {
       this._isInvulnerable = true;
       this._invulnerabilityTimer = this.INVULNERABILITY_DURATION;
 
-return false;
+      return false;
     } else {
       this.destroy();
 
-return true;
+      return true;
     }
   }
 

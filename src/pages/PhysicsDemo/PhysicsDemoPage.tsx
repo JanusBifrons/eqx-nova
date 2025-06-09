@@ -62,8 +62,10 @@ export function PhysicsDemoPage() {
           Physics Demonstration
         </h2>
         <p className="text-sm text-gray-600">
-          Click anywhere on the canvas to create objects and apply forces!
-          Objects spawn automatically and interact with the physics world.
+          Left-click and drag to interact with objects using realistic physics
+          constraints! Right-click to create explosion effects and spawn new
+          objects. Objects spawn automatically and interact with the physics
+          world.
         </p>
       </div>
       <div className="flex flex-1 overflow-hidden">

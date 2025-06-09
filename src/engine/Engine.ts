@@ -11,7 +11,11 @@ import type {
   CircleConfig,
   PolygonConfig,
 } from './entity';
-import { InputSystem, type IInputSystem } from './input';
+import {
+  InputSystem,
+  MouseInteractionSystem,
+  type IInputSystem,
+} from './input';
 
 export class Engine {
   private physicsSystem: IPhysicsSystem;
@@ -23,6 +27,8 @@ export class Engine {
   private cameraSystem: ICameraSystem;
 
   private entityManager: EntityManager;
+
+  private mouseInteractionSystem: MouseInteractionSystem;
 
   private isRunning = false;
 
@@ -54,6 +60,7 @@ export class Engine {
       this.physicsSystem,
       this.rendererSystem
     );
+    this.mouseInteractionSystem = new MouseInteractionSystem();
   }
 
   public async initialize(
@@ -80,6 +87,13 @@ export class Engine {
 
     // Initialize input system with canvas element
     this.inputSystem.initialize(canvas);
+
+    // Initialize mouse interaction system
+    this.mouseInteractionSystem.initialize(
+      this.physicsSystem,
+      this.cameraSystem,
+      this.inputSystem
+    );
   }
 
   public start(): void {
@@ -186,6 +200,7 @@ return average;
 
   public destroy(): void {
     this.stop();
+    this.mouseInteractionSystem.destroy();
     this.inputSystem.destroy();
     this.entityManager.destroy();
     this.physicsSystem.destroy();

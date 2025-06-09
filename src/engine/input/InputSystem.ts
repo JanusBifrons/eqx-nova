@@ -367,7 +367,7 @@ export class InputSystem implements IInputSystem {
 
     const rect = this.element.getBoundingClientRect();
 
-return {
+    return {
       x: event.clientX - rect.left,
       y: event.clientY - rect.top,
     };

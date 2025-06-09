@@ -100,8 +100,25 @@ export class GameEngineAdapter implements IGameEngine {
         color: 0xffff00,
         isStatic: false,
         frictionAir: 0,
-        density: 0.001,
-        isSensor: true,
+        density: 0.0001,
+        isSensor: true, // Lasers pass through objects
+      },
+    });
+  }
+
+  public createDebugMarker(
+    position: Vector2D,
+    color: number = 0xff0000
+  ): Entity {
+    // Create a small cross-shaped marker for visual debugging
+    return this.engine.createCircle({
+      x: position.x,
+      y: position.y,
+      radius: 8, // Increased size for better visibility
+      options: {
+        color,
+        isStatic: true,
+        isSensor: true, // Don't interact with other objects
       },
     });
   }
@@ -254,5 +271,11 @@ export class GameEngineAdapter implements IGameEngine {
     const cameraSystem = this.engine.getCameraSystem();
     const camera = cameraSystem.getCamera();
     camera.lookAt(target);
+  }
+
+  public getMousePosition(): Vector2D | null {
+    const inputSystem = this.engine.getInputSystem();
+
+    return inputSystem.getMousePosition();
   }
 }

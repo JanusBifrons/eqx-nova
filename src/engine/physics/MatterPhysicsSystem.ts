@@ -6,6 +6,7 @@ import {
   Vector,
   Events,
   Constraint,
+  MouseConstraint,
 } from 'matter-js';
 import type {
   IPhysicsSystem,
@@ -16,6 +17,8 @@ import type {
   CollisionEvent,
   IConstraint,
   ConstraintOptions,
+  IMouseConstraint,
+  MouseConstraintOptions,
   CompoundBodyPart,
 } from '../interfaces/IPhysicsSystem';
 
@@ -65,6 +68,41 @@ class MatterConstraint implements IConstraint {
   }
 }
 
+class MatterMouseConstraint implements IMouseConstraint {
+  private mouseConstraint: any;
+
+  public id: string;
+
+  constructor(mouseConstraint: any, id: string) {
+    this.mouseConstraint = mouseConstraint;
+    this.id = id;
+  }
+
+  public get isActive(): boolean {
+    return this.mouseConstraint.constraint.bodyB !== null;
+  }
+
+  public get position(): Vector2D | null {
+    if (!this.mouseConstraint.mouse.position) return null;
+
+    return {
+      x: this.mouseConstraint.mouse.position.x,
+      y: this.mouseConstraint.mouse.position.y,
+    };
+  }
+
+  public get constrainedBody(): IPhysicsBody | null {
+    if (!this.mouseConstraint.constraint.bodyB) return null;
+    // We would need to find the corresponding IPhysicsBody from the constraint's bodyB
+    // This would require a reverse lookup from Matter body to our wrapper
+    return null; // Simplified for now
+  }
+
+  public get matterMouseConstraint(): any {
+    return this.mouseConstraint;
+  }
+}
+
 export class MatterPhysicsSystem implements IPhysicsSystem {
   private engine: Engine | null = null;
 
@@ -74,9 +112,13 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
   private constraints: Map<string, MatterConstraint> = new Map();
 
+  private mouseConstraints: Map<string, MatterMouseConstraint> = new Map();
+
   private bodyIdCounter = 0;
 
   private constraintIdCounter = 0;
+
+  private mouseConstraintIdCounter = 0;
 
   private collisionStartCallbacks: CollisionCallback[] = [];
 
@@ -475,6 +517,66 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (matterConstraint) {
       World.remove(this.world, matterConstraint.matterConstraint);
       this.constraints.delete(constraint.id);
+    }
+  }
+
+  public createMouseConstraint(
+    options: MouseConstraintOptions = {}
+  ): IMouseConstraint {
+    if (!this.world || !this.engine) {
+      throw new Error('Physics system not initialized');
+    }
+    // Create the mouse constraint using Matter.js with minimal configuration
+    const mouseConstraint = MouseConstraint.create(this.engine, {
+      constraint: {
+        stiffness: options.stiffness ?? 0.2,
+        damping: options.damping ?? 0.1,
+        render: {
+          visible: false, // Don't render the constraint line
+        },
+      },
+      collisionFilter: {
+        mask: 0x0001, // Only interact with default category bodies
+      },
+    });
+
+    // Initialize the mouse position
+    mouseConstraint.mouse.position.x = 0;
+    mouseConstraint.mouse.position.y = 0;
+
+    const id = `mouseConstraint_${this.mouseConstraintIdCounter++}`;
+    const physicsMouseConstraint = new MatterMouseConstraint(
+      mouseConstraint,
+      id
+    );
+
+    this.mouseConstraints.set(id, physicsMouseConstraint);
+    World.add(this.world, mouseConstraint);
+
+    return physicsMouseConstraint;
+  }
+
+  public updateMouseConstraint(
+    mouseConstraint: IMouseConstraint,
+    worldPosition: Vector2D
+  ): void {
+    const matterMouseConstraint = this.mouseConstraints.get(mouseConstraint.id);
+
+    if (matterMouseConstraint) {
+      const mouse = matterMouseConstraint.matterMouseConstraint.mouse;
+      mouse.position.x = worldPosition.x;
+      mouse.position.y = worldPosition.y;
+    }
+  }
+
+  public removeMouseConstraint(mouseConstraint: IMouseConstraint): void {
+    if (!this.world) return;
+
+    const matterMouseConstraint = this.mouseConstraints.get(mouseConstraint.id);
+
+    if (matterMouseConstraint) {
+      World.remove(this.world, matterMouseConstraint.matterMouseConstraint);
+      this.mouseConstraints.delete(mouseConstraint.id);
     }
   }
 

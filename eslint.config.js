@@ -28,9 +28,13 @@ export default tseslint.config(
       ],
       '@typescript-eslint/explicit-member-accessibility': 'off', // Disabled in favor of custom rule
       'custom/add-public-modifier': 'error',
-      
+
       // Spacing and formatting rules (non-conflicting with Prettier)
-      'lines-between-class-members': ['error', 'always', { exceptAfterSingleLine: false }],
+      'lines-between-class-members': [
+        'error',
+        'always',
+        { exceptAfterSingleLine: false },
+      ],
       'newline-before-return': 'error',
       'padding-line-between-statements': [
         'error',

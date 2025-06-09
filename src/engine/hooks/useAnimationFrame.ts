@@ -22,7 +22,7 @@ export function useAnimationFrame(
   useEffect(() => {
     requestRef.current = requestAnimationFrame(animate);
 
-return () => {
+    return () => {
       if (requestRef.current) {
         cancelAnimationFrame(requestRef.current);
       }

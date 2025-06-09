@@ -142,7 +142,7 @@ export class CollisionManager {
     if (compositeShip) {
       const parts = compositeShip.parts;
 
-return parts.some(part => part.entity === entity);
+      return parts.some(part => part.entity === entity);
     }
 return false;
   }

@@ -145,7 +145,7 @@ export class CompositeShip implements ICompositeShip {
       if (this._lives <= 0) {
         this.destroy();
 
-return true; // Ship is completely destroyed
+        return true; // Ship is completely destroyed
       } else {
         // Respawn with fewer parts
         this.respawnWithRemainingParts();
@@ -408,7 +408,7 @@ return true; // Ship is completely destroyed
           partId => {
             const connectedPart = this._parts.find(p => p.partId === partId);
 
-return connectedPart && !connectedPart.isDestroyed;
+            return connectedPart && !connectedPart.isDestroyed;
           }
         );
 

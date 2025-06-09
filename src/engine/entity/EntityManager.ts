@@ -33,7 +33,7 @@ export class EntityManager {
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
 
-return entity;
+    return entity;
   }
 
   public createCircle(config: CircleConfig): Entity {
@@ -41,7 +41,7 @@ return entity;
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
 
-return entity;
+    return entity;
   }
 
   public createPolygon(config: PolygonConfig): Entity {
@@ -49,7 +49,7 @@ return entity;
     this.entities.set(entity.id, entity);
     this.physicsBodyToEntityMap.set(entity.physicsBodyId, entity.id);
 
-return entity;
+    return entity;
   }
 
   public removeEntity(entityId: string): void {

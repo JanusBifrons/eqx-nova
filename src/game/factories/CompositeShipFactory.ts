@@ -35,7 +35,7 @@ export class CompositeShipFactory {
       }
     );
 
-return new CompositeShip(
+    return new CompositeShip(
       shipId,
       parts,
       engine,

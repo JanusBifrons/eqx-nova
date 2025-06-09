@@ -22,6 +22,9 @@ export interface IGameEngine {
   ): Entity;
   createLaser(position: Vector2D, radius: number): Entity;
 
+  // Debug utilities
+  createDebugMarker(position: Vector2D, color?: number): Entity;
+
   // Entity management
   removeEntity(entityId: string): void;
 
@@ -48,6 +51,9 @@ export interface IGameEngine {
   // Camera operations
   getCameraSystem(): ICameraSystem;
   lookAt(target: Vector2D | Entity): void;
+
+  // Input operations
+  getMousePosition(): Vector2D | null;
 }
 
 export interface PhysicsConfig {

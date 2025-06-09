@@ -179,9 +179,10 @@ export class Game {
 
     const inputSystem = this.engine.getInputSystem();
 
-    // Handle mouse clicks for explosion effects and object spawning
+    // Note: Mouse dragging is now handled by the MouseInteractionSystem in the engine
+    // You can still right-click to create explosion effects and spawn objects
     inputSystem.addEventListener('mouse', (event: MouseInputEvent) => {
-      if (event.action === 'down' && event.button === 'left') {
+      if (event.action === 'down' && event.button === 'right') {
         this.handleMouseClick(event.position.x, event.position.y);
       }
     });

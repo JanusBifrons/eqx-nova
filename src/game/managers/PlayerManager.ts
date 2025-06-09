@@ -65,7 +65,7 @@ export class PlayerManager {
       // For composite ships, return the first part's entity for compatibility
       const parts = this.compositeShip.parts;
 
-return parts.length > 0 ? parts[0].entity : null;
+      return parts.length > 0 ? parts[0].entity : null;
     }
 return this.player;
   }

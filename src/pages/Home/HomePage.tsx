@@ -68,7 +68,7 @@ export function HomePage() {
     };
     initializeEngine();
 
-return () => {
+    return () => {
       if (engineRef.current) {
         // Clear UI update interval if it exists
         if ((engineRef.current as any).uiUpdateInterval) {

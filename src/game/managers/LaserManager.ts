@@ -56,7 +56,7 @@ export class LaserManager {
 
     this.lastFireTime = now;
 
-return true;
+    return true;
   }
 
   public update(_deltaTime: number): void {
