@@ -77,15 +77,16 @@ export class Engine {
     const canvasHeight = this.rendererSystem.getHeight();
 
     // Initialize camera system with viewport dimensions
-    this.cameraSystem.initialize(canvasWidth, canvasHeight);
-
-    // Connect camera system to renderer
+    this.cameraSystem.initialize(canvasWidth, canvasHeight);    // Connect camera system to renderer
     this.rendererSystem.setCameraSystem(this.cameraSystem);
 
     // Initialize physics with expanded world dimensions (4x larger)
     const worldWidth = canvasWidth * 4;
     const worldHeight = canvasHeight * 4;
     this.physicsSystem.initialize(worldWidth, worldHeight, createBoundaries);
+
+    // Connect physics system to renderer for dynamic hover sizing
+    this.rendererSystem.setPhysicsSystem(this.physicsSystem);
 
     // Initialize input system with canvas element
     this.inputSystem.initialize(canvas);    // Initialize mouse interaction system with canvas element for direct Matter.js handling

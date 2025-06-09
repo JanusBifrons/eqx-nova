@@ -3,7 +3,7 @@ import type {
   IRendererSystem,
   RenderableObject,
 } from '../interfaces/IRendererSystem';
-import type { Vector2D } from '../interfaces/IPhysicsSystem';
+import type { Vector2D, IPhysicsSystem } from '../interfaces/IPhysicsSystem';
 import type { ICameraSystem } from '../interfaces/ICamera';
 import { HoverRenderer } from './HoverRenderer';
 import type { Entity } from '../entity/Entity';
@@ -16,6 +16,8 @@ export class PixiRendererSystem implements IRendererSystem {
   private gameContainer: Container = new Container();
 
   private cameraSystem: ICameraSystem | null = null;
+
+  private physicsSystem: IPhysicsSystem | null = null;
 
   private hoverRenderer: HoverRenderer = new HoverRenderer();
 
@@ -285,8 +287,22 @@ export class PixiRendererSystem implements IRendererSystem {
     this.cameraSystem = cameraSystem;
     // Now that camera system is available, create the world border
     this.createWorldBorderIfReady();
-    // Initialize hover renderer
-    this.hoverRenderer.initialize(cameraSystem, this.gameContainer);
+    // Initialize hover renderer with physics system if available
+    this.initializeHoverRenderer();
+  }
+
+  public setPhysicsSystem(physicsSystem: IPhysicsSystem): void {
+    this.physicsSystem = physicsSystem;
+    // Re-initialize hover renderer if camera system is already set
+    if (this.cameraSystem) {
+      this.initializeHoverRenderer();
+    }
+  }
+
+  private initializeHoverRenderer(): void {
+    if (this.cameraSystem) {
+      this.hoverRenderer.initialize(this.cameraSystem, this.gameContainer, this.physicsSystem);
+    }
   }
 
   public getCameraSystem(): ICameraSystem | null {
