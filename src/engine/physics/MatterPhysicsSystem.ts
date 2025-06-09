@@ -7,6 +7,7 @@ import {
   Events,
   Constraint,
   MouseConstraint,
+  Mouse,
 } from 'matter-js';
 import type {
   IPhysicsSystem,
@@ -521,28 +522,78 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   }
 
   public createMouseConstraint(
-    options: MouseConstraintOptions = {}
+    options: MouseConstraintOptions = {},
+    element?: HTMLElement
   ): IMouseConstraint {
     if (!this.world || !this.engine) {
       throw new Error('Physics system not initialized');
     }
-    // Create the mouse constraint using Matter.js with minimal configuration
-    const mouseConstraint = MouseConstraint.create(this.engine, {
+
+    // Create mouse constraint with automatic detection
+    const mouseConstraintOptions: any = {
       constraint: {
-        stiffness: options.stiffness ?? 0.2,
-        damping: options.damping ?? 0.1,
+        stiffness: options.stiffness ?? 1.0,
+        damping: options.damping ?? 0.3,
         render: {
-          visible: false, // Don't render the constraint line
-        },
+          visible: true, // Enable for debugging
+          lineWidth: 3,
+          strokeStyle: '#ff0000'
+        }
       },
+      // Explicitly allow interaction with all bodies
       collisionFilter: {
-        mask: 0x0001, // Only interact with default category bodies
-      },
+        mask: 0xFFFFFFFF // Allow interaction with all collision groups
+      }
+    };
+
+    // Add element if provided
+    if (element) {
+      mouseConstraintOptions.element = element;
+    }
+
+    const mouseConstraint = MouseConstraint.create(this.engine, mouseConstraintOptions);
+
+    // Add event listeners to the mouse constraint for debugging
+    Events.on(mouseConstraint, 'mousedown', (event: any) => {
+      const screenPos = event.mouse.position;
+      console.log('🖱️ NATIVE MOUSE DOWN detected by Matter.js! Screen pos:', screenPos);
+
+      // Debug: Check what bodies are at this position
+      const bodies = this.engine?.world.bodies || [];
+      let bodiesFound = 0;
+
+      // Show some body positions for reference
+      console.log('📍 Sample body positions (world coordinates):');
+      for (let i = 0; i < Math.min(3, bodies.length); i++) {
+        const body = bodies[i];
+        if (!body.isStatic) {
+          console.log(`   Body ${i}: ${body.label} at (${body.position.x.toFixed(0)}, ${body.position.y.toFixed(0)})`);
+        }
+      }
+
+      for (const body of bodies) {
+        if (!body.isStatic &&
+          screenPos.x >= body.bounds.min.x && screenPos.x <= body.bounds.max.x &&
+          screenPos.y >= body.bounds.min.y && screenPos.y <= body.bounds.max.y) {
+          bodiesFound++;
+          console.log('🎯 Body at mouse position:', body.label, 'bounds:', body.bounds);
+        }
+      }
+
+      console.log(`🔍 Checking mouse vs bodies - Mouse at (${screenPos.x.toFixed(0)}, ${screenPos.y.toFixed(0)}) - Found: ${bodiesFound}/${bodies.length}`);
     });
 
-    // Initialize the mouse position
-    mouseConstraint.mouse.position.x = 0;
-    mouseConstraint.mouse.position.y = 0;
+    Events.on(mouseConstraint, 'mouseup', (event: any) => {
+      console.log('🖱️ NATIVE MOUSE UP detected by Matter.js!', event.mouse.position);
+    });
+
+    Events.on(mouseConstraint, 'startdrag', (event: any) => {
+      console.log('🔗 NATIVE DRAG STARTED by Matter.js!', event.body ? 'Body found!' : 'No body', event.mouse.position);
+    });
+
+    Events.on(mouseConstraint, 'enddrag', (event: any) => {
+      console.log('🔗 NATIVE DRAG ENDED by Matter.js!', event.mouse.position);
+    });
 
     const id = `mouseConstraint_${this.mouseConstraintIdCounter++}`;
     const physicsMouseConstraint = new MatterMouseConstraint(
@@ -553,7 +604,46 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     this.mouseConstraints.set(id, physicsMouseConstraint);
     World.add(this.world, mouseConstraint);
 
+    console.log('🔧 Created mouse constraint:', id, 'with element:', !!element, 'stiffness:', mouseConstraint.constraint.stiffness);
+
     return physicsMouseConstraint;
+  }
+
+  public setMouseConstraintTransform(
+    mouseConstraint: IMouseConstraint,
+    cameraPosition: Vector2D,
+    cameraZoom: number,
+    viewportSize: Vector2D
+  ): void {
+    const matterMouseConstraint = this.mouseConstraints.get(mouseConstraint.id);
+
+    if (matterMouseConstraint) {
+      const mouse = matterMouseConstraint.matterMouseConstraint.mouse;
+
+      // Calculate offset: camera position minus half viewport (to center the camera)
+      const offset = {
+        x: cameraPosition.x - (viewportSize.x / 2),
+        y: cameraPosition.y - (viewportSize.y / 2)
+      };
+
+      // Scale factor is 1/zoom (if zoom is 2, mouse moves should be halved)
+      const scale = {
+        x: 1 / cameraZoom,
+        y: 1 / cameraZoom
+      };
+
+      // Apply transformations to the mouse
+      Mouse.setOffset(mouse, offset);
+      Mouse.setScale(mouse, scale);
+
+      console.log(`🔧 Updated mouse constraint transform:`, {
+        offset,
+        scale,
+        camera: cameraPosition,
+        zoom: cameraZoom,
+        viewport: viewportSize
+      });
+    }
   }
 
   public updateMouseConstraint(
@@ -566,6 +656,68 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       const mouse = matterMouseConstraint.matterMouseConstraint.mouse;
       mouse.position.x = worldPosition.x;
       mouse.position.y = worldPosition.y;
+    }
+  }
+
+  public getBodyAtPosition(worldPosition: Vector2D): IPhysicsBody | null {
+    if (!this.engine) return null;
+
+    // Use Matter.js Query to find bodies at the mouse position
+    const bodies = this.engine.world.bodies;
+
+    for (const body of bodies) {
+      // Skip static bodies (boundaries)
+      if (body.isStatic) continue;
+
+      // Check if point is inside body bounds first (quick check)
+      if (worldPosition.x >= body.bounds.min.x && worldPosition.x <= body.bounds.max.x &&
+        worldPosition.y >= body.bounds.min.y && worldPosition.y <= body.bounds.max.y) {
+
+        // Find our wrapper for this Matter body
+        const physicsBody = this.findPhysicsBodyByMatterBody(body);
+        if (physicsBody) {
+          console.log('🎯 Found body under mouse:', physicsBody.id, 'at', worldPosition);
+          return physicsBody;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  public attachMouseConstraintToBody(
+    mouseConstraint: IMouseConstraint,
+    body: IPhysicsBody,
+    worldPosition: Vector2D
+  ): void {
+    const matterMouseConstraint = this.mouseConstraints.get(mouseConstraint.id);
+    const matterBody = this.bodies.get(body.id);
+
+    if (matterMouseConstraint && matterBody) {
+      const constraint = matterMouseConstraint.matterMouseConstraint.constraint;
+
+      // Attach the constraint to the body
+      constraint.bodyB = matterBody.matterBody;
+      constraint.pointB = { x: 0, y: 0 }; // Attach to center of body
+
+      // Update mouse position
+      const mouse = matterMouseConstraint.matterMouseConstraint.mouse;
+      mouse.position.x = worldPosition.x;
+      mouse.position.y = worldPosition.y;
+
+      console.log('🔗 Attached mouse constraint to body:', body.id);
+    }
+  }
+
+  public detachMouseConstraint(mouseConstraint: IMouseConstraint): void {
+    const matterMouseConstraint = this.mouseConstraints.get(mouseConstraint.id);
+
+    if (matterMouseConstraint) {
+      const constraint = matterMouseConstraint.matterMouseConstraint.constraint;
+      constraint.bodyB = null;
+      constraint.pointB = { x: 0, y: 0 };
+
+      console.log('🔓 Detached mouse constraint');
     }
   }
 
@@ -741,6 +893,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         return physicsBody;
       }
     }
-return null;
+    return null;
   }
 }

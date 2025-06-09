@@ -108,7 +108,13 @@ export interface IPhysicsSystem {
     options?: ConstraintOptions
   ): IConstraint;
   removeConstraint(constraint: IConstraint): void;
-  createMouseConstraint(options?: MouseConstraintOptions): IMouseConstraint;
+  createMouseConstraint(options?: MouseConstraintOptions, element?: HTMLElement): IMouseConstraint;
+  setMouseConstraintTransform(
+    mouseConstraint: IMouseConstraint,
+    cameraPosition: Vector2D,
+    cameraZoom: number,
+    viewportSize: Vector2D
+  ): void;
   updateMouseConstraint(
     mouseConstraint: IMouseConstraint,
     worldPosition: Vector2D

@@ -49,7 +49,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-return AsteroidsGame.instance;
+    return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -199,6 +199,7 @@ return AsteroidsGame.instance;
     this.updateMouse(); // Handle mouse cursor dot and interactions
     this.updateManagers(deltaTime);
     this.updateCamera();
+    this.updateMouseConstraintTransform(); // Update mouse constraint after camera changes
     this.wrapScreenPositions();
     this.checkForNewWave();
   }
@@ -412,5 +413,19 @@ return AsteroidsGame.instance;
       worldPosition.x,
       worldPosition.y
     );
+  }
+
+  private updateMouseConstraintTransform(): void {
+    if (!this.gameEngine) return;
+
+    // Access the underlying engine to get the mouse interaction system
+    const engine = (this.gameEngine as any).engine; // Access underlying Engine instance
+    if (engine) {
+      const mouseInteractionSystem = engine.mouseInteractionSystem;
+      if (mouseInteractionSystem) {
+        // Notify the mouse interaction system that the camera has been updated
+        mouseInteractionSystem.onCameraUpdate();
+      }
+    }
   }
 }
