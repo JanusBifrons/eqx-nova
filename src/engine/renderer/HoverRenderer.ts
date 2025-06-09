@@ -31,6 +31,8 @@ export class HoverRenderer {
             this.gameContainer.addChild(this.hoverIndicator);
         }
 
+        // Ensure visibility is restored
+        this.hoverIndicator.visible = true;
         this.hoverIndicator.clear();
 
         const worldPosition = entity.position;
