@@ -5,6 +5,8 @@ import type {
 } from '../interfaces/IRendererSystem';
 import type { Vector2D } from '../interfaces/IPhysicsSystem';
 import type { ICameraSystem } from '../interfaces/ICamera';
+import { HoverRenderer } from './HoverRenderer';
+import type { Entity } from '../entity/Entity';
 
 export class PixiRendererSystem implements IRendererSystem {
   private app: Application | null = null;
@@ -14,6 +16,8 @@ export class PixiRendererSystem implements IRendererSystem {
   private gameContainer: Container = new Container();
 
   private cameraSystem: ICameraSystem | null = null;
+
+  private hoverRenderer: HoverRenderer = new HoverRenderer();
 
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     try {
@@ -172,9 +176,33 @@ export class PixiRendererSystem implements IRendererSystem {
     return this.app?.screen.height ?? 0;
   }
 
+  /**
+   * Show hover indicator around the specified entity
+   */
+  public showHoverIndicator(entity: Entity): void {
+    this.hoverRenderer.showHoverIndicator(entity);
+  }
+
+  /**
+   * Hide the hover indicator
+   */
+  public hideHoverIndicator(): void {
+    this.hoverRenderer.hideHoverIndicator();
+  }
+
+  /**
+   * Update hover indicator position (called when camera moves)
+   */
+  public updateHoverIndicator(entity: Entity): void {
+    this.hoverRenderer.updateHoverIndicator(entity);
+  }
+
   public destroy(): void {
     if (this.app) {
       this.app.renderer.off('resize', this.onResize);
+
+      // Clean up hover renderer
+      this.hoverRenderer.destroy();
 
       // Clear all render objects
       this.renderObjects.forEach(graphics => {
@@ -257,6 +285,8 @@ export class PixiRendererSystem implements IRendererSystem {
     this.cameraSystem = cameraSystem;
     // Now that camera system is available, create the world border
     this.createWorldBorderIfReady();
+    // Initialize hover renderer
+    this.hoverRenderer.initialize(cameraSystem, this.gameContainer);
   }
 
   public getCameraSystem(): ICameraSystem | null {

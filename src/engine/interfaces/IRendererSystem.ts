@@ -1,5 +1,6 @@
 import type { Vector2D } from './IPhysicsSystem';
 import type { ICameraSystem } from './ICamera';
+import type { Entity } from '../entity/Entity';
 
 export interface RenderableObject {
   id: string;
@@ -27,4 +28,9 @@ export interface IRendererSystem {
   // Camera support
   setCameraSystem(cameraSystem: ICameraSystem): void;
   getCameraSystem(): ICameraSystem | null;
+
+  // Hover support
+  showHoverIndicator(entity: Entity): void;
+  hideHoverIndicator(): void;
+  updateHoverIndicator(entity: Entity): void;
 }

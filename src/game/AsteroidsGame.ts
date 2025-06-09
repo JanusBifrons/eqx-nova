@@ -373,31 +373,15 @@ export class AsteroidsGame {
 
     if (!screenMousePos) {
       // No mouse position available
-      if (this.cursorDot) {
-        this.gameEngine.removeEntity(this.cursorDot.id);
-        this.cursorDot = null;
-      }
       this.mouseWorldPosition = null;
-
       return;
     }
+
     // Convert to world space using camera system
     const cameraSystem = this.gameEngine.getCameraSystem();
     this.mouseWorldPosition = cameraSystem.screenToWorld(screenMousePos);
 
-    // Update or create cursor dot at world position
-    if (this.cursorDot) {
-      this.gameEngine.setEntityPosition(
-        this.cursorDot,
-        this.mouseWorldPosition
-      );
-    } else {
-      // Create cursor dot
-      this.cursorDot = this.gameEngine.createDebugMarker(
-        this.mouseWorldPosition,
-        0x00ff00
-      );
-    }
+    // Cursor dot removed - hover indicators are sufficient for visual feedback
   }
 
   private handleMouseClick(screenPosition: { x: number; y: number }): void {

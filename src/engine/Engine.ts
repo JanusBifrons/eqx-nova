@@ -14,6 +14,7 @@ import type {
 import {
   InputSystem,
   MouseInteractionSystem,
+  HoverSystem,
   type IInputSystem,
 } from './input';
 
@@ -27,8 +28,9 @@ export class Engine {
   private cameraSystem: ICameraSystem;
 
   private entityManager: EntityManager;
-
   private mouseInteractionSystem: MouseInteractionSystem;
+
+  private hoverSystem: HoverSystem;
 
   private isRunning = false;
 
@@ -55,12 +57,12 @@ export class Engine {
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
     this.inputSystem = inputSystem ?? new InputSystem();
-    this.cameraSystem = cameraSystem ?? new CameraSystem();
-    this.entityManager = new EntityManager(
+    this.cameraSystem = cameraSystem ?? new CameraSystem(); this.entityManager = new EntityManager(
       this.physicsSystem,
       this.rendererSystem
     );
     this.mouseInteractionSystem = new MouseInteractionSystem();
+    this.hoverSystem = new HoverSystem();
   }
 
   public async initialize(
@@ -86,14 +88,19 @@ export class Engine {
     this.physicsSystem.initialize(worldWidth, worldHeight, createBoundaries);
 
     // Initialize input system with canvas element
-    this.inputSystem.initialize(canvas);
-
-    // Initialize mouse interaction system with canvas element for direct Matter.js handling
+    this.inputSystem.initialize(canvas);    // Initialize mouse interaction system with canvas element for direct Matter.js handling
     this.mouseInteractionSystem.initialize(
       this.physicsSystem,
       this.cameraSystem,
       this.inputSystem,
       canvas
+    );
+
+    // Initialize hover system
+    this.hoverSystem.initialize(
+      this.physicsSystem,
+      this.cameraSystem,
+      this.entityManager
     );
   }
 
@@ -151,6 +158,21 @@ export class Engine {
     }
   }
 
+  private updateHoverSystem(): void {
+    // Get current mouse position from input system
+    const mousePosition = this.inputSystem.getMousePosition();
+
+    // Update hover detection
+    const hoveredEntity = this.hoverSystem.updateHover(mousePosition);
+
+    // Update renderer based on hover state
+    if (hoveredEntity) {
+      this.rendererSystem.showHoverIndicator(hoveredEntity);
+    } else {
+      this.rendererSystem.hideHoverIndicator();
+    }
+  }
+
   private gameLoop = (currentTime: number): void => {
     if (!this.isRunning) return;
 
@@ -167,10 +189,11 @@ export class Engine {
     this.updateCallbacks.forEach(callback => callback(deltaTime));
 
     // Update physics
-    this.physicsSystem.update(deltaTime);
-
-    // Update entities (sync physics with render objects)
+    this.physicsSystem.update(deltaTime);    // Update entities (sync physics with render objects)
     this.entityManager.updateEntities();
+
+    // Update hover system
+    this.updateHoverSystem();
 
     // Render the frame
     this.rendererSystem.render();
@@ -198,9 +221,9 @@ export class Engine {
     }
     return average;
   }
-
   public destroy(): void {
     this.stop();
+    this.hoverSystem.destroy();
     this.mouseInteractionSystem.destroy();
     this.inputSystem.destroy();
     this.entityManager.destroy();
