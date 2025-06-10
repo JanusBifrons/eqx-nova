@@ -51,9 +51,9 @@ export class CollisionManager {
 
     if (laserData && asteroidData) {
       this.handleLaserAsteroidCollision(laserData, asteroidData);
-      return;
+      
+return;
     }
-
     // Check player-asteroid collisions (traditional player or composite ship parts)
     const isPlayerCollision =
       this.isPlayerEntity(entityA) || this.isPlayerEntity(entityB);
@@ -62,9 +62,9 @@ export class CollisionManager {
 
     if (playerAsteroidData) {
       this.handlePlayerAsteroidCollision(playerAsteroidData, entityA, entityB);
-      return;
+      
+return;
     }
-
     // Check AI ship-asteroid collisions
     const aiShipA = this.aiManager?.findAIShipByEntity(entityA);
     const aiShipB = this.aiManager?.findAIShipByEntity(entityB);
@@ -72,31 +72,32 @@ export class CollisionManager {
 
     if (aiShip && asteroidData) {
       this.handleAIShipAsteroidCollision(aiShip, asteroidData);
-      return;
+      
+return;
     }
-
     // Check laser-AI ship collisions
     if (laserData && aiShip) {
       this.handleLaserAIShipCollision(laserData, aiShip);
-      return;
+      
+return;
     }
-
     // Check laser-player collisions (player getting hit by AI lasers)
     if (laserData && isPlayerCollision) {
       this.handleLaserPlayerCollision(laserData, entityA, entityB);
-      return;
+      
+return;
     }
-
     // Check AI ship vs AI ship collisions
     if (aiShipA && aiShipB && aiShipA !== aiShipB) {
       this.handleAIShipCollision(aiShipA, aiShipB);
-      return;
+      
+return;
     }
-
     // Check AI ship vs player collisions
     if (aiShip && isPlayerCollision) {
       this.handleAIShipPlayerCollision(aiShip, entityA, entityB);
-      return;
+      
+return;
     }
   }
 
@@ -116,17 +117,17 @@ export class CollisionManager {
 
       if (part) return part.entity;
     }
-
     // Check AI ships
     if (this.aiManager) {
       const aiShips = this.aiManager.getAllAIShips();
+
       for (const aiShip of aiShips) {
         const parts = aiShip.ship.parts;
         const part = parts.find(p => p.entity.physicsBodyId === physicsBodyId);
+
         if (part) return part.entity;
       }
     }
-
     // Check lasers
     const laser = this.laserManager
       .getAllLasers()
@@ -162,13 +163,18 @@ export class CollisionManager {
     // Damage AI ship
     if (this.aiManager) {
       const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
+
       if (wasDestroyed) {
         console.log(`AI ship destroyed by laser: ${aiShip.id}`);
       }
     }
   }
 
-  private handleLaserPlayerCollision(laserData: any, entityA: Entity, entityB: Entity): void {
+  private handleLaserPlayerCollision(
+    laserData: any,
+    entityA: Entity,
+    entityB: Entity
+  ): void {
     // Remove laser
     this.laserManager.removeLaser(laserData);
 
@@ -198,11 +204,11 @@ export class CollisionManager {
     // AI ships take damage from asteroids
     if (this.aiManager) {
       const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
+
       if (wasDestroyed) {
         console.log(`AI ship destroyed by asteroid: ${aiShip.id}`);
       }
     }
-
     // Optionally break the asteroid too
     this.asteroidManager.breakAsteroid(asteroidData);
   }
@@ -213,25 +219,31 @@ export class CollisionManager {
       // Only damage if different factions
       const wasADestroyed = this.aiManager.handleAIShipDamage(aiShipA);
       const wasBDestroyed = this.aiManager.handleAIShipDamage(aiShipB);
-      
+
       if (wasADestroyed || wasBDestroyed) {
         console.log(`AI ship collision resulted in destruction`);
       }
     }
   }
 
-  private handleAIShipPlayerCollision(aiShip: any, entityA: Entity, entityB: Entity): void {
+  private handleAIShipPlayerCollision(
+    aiShip: any,
+    entityA: Entity,
+    entityB: Entity
+  ): void {
     // Determine which entity is the player entity
     const playerEntity = this.isPlayerEntity(entityA) ? entityA : entityB;
 
     // Both AI ship and player take damage
     if (this.aiManager) {
       const aiDestroyed = this.aiManager.handleAIShipDamage(aiShip);
-      console.log(`AI ship ${aiDestroyed ? 'destroyed' : 'damaged'} in player collision`);
+      console.log(
+        `AI ship ${aiDestroyed ? 'destroyed' : 'damaged'} in player collision`
+      );
     }
-
     // Handle player damage
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip && playerEntity) {
       const parts = compositeShip.parts;
       const hitPart = parts.find(part => part.entity === playerEntity);
@@ -291,6 +303,6 @@ export class CollisionManager {
 
       return parts.some(part => part.entity === entity);
     }
-    return false;
+return false;
   }
 }

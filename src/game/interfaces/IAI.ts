@@ -41,7 +41,7 @@ export interface IAIShip {
   update(deltaTime: number): void;
   setTarget(target: Vector2D | ICompositeShip | null): void;
   destroy(): void;
-  
+
   // Combat
   fireLaser(): boolean;
   takeDamage(): boolean;

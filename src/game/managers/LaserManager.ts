@@ -25,13 +25,18 @@ export class LaserManager {
   private readonly LASER_COOLDOWN = 100; // milliseconds - reduced for better continuous firing
 
   private readonly LASER_WIDTH = 3;
+
   private readonly LASER_HEIGHT = 8;
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
   }
 
-  public fireLaser(position: Vector2D, rotation: number, shipVelocity?: Vector2D): boolean {
+  public fireLaser(
+    position: Vector2D,
+    rotation: number,
+    shipVelocity?: Vector2D
+  ): boolean {
     const now = performance.now();
 
     if (now - this.lastFireTime < this.LASER_COOLDOWN) {
@@ -57,7 +62,7 @@ export class LaserManager {
     // Add ship velocity inheritance for better feel when firing while moving
     const finalVelocity = {
       x: velocityX + (shipVelocity?.x || 0),
-      y: velocityY + (shipVelocity?.y || 0)
+      y: velocityY + (shipVelocity?.y || 0),
     };
 
     this.gameEngine.setEntityVelocity(entity, finalVelocity);

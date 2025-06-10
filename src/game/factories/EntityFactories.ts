@@ -121,7 +121,7 @@ export class AsteroidFactory {
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
-    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -154,7 +154,7 @@ export class AsteroidFactory {
         y = Math.random() * height;
         break;
     }
-    return this.create(engine, { x, y }, size, onDestroy);
+return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

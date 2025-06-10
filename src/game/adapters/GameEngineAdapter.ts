@@ -91,7 +91,11 @@ export class GameEngineAdapter implements IGameEngine {
     });
   }
 
-  public createLaser(position: Vector2D, width: number, height: number): Entity {
+  public createLaser(
+    position: Vector2D,
+    width: number,
+    height: number
+  ): Entity {
     return this.engine.createRectangle({
       x: position.x,
       y: position.y,
@@ -176,7 +180,7 @@ export class GameEngineAdapter implements IGameEngine {
     if (body) {
       return body.velocity;
     }
-    return null;
+return null;
   }
 
   public setEntityAngularVelocity(

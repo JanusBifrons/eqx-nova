@@ -13,9 +13,16 @@ import { CompositeShipFactory } from '../factories/CompositeShipFactory';
  */
 export class AIManager {
   private readonly _gameEngine: IGameEngine;
+
   private readonly _aiShips: Map<string, AIShip> = new Map();
+
   private _shipIdCounter: number = 0;
-  private _onFireLaser?: (position: Vector2D, rotation: number, velocity?: Vector2D) => boolean;
+
+  private _onFireLaser?: (
+    position: Vector2D,
+    rotation: number,
+    velocity?: Vector2D
+  ) => boolean;
 
   constructor(gameEngine: IGameEngine) {
     this._gameEngine = gameEngine;
@@ -24,7 +31,13 @@ export class AIManager {
   /**
    * Set the laser firing callback
    */
-  public setFireLaserCallback(callback: (position: Vector2D, rotation: number, velocity?: Vector2D) => boolean): void {
+  public setFireLaserCallback(
+    callback: (
+      position: Vector2D,
+      rotation: number,
+      velocity?: Vector2D
+    ) => boolean
+  ): void {
     this._onFireLaser = callback;
   }
 
@@ -33,7 +46,7 @@ export class AIManager {
    */
   public createAIShip(config: AIShipConfig): AIShip {
     const shipId = `ai_ship_${this._shipIdCounter++}`;
-      // Create the composite ship
+    // Create the composite ship
     const compositeShip = CompositeShipFactory.createCustomShip(
       (this._gameEngine as any).engine, // Access underlying engine
       config.position,
@@ -55,7 +68,11 @@ export class AIManager {
       maxSpeed: 5.0,
     };
 
-    const behavior = new AIBehavior(`${shipId}_behavior`, compositeShip, behaviorConfig);
+    const behavior = new AIBehavior(
+      `${shipId}_behavior`,
+      compositeShip,
+      behaviorConfig
+    );
 
     // Create AI ship with firing callback
     const aiShip = new AIShip(
@@ -67,9 +84,10 @@ export class AIManager {
     );
 
     this._aiShips.set(shipId, aiShip);
-    
+
     console.log(`Created AI ship: ${shipId} with faction: ${config.faction}`);
-    return aiShip;
+    
+return aiShip;
   }
 
   /**
@@ -82,9 +100,9 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.2, y: worldDims.height * 0.2 },
         partPositions: [
-          { x: 0, y: 0 },    // Center
-          { x: -16, y: 0 },  // Left
-          { x: 16, y: 0 },   // Right
+          { x: 0, y: 0 }, // Center
+          { x: -16, y: 0 }, // Left
+          { x: 16, y: 0 }, // Right
         ],
         partSize: 16,
         partColor: 0xff0000, // Red
@@ -94,15 +112,15 @@ export class AIManager {
         detectionRange: 300,
         lives: 3,
       },
-      
+
       // Blue defensive patrol (4-part cross)
       {
         position: { x: worldDims.width * 0.8, y: worldDims.height * 0.2 },
         partPositions: [
-          { x: 0, y: 0 },     // Center
-          { x: -16, y: 0 },   // Left
-          { x: 16, y: 0 },    // Right
-          { x: 0, y: -16 },   // Top
+          { x: 0, y: 0 }, // Center
+          { x: -16, y: 0 }, // Left
+          { x: 16, y: 0 }, // Right
+          { x: 0, y: -16 }, // Top
         ],
         partSize: 16,
         partColor: 0x0000ff, // Blue
@@ -117,8 +135,8 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.2, y: worldDims.height * 0.8 },
         partPositions: [
-          { x: -8, y: 0 },   // Left
-          { x: 8, y: 0 },    // Right
+          { x: -8, y: 0 }, // Left
+          { x: 8, y: 0 }, // Right
         ],
         partSize: 16,
         partColor: 0xff00ff, // Purple
@@ -133,11 +151,11 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.8, y: worldDims.height * 0.8 },
         partPositions: [
-          { x: 0, y: 0 },     // Center
-          { x: -16, y: 0 },   // Left
-          { x: 16, y: 0 },    // Right
-          { x: 0, y: -16 },   // Top
-          { x: 0, y: 16 },    // Bottom
+          { x: 0, y: 0 }, // Center
+          { x: -16, y: 0 }, // Left
+          { x: 16, y: 0 }, // Right
+          { x: 0, y: -16 }, // Top
+          { x: 0, y: 16 }, // Bottom
         ],
         partSize: 16,
         partColor: 0xffa500, // Orange
@@ -152,7 +170,7 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.5, y: worldDims.height * 0.1 },
         partPositions: [
-          { x: 0, y: 0 },     // Single part
+          { x: 0, y: 0 }, // Single part
         ],
         partSize: 16,
         partColor: 0xffff00, // Yellow
@@ -167,9 +185,9 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.5, y: worldDims.height * 0.9 },
         partPositions: [
-          { x: 0, y: 0 },     // Corner
-          { x: 16, y: 0 },    // Right
-          { x: 0, y: -16 },   // Up
+          { x: 0, y: 0 }, // Corner
+          { x: 16, y: 0 }, // Right
+          { x: 0, y: -16 }, // Up
         ],
         partSize: 16,
         partColor: 0x00ffff, // Cyan
@@ -186,7 +204,9 @@ export class AIManager {
       this.createAIShip(config);
     });
 
-    console.log(`Spawned ${shipConfigs.length} AI ships with different configurations`);
+    console.log(
+      `Spawned ${shipConfigs.length} AI ships with different configurations`
+    );
   }
 
   /**
@@ -202,24 +222,25 @@ export class AIManager {
         this._aiShips.delete(shipId);
       }
     }
-
     // Make AI ships target each other and the player
     this.updateAITargeting();
   }
+
   /**
    * Set player as target for all AI ships
    */
   public setPlayerTarget(playerShip: ICompositeShip | null): void {
     let targetCount = 0;
+
     for (const aiShip of this._aiShips.values()) {
       if (aiShip.isActive && playerShip) {
         aiShip.setTarget(playerShip);
         targetCount++;
       }
     }
-    
     // Debug logging (occasionally)
-    if (Math.random() < 0.001 && targetCount > 0) { // 0.1% chance to log
+    if (Math.random() < 0.001 && targetCount > 0) {
+      // 0.1% chance to log
       console.log(`Set player target for ${targetCount} AI ships`);
     }
   }
@@ -239,12 +260,13 @@ export class AIManager {
       if (aiShip.isActive) {
         const parts = aiShip.ship.parts;
         const foundPart = parts.find(part => part.entity === entity);
+
         if (foundPart) {
           return aiShip;
         }
       }
     }
-    return null;
+return null;
   }
 
   /**
@@ -269,6 +291,7 @@ export class AIManager {
    */
   private handleShipDestroyed(shipId: string): void {
     const aiShip = this._aiShips.get(shipId);
+
     if (aiShip) {
       aiShip.destroy();
       this._aiShips.delete(shipId);
@@ -294,11 +317,13 @@ export class AIManager {
    */
   private updateAITargeting(): void {
     const activeShips = this.getAllAIShips();
-    
+
     for (const aiShip of activeShips) {
       // Find the closest enemy ship from a different faction
       let closestEnemy: ICompositeShip | null = null;
-      let closestDistance = Infinity;      for (const otherShip of activeShips) {
+      let closestDistance = Infinity;
+
+      for (const otherShip of activeShips) {
         if (otherShip.faction !== aiShip.faction && otherShip.isActive) {
           const distance = this.getDistance(
             aiShip.ship.centerPosition,
@@ -311,9 +336,9 @@ export class AIManager {
           }
         }
       }
-
       // Set target if found and within detection range
-      if (closestEnemy && closestDistance < 300) { // Default detection range
+      if (closestEnemy && closestDistance < 300) {
+        // Default detection range
         aiShip.setTarget(closestEnemy);
       }
     }

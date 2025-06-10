@@ -47,7 +47,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-    return AsteroidsGame.instance;
+return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -144,7 +144,7 @@ export class AsteroidsGame {
           timeScale: 1.0,
         },
       },
-    });    // Create initial game objects
+    }); // Create initial game objects
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
 
@@ -212,7 +212,10 @@ export class AsteroidsGame {
       const shipRotation = this.playerManager.getRotation();
 
       // Get ship velocity for inheritance
-      const shipVelocity = this.gameEngine?.getEntityVelocity(player) || { x: 0, y: 0 };
+      const shipVelocity = this.gameEngine?.getEntityVelocity(player) || {
+        x: 0,
+        y: 0,
+      };
 
       this.laserManager.fireLaser(shipPosition, shipRotation, shipVelocity);
     }
@@ -260,10 +263,10 @@ export class AsteroidsGame {
 
     // Set player as target for AI ships
     const playerShip = this.playerManager!.getCompositeShip();
+
     if (playerShip) {
       this.aiManager!.setPlayerTarget(playerShip);
     }
-
     // Maintain asteroid density in the expanded game world
     this.asteroidManager!.maintainAsteroidDensity(40);
   }
@@ -332,7 +335,6 @@ export class AsteroidsGame {
         this.gameEngine.wrapEntityPosition(player, dimensions);
       }
     }
-
     // Wrap AI ships
     this.aiManager!.getAllAIShips().forEach(aiShip => {
       if (aiShip.isActive) {
@@ -454,8 +456,10 @@ export class AsteroidsGame {
 
     // Access the underlying engine to get the mouse interaction system
     const engine = (this.gameEngine as any).engine; // Access underlying Engine instance
+
     if (engine) {
       const mouseInteractionSystem = engine.mouseInteractionSystem;
+
       if (mouseInteractionSystem) {
         // Notify the mouse interaction system that the camera has been updated
         mouseInteractionSystem.onCameraUpdate();

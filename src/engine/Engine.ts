@@ -28,6 +28,7 @@ export class Engine {
   private cameraSystem: ICameraSystem;
 
   private entityManager: EntityManager;
+
   private mouseInteractionSystem: MouseInteractionSystem;
 
   private hoverSystem: HoverSystem;
@@ -57,7 +58,8 @@ export class Engine {
     this.physicsSystem = physicsSystem ?? new MatterPhysicsSystem();
     this.rendererSystem = rendererSystem ?? new PixiRendererSystem();
     this.inputSystem = inputSystem ?? new InputSystem();
-    this.cameraSystem = cameraSystem ?? new CameraSystem(); this.entityManager = new EntityManager(
+    this.cameraSystem = cameraSystem ?? new CameraSystem();
+    this.entityManager = new EntityManager(
       this.physicsSystem,
       this.rendererSystem
     );
@@ -77,7 +79,7 @@ export class Engine {
     const canvasHeight = this.rendererSystem.getHeight();
 
     // Initialize camera system with viewport dimensions
-    this.cameraSystem.initialize(canvasWidth, canvasHeight);    // Connect camera system to renderer
+    this.cameraSystem.initialize(canvasWidth, canvasHeight); // Connect camera system to renderer
     this.rendererSystem.setCameraSystem(this.cameraSystem);
 
     // Initialize physics with expanded world dimensions (4x larger)
@@ -89,7 +91,7 @@ export class Engine {
     this.rendererSystem.setPhysicsSystem(this.physicsSystem);
 
     // Initialize input system with canvas element
-    this.inputSystem.initialize(canvas);    // Initialize mouse interaction system with canvas element for direct Matter.js handling
+    this.inputSystem.initialize(canvas); // Initialize mouse interaction system with canvas element for direct Matter.js handling
     this.mouseInteractionSystem.initialize(
       this.physicsSystem,
       this.cameraSystem,
@@ -190,7 +192,7 @@ export class Engine {
     this.updateCallbacks.forEach(callback => callback(deltaTime));
 
     // Update physics
-    this.physicsSystem.update(deltaTime);    // Update entities (sync physics with render objects)
+    this.physicsSystem.update(deltaTime); // Update entities (sync physics with render objects)
     this.entityManager.updateEntities();
 
     // Update hover system
@@ -220,8 +222,9 @@ export class Engine {
     if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
       return (average + this.TARGET_FRAME_TIME) / 2;
     }
-    return average;
+return average;
   }
+
   public destroy(): void {
     this.stop();
     this.hoverSystem.destroy();

@@ -111,7 +111,7 @@ export class CompositeShip implements ICompositeShip {
     if (this._compoundBody) {
       return this._compoundBody.velocity;
     }
-    return { x: 0, y: 0 };
+return { x: 0, y: 0 };
   }
 
   public setRotation(angle: number): void {

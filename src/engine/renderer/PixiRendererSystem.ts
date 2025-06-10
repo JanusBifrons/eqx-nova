@@ -293,6 +293,7 @@ export class PixiRendererSystem implements IRendererSystem {
 
   public setPhysicsSystem(physicsSystem: IPhysicsSystem): void {
     this.physicsSystem = physicsSystem;
+
     // Re-initialize hover renderer if camera system is already set
     if (this.cameraSystem) {
       this.initializeHoverRenderer();
@@ -301,7 +302,11 @@ export class PixiRendererSystem implements IRendererSystem {
 
   private initializeHoverRenderer(): void {
     if (this.cameraSystem) {
-      this.hoverRenderer.initialize(this.cameraSystem, this.gameContainer, this.physicsSystem);
+      this.hoverRenderer.initialize(
+        this.cameraSystem,
+        this.gameContainer,
+        this.physicsSystem
+      );
     }
   }
 
