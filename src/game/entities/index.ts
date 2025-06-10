@@ -1,3 +1,7 @@
-export { Laser } from './Laser';
-export { Asteroid, type AsteroidSize } from './Asteroid';
-export { Player } from './Player';
+export * from './Player';
+export * from './Laser';
+export * from './Asteroid';
+export * from './CompositeShip';
+export * from './ShipPart';
+export * from './AIBehavior';
+export * from './AIShip';

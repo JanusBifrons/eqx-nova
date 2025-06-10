@@ -8,6 +8,7 @@ import {
   AsteroidManager,
   CollisionManager,
   InputManager,
+  AIManager,
 } from './managers';
 
 /**
@@ -39,10 +40,7 @@ export class AsteroidsGame {
 
   private inputManager: InputManager | null = null;
 
-  // Mouse interaction state
-  private cursorDot: any = null; // Entity for cursor visualization
-
-  private mouseWorldPosition: { x: number; y: number } | null = null;
+  private aiManager: AIManager | null = null;
 
   // Singleton pattern
   public static getInstance(): AsteroidsGame {
@@ -86,12 +84,23 @@ export class AsteroidsGame {
     this.playerManager = new PlayerManager(this.gameEngine);
     this.laserManager = new LaserManager(this.gameEngine);
     this.asteroidManager = new AsteroidManager(this.gameEngine);
-    this.inputManager = new InputManager(); // Collision manager orchestrates interactions between other managers
+    this.inputManager = new InputManager();
+    this.aiManager = new AIManager(this.gameEngine);
+
+    // Set up AI manager's laser firing callback
+    this.aiManager.setFireLaserCallback((position, rotation, velocity) => {
+      return this.laserManager!.fireLaser(position, rotation, velocity);
+    });
+
+    // Collision manager orchestrates interactions between other managers
     this.collisionManager = new CollisionManager(
       this.playerManager,
       this.laserManager,
       this.asteroidManager
     );
+
+    // Connect AI manager to collision manager
+    this.collisionManager.setAIManager(this.aiManager);
   }
 
   private setupGame(): void {
@@ -135,9 +144,12 @@ export class AsteroidsGame {
           timeScale: 1.0,
         },
       },
-    }); // Create initial game objects
+    });    // Create initial game objects
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
+
+    // Spawn AI fleet
+    this.aiManager!.spawnAIFleet();
 
     // Log initial camera setup
     const cameraSystem = this.gameEngine.getCameraSystem();
@@ -243,6 +255,15 @@ export class AsteroidsGame {
     this.playerManager!.update(deltaTime);
     this.laserManager!.update(deltaTime);
 
+    // Update AI ships
+    this.aiManager!.update(deltaTime);
+
+    // Set player as target for AI ships
+    const playerShip = this.playerManager!.getCompositeShip();
+    if (playerShip) {
+      this.aiManager!.setPlayerTarget(playerShip);
+    }
+
     // Maintain asteroid density in the expanded game world
     this.asteroidManager!.maintainAsteroidDensity(40);
   }
@@ -311,6 +332,17 @@ export class AsteroidsGame {
         this.gameEngine.wrapEntityPosition(player, dimensions);
       }
     }
+
+    // Wrap AI ships
+    this.aiManager!.getAllAIShips().forEach(aiShip => {
+      if (aiShip.isActive) {
+        const parts = aiShip.ship.parts;
+        parts.forEach(part => {
+          this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
+        });
+      }
+    });
+
     // Wrap lasers
     this.laserManager!.getAllLasers().forEach(laserData => {
       this.gameEngine!.wrapEntityPosition(laserData.entity, dimensions);
@@ -348,10 +380,12 @@ export class AsteroidsGame {
     this.playerManager!.destroy();
     this.laserManager!.destroy();
     this.asteroidManager!.destroy();
+    this.aiManager!.destroy();
 
     // Recreate initial state
     this.playerManager!.createPlayer();
     this.asteroidManager!.spawnInitialAsteroids();
+    this.aiManager!.spawnAIFleet();
   }
 
   public isReady(): boolean {
@@ -366,6 +400,7 @@ export class AsteroidsGame {
     this.laserManager?.destroy();
     this.asteroidManager?.destroy();
     this.inputManager?.destroy();
+    this.aiManager?.destroy();
 
     // Clear references
     this.gameEngine = null;
@@ -374,6 +409,7 @@ export class AsteroidsGame {
     this.asteroidManager = null;
     this.collisionManager = null;
     this.inputManager = null;
+    this.aiManager = null;
 
     this.isInitialized = false;
     this.isDestroyed = true;
@@ -387,15 +423,15 @@ export class AsteroidsGame {
 
     if (!screenMousePos) {
       // No mouse position available
-      this.mouseWorldPosition = null;
       return;
     }
 
     // Convert to world space using camera system
-    const cameraSystem = this.gameEngine.getCameraSystem();
-    this.mouseWorldPosition = cameraSystem.screenToWorld(screenMousePos);
+    // const cameraSystem = this.gameEngine.getCameraSystem();
+    // const worldPosition = cameraSystem.screenToWorld(screenMousePos);
 
     // Cursor dot removed - hover indicators are sufficient for visual feedback
+    // We could add mouse-based interactions here if needed in the future
   }
 
   private handleMouseClick(screenPosition: { x: number; y: number }): void {
