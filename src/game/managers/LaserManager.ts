@@ -18,19 +18,20 @@ export class LaserManager {
 
   private gameEngine: IGameEngine;
 
-  private readonly LASER_SPEED = 0.6;
+  private readonly LASER_SPEED = 12.0; // Much faster speed - pixels per frame
 
   private readonly LASER_LIFETIME = 2000; // milliseconds
 
   private readonly LASER_COOLDOWN = 100; // milliseconds - reduced for better continuous firing
 
-  private readonly LASER_RADIUS = 2;
+  private readonly LASER_WIDTH = 3;
+  private readonly LASER_HEIGHT = 8;
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
   }
 
-  public fireLaser(position: Vector2D, rotation: number): boolean {
+  public fireLaser(position: Vector2D, rotation: number, shipVelocity?: Vector2D): boolean {
     const now = performance.now();
 
     if (now - this.lastFireTime < this.LASER_COOLDOWN) {
@@ -41,13 +42,25 @@ export class LaserManager {
 
     const entity = this.gameEngine.createLaser(
       { x: laserX, y: laserY },
-      this.LASER_RADIUS
+      this.LASER_WIDTH,
+      this.LASER_HEIGHT
     );
 
-    // Apply velocity to laser
-    const forceX = Math.cos(rotation) * this.LASER_SPEED * 0.001;
-    const forceY = Math.sin(rotation) * this.LASER_SPEED * 0.001;
-    this.gameEngine.applyForceToEntity(entity, { x: forceX, y: forceY });
+    // Rotate the laser to point in the direction it's traveling
+    // Add 90 degrees (π/2 radians) to correct the orientation since rectangles default to vertical
+    this.gameEngine.setEntityRotation(entity, rotation + Math.PI / 2);
+
+    // Set direct velocity instead of applying force for predictable speed
+    const velocityX = Math.cos(rotation) * this.LASER_SPEED;
+    const velocityY = Math.sin(rotation) * this.LASER_SPEED;
+
+    // Add ship velocity inheritance for better feel when firing while moving
+    const finalVelocity = {
+      x: velocityX + (shipVelocity?.x || 0),
+      y: velocityY + (shipVelocity?.y || 0)
+    };
+
+    this.gameEngine.setEntityVelocity(entity, finalVelocity);
 
     this.lasers.push({
       entity,

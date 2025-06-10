@@ -83,16 +83,16 @@ export class HoverRenderer {
         if (this.physicsSystem) {
             const allBodies = this.physicsSystem.getAllBodies();
             const physicsBody = allBodies.find(body => body.id === entity.physicsBodyId);
-            
+
             if (physicsBody) {
                 // Access the Matter.js body to get actual bounds
                 const matterBody = (physicsBody as any).matterBody;
                 if (matterBody && matterBody.bounds) {
                     const boundsWidth = matterBody.bounds.max.x - matterBody.bounds.min.x;
                     const boundsHeight = matterBody.bounds.max.y - matterBody.bounds.min.y;
-                    return { 
-                        width: boundsWidth, 
-                        height: boundsHeight 
+                    return {
+                        width: boundsWidth,
+                        height: boundsHeight
                     };
                 }
             }
@@ -115,7 +115,7 @@ export class HoverRenderer {
         // Calculate corner length as a ratio of the smaller dimension
         const smallerDimension = Math.min(boundingSize.width, boundingSize.height);
         const dynamicLength = smallerDimension * this.CORNER_LENGTH_RATIO;
-        
+
         // Clamp between min and max values
         return Math.max(this.MIN_CORNER_LENGTH, Math.min(this.MAX_CORNER_LENGTH, dynamicLength));
     }

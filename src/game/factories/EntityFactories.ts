@@ -12,7 +12,7 @@ import { CompositeShipFactory } from './CompositeShipFactory';
  * Following Single Responsibility Principle and Factory Pattern
  */
 export class LaserFactory {
-  private static readonly LASER_SPEED = 0.6;
+  private static readonly LASER_SPEED = 12.0; // Much faster speed - pixels per frame
 
   private static readonly LASER_LIFETIME = 2000; // milliseconds
 
@@ -22,11 +22,12 @@ export class LaserFactory {
     direction: Vector2D,
     onDestroy: (laser: Laser) => void
   ): Laser {
-    // Create laser entity as a sensor (won't collide with other lasers)
-    const entity = engine.createCircle({
+    // Create laser entity as a rectangle sensor (won't collide with other lasers)
+    const entity = engine.createRectangle({
       x: position.x,
       y: position.y,
-      radius: 2,
+      width: 3,
+      height: 8,
       options: {
         color: 0xffff00,
         isStatic: false,
@@ -36,15 +37,21 @@ export class LaserFactory {
       },
     });
 
-    // Apply velocity
+    // Set rotation and velocity for the laser
+    // Add 90 degrees (π/2 radians) to correct the orientation since rectangles default to vertical
+    const rotation = Math.atan2(direction.y, direction.x) + Math.PI / 2;
     const physicsSystem = engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const laserBody = allBodies.find(body => body.id === entity.physicsBodyId);
 
     if (laserBody) {
-      const forceX = direction.x * this.LASER_SPEED * 0.001;
-      const forceY = direction.y * this.LASER_SPEED * 0.001;
-      physicsSystem.applyForce(laserBody, { x: forceX, y: forceY });
+      // Set rotation to point in direction of travel
+      physicsSystem.setRotation(laserBody, rotation);
+
+      // Set velocity directly instead of applying force for predictable speed
+      const velocityX = direction.x * this.LASER_SPEED;
+      const velocityY = direction.y * this.LASER_SPEED;
+      physicsSystem.setVelocity(laserBody, { x: velocityX, y: velocityY });
     }
     const velocity = {
       x: direction.x * this.LASER_SPEED,
@@ -114,7 +121,7 @@ export class AsteroidFactory {
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
-return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -147,7 +154,7 @@ return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
         y = Math.random() * height;
         break;
     }
-return this.create(engine, { x, y }, size, onDestroy);
+    return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

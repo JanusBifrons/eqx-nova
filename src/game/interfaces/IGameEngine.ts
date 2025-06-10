@@ -20,7 +20,7 @@ export interface IGameEngine {
     size: number,
     vertices: Vector2D[]
   ): Entity;
-  createLaser(position: Vector2D, radius: number): Entity;
+  createLaser(position: Vector2D, width: number, height: number): Entity;
 
   // Debug utilities
   createDebugMarker(position: Vector2D, color?: number): Entity;
@@ -33,6 +33,7 @@ export interface IGameEngine {
   setEntityRotation(entity: Entity, rotation: number): void;
   setEntityPosition(entity: Entity, position: Vector2D): void;
   setEntityVelocity(entity: Entity, velocity: Vector2D): void;
+  getEntityVelocity(entity: Entity): Vector2D | null;
   setEntityAngularVelocity(entity: Entity, angularVelocity: number): void;
   wrapEntityPosition(
     entity: Entity,

@@ -107,6 +107,13 @@ export class CompositeShip implements ICompositeShip {
     };
   }
 
+  public get velocity(): Vector2D {
+    if (this._compoundBody) {
+      return this._compoundBody.velocity;
+    }
+    return { x: 0, y: 0 };
+  }
+
   public setRotation(angle: number): void {
     this._rotation = angle;
 

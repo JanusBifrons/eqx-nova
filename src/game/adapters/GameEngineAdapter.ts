@@ -91,11 +91,12 @@ export class GameEngineAdapter implements IGameEngine {
     });
   }
 
-  public createLaser(position: Vector2D, radius: number): Entity {
-    return this.engine.createCircle({
+  public createLaser(position: Vector2D, width: number, height: number): Entity {
+    return this.engine.createRectangle({
       x: position.x,
       y: position.y,
-      radius,
+      width,
+      height,
       options: {
         color: 0xffff00,
         isStatic: false,
@@ -165,6 +166,17 @@ export class GameEngineAdapter implements IGameEngine {
     if (body) {
       physicsSystem.setVelocity(body, velocity);
     }
+  }
+
+  public getEntityVelocity(entity: Entity): Vector2D | null {
+    const physicsSystem = this.engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const body = allBodies.find(b => b.id === entity.physicsBodyId);
+
+    if (body) {
+      return body.velocity;
+    }
+    return null;
   }
 
   public setEntityAngularVelocity(

@@ -44,6 +44,7 @@ export interface ICompositeShip {
   readonly isAlive: boolean;
   readonly collisionRadius: number;
   readonly forwardDirection: Vector2D;
+  readonly velocity: Vector2D;
 
   // State management
   setRotation(angle: number): void;

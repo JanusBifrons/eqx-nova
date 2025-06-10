@@ -182,14 +182,28 @@ export class AsteroidsGame {
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
+    const compositeShip = this.playerManager.getCompositeShip();
     const player = this.playerManager.getPlayer();
 
-    if (!player) return;
+    if (compositeShip) {
+      // Handle composite ship firing
+      const shipPosition = compositeShip.centerPosition;
+      const shipRotation = this.playerManager.getRotation();
 
-    this.laserManager.fireLaser(
-      player.position,
-      this.playerManager.getRotation()
-    );
+      // Get ship velocity for inheritance
+      const shipVelocity = compositeShip.velocity;
+
+      this.laserManager.fireLaser(shipPosition, shipRotation, shipVelocity);
+    } else if (player) {
+      // Handle traditional player firing
+      const shipPosition = player.position;
+      const shipRotation = this.playerManager.getRotation();
+
+      // Get ship velocity for inheritance
+      const shipVelocity = this.gameEngine?.getEntityVelocity(player) || { x: 0, y: 0 };
+
+      this.laserManager.fireLaser(shipPosition, shipRotation, shipVelocity);
+    }
   }
 
   public update(deltaTime: number): void {
