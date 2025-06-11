@@ -717,12 +717,12 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
             'at',
             worldPosition
           );
-          
-return physicsBody;
+
+          return physicsBody;
         }
       }
     }
-return null;
+    return null;
   }
 
   public attachMouseConstraintToBody(
@@ -890,11 +890,16 @@ return null;
   }
 
   private handleCollisionStart = (event: any): void => {
+    console.log(`🌟 Physics collision detected: ${event.pairs.length} pairs`);
+
     event.pairs.forEach((pair: any) => {
+      console.log(`🌟 Pair: ${pair.bodyA.id || 'no-id'} vs ${pair.bodyB.id || 'no-id'}`);
+
       const bodyA = this.findPhysicsBodyByMatterBody(pair.bodyA);
       const bodyB = this.findPhysicsBodyByMatterBody(pair.bodyB);
 
       if (bodyA && bodyB) {
+        console.log(`🌟 Found physics bodies: ${bodyA.id} vs ${bodyB.id}`);
         const collisionEvent: CollisionEvent = {
           bodyA,
           bodyB,
@@ -904,6 +909,8 @@ return null;
         this.collisionStartCallbacks.forEach(callback =>
           callback(collisionEvent)
         );
+      } else {
+        console.log(`🌟 Missing physics bodies: A=${!!bodyA} B=${!!bodyB}`);
       }
     });
   };
@@ -928,12 +935,23 @@ return null;
   };
 
   private findPhysicsBodyByMatterBody(matterBody: any): IPhysicsBody | null {
+    // First, try direct match (for simple bodies)
     for (const physicsBody of this.bodies.values()) {
       if ((physicsBody as any).matterBody === matterBody) {
         return physicsBody;
       }
     }
 
-return null;
+    // If no direct match, check if this is a part of a compound body
+    for (const physicsBody of this.bodies.values()) {
+      const compoundBody = (physicsBody as any).matterBody;
+
+      // Check if the matter body is one of the parts of this compound body
+      if (compoundBody.parts && compoundBody.parts.includes(matterBody)) {
+        return physicsBody; // Return the compound body for the part collision
+      }
+    }
+
+    return null;
   }
 }

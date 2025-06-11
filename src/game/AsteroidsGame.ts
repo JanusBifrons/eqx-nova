@@ -47,7 +47,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-return AsteroidsGame.instance;
+    return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -251,6 +251,11 @@ return AsteroidsGame.instance;
     // Handle continuous firing - check every frame if spacebar is held down
     if (this.inputManager.isFirePressed()) {
       this.handleFireLaser();
+    }
+
+    // Debug controls for testing damage system
+    if (this.inputManager.isKeyPressed('x')) {
+      this.debugDamagePlayerShip();
     }
   }
 
@@ -464,6 +469,27 @@ return AsteroidsGame.instance;
         // Notify the mouse interaction system that the camera has been updated
         mouseInteractionSystem.onCameraUpdate();
       }
+    }
+  }
+
+  private debugDamagePlayerShip(): void {
+    if (!this.playerManager) return;
+
+    const compositeShip = this.playerManager.getCompositeShip();
+    if (compositeShip) {
+      // Find the first active part and damage it
+      const activeParts = compositeShip.getActiveParts();
+      if (activeParts.length > 0) {
+        const targetPart = activeParts[0];
+        const damageAmount = 25; // Test damage amount
+        console.log('🔧 DEBUG: Manually damaging player ship part:', targetPart.partId);
+        const wasDestroyed = compositeShip.takeDamageAtPart(targetPart.partId, damageAmount);
+        console.log('🔧 DEBUG: Part destroyed:', wasDestroyed, 'Active parts remaining:', activeParts.length - (wasDestroyed ? 1 : 0));
+      } else {
+        console.log('🔧 DEBUG: No active parts to damage');
+      }
+    } else {
+      console.log('🔧 DEBUG: No composite ship to damage');
     }
   }
 }

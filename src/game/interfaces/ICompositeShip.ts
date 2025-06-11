@@ -15,6 +15,10 @@ export interface IShipPart {
   readonly connectedParts: ReadonlySet<string>;
   readonly position: Vector2D;
   readonly angle: number;
+  readonly health: number;
+  readonly maxHealth: number;
+  readonly damagePercentage: number;
+  readonly baseColor: number;
 
   destroy(): void;
   disconnect(): void;
@@ -26,6 +30,11 @@ export interface IShipPart {
     engine?: any
   ): void;
   isActive(): boolean;
+  takeDamage(amount: number): boolean;
+  showImpactEffect(): void;
+  updateVisualDamage(): void;
+  setEngine(engine: any): void;
+  update(deltaTime: number): void;
 }
 
 /**
@@ -56,6 +65,7 @@ export interface ICompositeShip {
 
   // Part management
   destroyPart(partId: string): void;
+  takeDamageAtPart(partId: string, amount: number): boolean;
   getActiveParts(): ReadonlyArray<IShipPart>;
   getDestroyedParts(): ReadonlyArray<IShipPart>;
 }

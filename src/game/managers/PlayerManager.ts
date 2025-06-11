@@ -34,14 +34,14 @@ export class PlayerManager {
     const centerY = dimensions.height / 2;
 
     if (this.useCompositeShip) {
-      // Create composite ship with two parts to test constraint length fix
+      // Create long thin ship for testing damage system
       this.compositeShip = this.gameEngine.createCompositeShip(
         { x: centerX, y: centerY },
-        2 // Two parts to test constraint length fix
+        8 // Eight parts for long thin ship to test damage system
       );
       this.player = null; // Clear traditional player
       console.log(
-        'Two-part composite ship created at center:',
+        'Long thin ship (8 parts) created at center:',
         centerX,
         centerY
       );
@@ -67,7 +67,7 @@ export class PlayerManager {
 
       return parts.length > 0 ? parts[0].entity : null;
     }
-return this.player;
+    return this.player;
   }
 
   public getCompositeShip(): CompositeShip | null {
@@ -187,6 +187,6 @@ return this.player;
     } else if (this.player) {
       return this.player.position;
     }
-return null;
+    return null;
   }
 }

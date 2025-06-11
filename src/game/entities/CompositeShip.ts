@@ -56,6 +56,11 @@ export class CompositeShip implements ICompositeShip {
     this._collisionRadius = this.calculateCollisionRadius();
     this._onDestroy = onDestroy;
 
+    // Set engine reference for all parts so they can access renderer for visual effects
+    this._parts.forEach(part => {
+      (part as ShipPart).setEngine(engine);
+    });
+
     // Create a single compound body instead of using constraints
     this.createCompoundBody();
   }
@@ -111,7 +116,7 @@ export class CompositeShip implements ICompositeShip {
     if (this._compoundBody) {
       return this._compoundBody.velocity;
     }
-return { x: 0, y: 0 };
+    return { x: 0, y: 0 };
   }
 
   public setRotation(angle: number): void {
@@ -165,6 +170,42 @@ return { x: 0, y: 0 };
     return false; // Ship damaged but not destroyed
   }
 
+  public takeDamageAtPart(partId: string, amount: number): boolean {
+    if (this._isInvulnerable) return false;
+
+    const part = this._parts.find(p => p.partId === partId);
+    if (!part || part.isDestroyed) return false;
+
+    const partWasDestroyed = (part as ShipPart).takeDamage(amount);
+
+    if (partWasDestroyed) {
+      // Part was destroyed by the damage
+      this.destroyPart(partId);
+
+      // Check if ship should break apart
+      this.checkForBreakage();
+
+      // If all parts are destroyed, lose a life
+      if (this.getActiveParts().length === 0) {
+        this._lives--;
+
+        if (this._lives <= 0) {
+          this.destroy();
+          return true; // Ship is completely destroyed
+        } else {
+          // Respawn with fewer parts
+          this.respawnWithRemainingParts();
+        }
+      }
+
+      // Make invulnerable briefly after taking damage
+      this._isInvulnerable = true;
+      this._invulnerabilityTimer = 2000; // 2 seconds
+    }
+
+    return false; // Ship damaged but not completely destroyed
+  }
+
   public respawn(position: Vector2D): void {
     this._centerPosition = { ...position };
     this._rotation = 0;
@@ -205,6 +246,17 @@ return { x: 0, y: 0 };
         this._isInvulnerable = false;
       }
     }
+
+    // Update all ship parts (for visual effects like impact flashes)
+    this._parts.forEach(part => {
+      (part as ShipPart).update(deltaTime);
+
+      // Apply floating physics to disconnected parts
+      if (!part.isConnected && !part.isDestroyed) {
+        (part as ShipPart).applyFloatingPhysics(this._engine);
+      }
+    });
+
     // Update center position based on physics of compound body
     this.updateCenterPosition();
   }
@@ -437,6 +489,31 @@ return { x: 0, y: 0 };
     // Let physics constraints handle positioning naturally
   }
 
+  private checkForBreakage(): void {
+    // For ship breaking, we need to transition from compound body to individual bodies
+    // when parts are destroyed and connections are severed
+    this.updatePartConnections();
+
+    // Find any disconnected parts and break them away from the ship
+    const disconnectedParts = this._parts.filter(part =>
+      !part.isDestroyed && !part.isConnected
+    );
+
+    if (disconnectedParts.length > 0) {
+      console.log('🔧 Breaking ship apart! Disconnected parts:', disconnectedParts.length);
+
+      // Convert ship back to individual physics bodies for dramatic breakage
+      this.convertToIndividualBodies();
+
+      // Apply separation forces to make parts fly apart
+      disconnectedParts.forEach(part => {
+        (part as ShipPart).applyFloatingPhysics(this._engine);
+        // Add some explosive force
+        this.applyExplosiveForce(part as ShipPart);
+      });
+    }
+  }
+
   private restorePart(_part: ShipPart): void {
     // This would need to recreate the entity and physics body
     // For now, just mark as not destroyed (simplified)
@@ -493,5 +570,107 @@ return { x: 0, y: 0 };
     console.log(
       `Created compound body with ${compoundParts.length} parts at position (${this._centerPosition.x}, ${this._centerPosition.y})`
     );
+  }
+
+  private convertToIndividualBodies(): void {
+    const physicsSystem = this._engine.getPhysicsSystem();
+
+    // Remove the compound body
+    if (this._compoundBody) {
+      physicsSystem.removeBody(this._compoundBody);
+      this._compoundBody = null;
+      console.log('🔧 Removed compound body for ship breakage');
+    }
+
+    // Create individual physics bodies for each active part
+    const activeParts = this.getActiveParts();
+    activeParts.forEach(part => {
+      this.createIndividualBodyForPart(part as ShipPart);
+    });
+  }
+
+  private createIndividualBodyForPart(part: ShipPart): void {
+    const rendererSystem = this._engine.getRendererSystem();
+    const entityManager = this._engine.getEntityManager();
+
+    // Calculate world position for this part
+    const worldPos = this.calculatePartWorldPosition(part);
+
+    // Create new entity with individual physics body and render object
+    const newEntity = entityManager.createRectangle({
+      x: worldPos.x,
+      y: worldPos.y,
+      width: part.size,
+      height: part.size,
+      options: {
+        color: part.baseColor,
+        density: 0.01,
+        friction: 0.3,
+        frictionAir: 0.02,
+        restitution: 0.8, // Make parts bouncy for dramatic effect
+      }
+    });
+
+    // Set the initial angle for the new entity
+    newEntity.angle = this._rotation;
+
+    // Remove the old entity's render object (physics body is part of compound body)
+    rendererSystem.removeRenderObject(part.entity.renderObjectId);
+    part.entity.destroy();
+
+    // Replace the part's entity with the new independent one
+    // Since _entity is readonly, we need to use a workaround
+    (part as any)._entity = newEntity;
+
+    // Make sure part knows it's disconnected and floating
+    part.disconnect();
+
+    // Set the engine reference so the part can update its visual state
+    part.setEngine(this._engine);
+
+    console.log(`🔧 Created individual body for part ${part.partId} at (${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)})`);
+  }
+
+  private calculatePartWorldPosition(part: ShipPart): Vector2D {
+    // Calculate world position based on ship center and part's relative position
+    const cos = Math.cos(this._rotation);
+    const sin = Math.sin(this._rotation);
+
+    const relX = part.relativePosition.x;
+    const relY = part.relativePosition.y;
+
+    return {
+      x: this._centerPosition.x + (relX * cos - relY * sin),
+      y: this._centerPosition.y + (relX * sin + relY * cos)
+    };
+  }
+
+  private applyExplosiveForce(part: ShipPart): void {
+    const physicsSystem = this._engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const physicsBody = allBodies.find(body => body.id === part.entity.physicsBodyId);
+
+    if (physicsBody) {
+      // Calculate direction from ship center to part
+      const partPos = physicsBody.position;
+      const dx = partPos.x - this._centerPosition.x;
+      const dy = partPos.y - this._centerPosition.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance > 0) {
+        // Apply explosive force away from center
+        const explosiveForce = 0.1; // Increased for more dramatic effect
+        const forceX = (dx / distance) * explosiveForce;
+        const forceY = (dy / distance) * explosiveForce;
+
+        physicsSystem.applyForce(physicsBody, { x: forceX, y: forceY });
+
+        // Add random spin for dramatic effect
+        const randomSpin = (Math.random() - 0.5) * 0.2;
+        physicsSystem.setAngularVelocity(physicsBody, randomSpin);
+
+        console.log(`💥 Applied explosive force to part ${part.partId}: (${forceX.toFixed(3)}, ${forceY.toFixed(3)})`);
+      }
+    }
   }
 }

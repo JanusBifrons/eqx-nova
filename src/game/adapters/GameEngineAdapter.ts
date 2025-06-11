@@ -63,6 +63,13 @@ export class GameEngineAdapter implements IGameEngine {
         position,
         shipId
       );
+    } else if (numParts === 8) {
+      // Long thin ship for testing damage system
+      return CompositeShipFactory.createLongThinShip(
+        this.engine,
+        position,
+        shipId
+      );
     } else {
       // Default to 2-part ship
       return CompositeShipFactory.createTwoPartShip(
@@ -106,7 +113,7 @@ export class GameEngineAdapter implements IGameEngine {
         isStatic: false,
         frictionAir: 0,
         density: 0.0001,
-        isSensor: true, // Lasers pass through objects
+        isSensor: true, // Lasers MUST be sensors
       },
     });
   }
@@ -180,7 +187,7 @@ export class GameEngineAdapter implements IGameEngine {
     if (body) {
       return body.velocity;
     }
-return null;
+    return null;
   }
 
   public setEntityAngularVelocity(

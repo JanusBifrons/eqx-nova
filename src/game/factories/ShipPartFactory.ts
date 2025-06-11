@@ -41,7 +41,7 @@ export class ShipPartFactory {
       },
     });
 
-    return new ShipPart(entity, partId, relativePosition, size, onDestroy);
+    return new ShipPart(entity, partId, relativePosition, size, options.color ?? 0x00ff00, onDestroy);
   }
 
   /**

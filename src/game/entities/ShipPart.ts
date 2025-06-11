@@ -16,6 +16,12 @@ export class ShipPart implements IShipPart {
 
   private readonly _size: number;
 
+  private readonly _baseColor: number;
+
+  private readonly _maxHealth: number = 100;
+
+  private _health: number;
+
   private _isDestroyed: boolean = false;
 
   private _isConnected: boolean = true;
@@ -24,11 +30,16 @@ export class ShipPart implements IShipPart {
 
   private _onDestroy?: (part: ShipPart) => void;
 
+  private _impactEffectTimer: number = 0;
+
+  private _engine?: Engine;
+
   constructor(
     entity: Entity,
     partId: string,
     relativePosition: Vector2D,
     size: number,
+    baseColor: number = 0x00ff00,
     onDestroy?: (part: ShipPart) => void
   ) {
     // Validate that entity is a square rectangle
@@ -39,6 +50,8 @@ export class ShipPart implements IShipPart {
     this._partId = partId;
     this._relativePosition = { ...relativePosition };
     this._size = size;
+    this._baseColor = baseColor;
+    this._health = this._maxHealth;
     this._onDestroy = onDestroy;
   }
 
@@ -76,6 +89,106 @@ export class ShipPart implements IShipPart {
 
   public get angle(): number {
     return this._entity.angle;
+  }
+
+  public get health(): number {
+    return this._health;
+  }
+
+  public get maxHealth(): number {
+    return this._maxHealth;
+  }
+
+  public get damagePercentage(): number {
+    return (this._maxHealth - this._health) / this._maxHealth;
+  }
+
+  public get baseColor(): number {
+    return this._baseColor;
+  }
+
+  public takeDamage(amount: number): boolean {
+    if (this._isDestroyed) return false;
+
+    this._health = Math.max(0, this._health - amount);
+
+    // Update visual damage immediately
+    this.updateVisualDamage();
+
+    // Show impact effect
+    this.showImpactEffect();
+
+    // Check if part should be destroyed
+    if (this._health <= 0) {
+      this.destroy();
+      return true; // Part was destroyed
+    }
+
+    return false; // Part survived
+  }
+
+  public showImpactEffect(): void {
+    // Set impact effect timer for dramatic multi-flash sequence
+    this._impactEffectTimer = 800; // milliseconds - longer for multi-flash effect
+
+    // Temporarily show bright flashing white color
+    if (this._engine) {
+      const rendererSystem = this._engine.getRendererSystem();
+      rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffffff);
+
+      // Log impact for debugging
+      console.log(`💥 IMPACT: Part ${this._partId} flashing white - RenderID: ${this._entity.renderObjectId}`);
+    } else {
+      console.warn(`💥 IMPACT: Part ${this._partId} has no engine reference!`);
+    }
+  } public updateVisualDamage(): void {
+    if (this._isDestroyed) return;
+
+    // If we're showing impact effect, don't update color yet
+    if (this._impactEffectTimer > 0) return;
+
+    // Make damage effects MUCH more dramatic
+    const damagePercent = this.damagePercentage;
+
+    // Create much more obvious color changes
+    let red, green, blue;
+
+    if (damagePercent < 0.25) {
+      // 0-25% damage: Bright green to yellow (healthy)
+      red = Math.floor(255 * damagePercent * 4); // 0 to 255
+      green = 255;
+      blue = 0;
+    } else if (damagePercent < 0.5) {
+      // 25-50% damage: Yellow to orange
+      red = 255;
+      green = Math.floor(255 * (1 - (damagePercent - 0.25) * 4)); // 255 to 0
+      blue = 0;
+    } else if (damagePercent < 0.75) {
+      // 50-75% damage: Orange to red
+      red = 255;
+      green = Math.floor(128 * (1 - (damagePercent - 0.5) * 4)); // 128 to 0
+      blue = 0;
+    } else {
+      // 75-100% damage: Red to dark red (critical)
+      red = Math.floor(255 * (1 - (damagePercent - 0.75) * 2)); // 255 to 127
+      green = 0;
+      blue = 0;
+    }
+
+    // Create color (RGB format)
+    const damageColor = (red << 16) | (green << 8) | blue;
+
+    if (this._engine) {
+      const rendererSystem = this._engine.getRendererSystem();
+      rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, damageColor);
+
+      // Log damage for visibility
+      console.log(`🎨 Part ${this._partId} damage: ${Math.round(damagePercent * 100)}% - Color: #${damageColor.toString(16).padStart(6, '0')} - RenderID: ${this._entity.renderObjectId}`);
+    }
+  }
+
+  public setEngine(engine: Engine): void {
+    this._engine = engine;
   }
 
   public destroy(): void {
@@ -185,5 +298,64 @@ export class ShipPart implements IShipPart {
    */
   public isActive(): boolean {
     return !this._isDestroyed && this._entity.isActive;
+  }
+
+  public update(deltaTime: number): void {
+    // Handle impact effect timer with dramatic flashing
+    if (this._impactEffectTimer > 0) {
+      this._impactEffectTimer -= deltaTime;
+
+      // Create dramatic flashing effect during impact
+      if (this._engine) {
+        const rendererSystem = this._engine.getRendererSystem();
+
+        // Flash between white and damage color every 100ms for maximum visibility
+        const flashFrequency = 100; // milliseconds per flash
+        const flashCycle = Math.floor((800 - this._impactEffectTimer) / flashFrequency);
+
+        if (flashCycle % 2 === 0) {
+          // Show bright white
+          rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffffff);
+        } else {
+          // Show bright yellow for alternate flash
+          rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffff00);
+        }
+      }
+
+      // When impact effect ends, restore damage-based color
+      if (this._impactEffectTimer <= 0) {
+        this.updateVisualDamage();
+      }
+    }
+    // Add pulsing effect for heavily damaged parts (50%+ damage) - only when not flashing
+    else if (!this._isDestroyed && this.damagePercentage >= 0.5) {
+      // Create a pulsing effect based on time
+      const pulseSpeed = 3.0; // Hz
+      const time = Date.now() / 1000; // Convert to seconds
+      const pulse = (Math.sin(time * pulseSpeed * 2 * Math.PI) + 1) / 2; // 0 to 1
+
+      // Intensify the red color for pulsing
+      const baseDamagePercent = this.damagePercentage;
+      let red, green, blue;
+
+      if (baseDamagePercent < 0.75) {
+        // 50-75% damage: Pulsing orange-red
+        red = 255;
+        green = Math.floor((64 + 64 * pulse) * (1 - (baseDamagePercent - 0.5) * 4));
+        blue = 0;
+      } else {
+        // 75-100% damage: Pulsing red (critical)
+        red = Math.floor(127 + 128 * pulse); // Pulse between dark red and bright red
+        green = Math.floor(32 * pulse); // Slight green pulse for urgency
+        blue = 0;
+      }
+
+      const pulseColor = (red << 16) | (green << 8) | blue;
+
+      if (this._engine) {
+        const rendererSystem = this._engine.getRendererSystem();
+        rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, pulseColor);
+      }
+    }
   }
 }

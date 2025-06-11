@@ -22,7 +22,7 @@ export class LaserFactory {
     direction: Vector2D,
     onDestroy: (laser: Laser) => void
   ): Laser {
-    // Create laser entity as a rectangle sensor (won't collide with other lasers)
+    // Create laser entity as a rectangle (physical body for proper collision detection)
     const entity = engine.createRectangle({
       x: position.x,
       y: position.y,
@@ -33,7 +33,7 @@ export class LaserFactory {
         isStatic: false,
         frictionAir: 0,
         density: 0.001,
-        isSensor: true, // Make it a sensor so it doesn't collide with other lasers
+        isSensor: false, // Make it a physical body for proper collision detection with compound bodies
       },
     });
 
@@ -121,7 +121,7 @@ export class AsteroidFactory {
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
-return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -154,7 +154,7 @@ return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
         y = Math.random() * height;
         break;
     }
-return this.create(engine, { x, y }, size, onDestroy);
+    return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

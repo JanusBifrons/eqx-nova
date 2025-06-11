@@ -173,4 +173,33 @@ export class CompositeShipFactory {
 
     return this.create(engine, config, shipId, onDestroy);
   }
+
+  /**
+   * Create a very long thin ship for testing damage system
+   */
+  public static createLongThinShip(
+    engine: Engine,
+    position: Vector2D,
+    shipId: string,
+    onDestroy?: (ship: CompositeShip) => void
+  ): CompositeShip {
+    const partSize = 12; // Smaller parts for a thinner look
+    const spacing = partSize;
+
+    // Create a long horizontal line of 8 parts
+    const partPositions: Vector2D[] = [];
+    for (let i = 0; i < 8; i++) {
+      partPositions.push({ x: (i - 3.5) * spacing, y: 0 });
+    }
+
+    const config: CompositeShipConfig = {
+      centerPosition: position,
+      partSize,
+      partPositions,
+      partColor: 0xff4444, // Red color to distinguish from regular ships
+      lives: 3,
+    };
+
+    return this.create(engine, config, shipId, onDestroy);
+  }
 }

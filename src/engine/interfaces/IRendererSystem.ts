@@ -19,6 +19,7 @@ export interface IRendererSystem {
   render(): void;
   createRenderObject(object: RenderableObject): void;
   updateRenderObject(id: string, position: Vector2D, angle: number): void;
+  updateRenderObjectColor(id: string, color: number): void;
   removeRenderObject(id: string): void;
   resize(width: number, height: number): void;
   destroy(): void;

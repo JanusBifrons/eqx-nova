@@ -95,6 +95,15 @@ export class PixiRendererSystem implements IRendererSystem {
 
     const graphics = new Graphics();
 
+    // Store render data for future color updates
+    (graphics as any)._renderData = {
+      type: object.type,
+      width: object.width,
+      height: object.height,
+      radius: object.radius,
+      vertices: object.vertices,
+    };
+
     if (object.type === 'rectangle') {
       const width = object.width ?? 50;
       const height = object.height ?? 50;
@@ -150,6 +159,40 @@ export class PixiRendererSystem implements IRendererSystem {
         graphics.y = position.y;
       }
       graphics.rotation = angle;
+    }
+  }
+
+  public updateRenderObjectColor(id: string, color: number): void {
+    const graphics = this.renderObjects.get(id);
+
+    console.log(`🎨 Renderer: Updating color for ID ${id} to #${color.toString(16).padStart(6, '0')} - Found graphics: ${!!graphics}`);
+
+    if (graphics) {
+      // Clear and redraw with new color
+      graphics.clear();
+
+      // Get the stored shape information to redraw
+      const renderData = (graphics as any)._renderData;
+      if (renderData) {
+        console.log(`🎨 Renderer: Redrawing ${renderData.type} with color #${color.toString(16).padStart(6, '0')}`);
+        if (renderData.type === 'rectangle') {
+          graphics.rect(-renderData.width / 2, -renderData.height / 2, renderData.width, renderData.height);
+          graphics.fill(color);
+          graphics.stroke({ color: 0x0f3460, width: 2 });
+        } else if (renderData.type === 'circle') {
+          graphics.circle(0, 0, renderData.radius);
+          graphics.fill(color);
+          graphics.stroke({ color: 0x0f3460, width: 2 });
+        } else if (renderData.type === 'polygon') {
+          graphics.poly(renderData.vertices.map((v: any) => ({ x: v.x, y: v.y })));
+          graphics.fill(color);
+          graphics.stroke({ color: 0x0f3460, width: 2 });
+        }
+      } else {
+        console.warn(`🎨 Renderer: No render data found for ID ${id}`);
+      }
+    } else {
+      console.warn(`🎨 Renderer: Graphics object not found for ID ${id}. Available IDs:`, Array.from(this.renderObjects.keys()));
     }
   }
 
@@ -305,7 +348,7 @@ export class PixiRendererSystem implements IRendererSystem {
       this.hoverRenderer.initialize(
         this.cameraSystem,
         this.gameContainer,
-        this.physicsSystem
+        this.physicsSystem || undefined
       );
     }
   }

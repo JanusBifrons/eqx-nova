@@ -87,9 +87,6 @@ export class Engine {
     const worldHeight = canvasHeight * 4;
     this.physicsSystem.initialize(worldWidth, worldHeight, createBoundaries);
 
-    // Connect physics system to renderer for dynamic hover sizing
-    this.rendererSystem.setPhysicsSystem(this.physicsSystem);
-
     // Initialize input system with canvas element
     this.inputSystem.initialize(canvas); // Initialize mouse interaction system with canvas element for direct Matter.js handling
     this.mouseInteractionSystem.initialize(
@@ -222,7 +219,7 @@ export class Engine {
     if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
       return (average + this.TARGET_FRAME_TIME) / 2;
     }
-return average;
+    return average;
   }
 
   public destroy(): void {
