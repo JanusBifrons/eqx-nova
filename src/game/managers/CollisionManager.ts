@@ -23,7 +23,7 @@ export class CollisionManager {
   private aiManager: AIManager | null = null;
 
   // TEMPORARY: Player immunity toggle for testing/debugging
-  private playerImmune: boolean = true; // Set to false to restore normal damage
+  private playerImmune: boolean = false; // Set to false to restore normal damage
 
   constructor(
     playerManager: PlayerManager,
@@ -133,7 +133,7 @@ export class CollisionManager {
         return; // Ignore friendly fire
       }
 
-      this.handleLaserAIShipCollision(laserData, aiShip);
+      this.handleLaserAIShipCollision(laserData, aiShip, event);
       return;
     }
 
@@ -248,37 +248,67 @@ export class CollisionManager {
     // Break asteroid (no scoring)
     this.asteroidManager.breakAsteroid(asteroidData);
   }
-  private handleLaserAIShipCollision(laserData: any, aiShip: any): void {
+  private handleLaserAIShipCollision(
+    laserData: any,
+    aiShip: any,
+    collisionEvent?: CollisionEvent
+  ): void {
     console.log('🎯 LASER-AI SHIP collision detected!');
 
     // Remove laser
     this.laserManager.removeLaser(laserData);
 
-    // For now, let's damage a random part or use the composite ship damage method
+    // Find which specific part was hit using the collision event
+    let targetPartId: string | null = null;
+
     const compositeShip = aiShip.ship;
-    if (compositeShip && compositeShip.takeDamageAtPart) {
-      // Find the first active part to damage
-      const activeParts = compositeShip.getActiveParts();
-      if (activeParts.length > 0) {
-        const targetPart = activeParts[0];
+    if (compositeShip && collisionEvent) {
+      // Get the physics body IDs from the collision
+      const { bodyA, bodyB } = collisionEvent;
+
+      // Find which body belongs to the ship part (not the laser)
+      const laserEntity = laserData.entity;
+      const shipBodyId =
+        laserEntity.physicsBodyId === bodyA.id ? bodyB.id : bodyA.id;
+
+      console.log(
+        `🎯 Looking for ship part with physics body ID: ${shipBodyId}`
+      );
+
+      // Find the specific part that was hit
+      const parts = compositeShip.parts;
+      for (const part of parts) {
+        if (part.entity.physicsBodyId === shipBodyId) {
+          targetPartId = part.partId;
+          console.log(`🎯 Found hit part: ${targetPartId}`);
+          break;
+        }
+      }
+
+      // If we found the specific part, damage it
+      if (targetPartId && compositeShip.takeDamageAtPart) {
         const damageAmount = 30; // Laser damage
         const wasDestroyed = compositeShip.takeDamageAtPart(
-          targetPart.partId,
+          targetPartId,
           damageAmount
         );
         console.log(
-          '🎯 AI ship part hit:',
+          `🎯 AI ship part ${targetPartId} hit:`,
           wasDestroyed ? 'destroyed' : 'damaged'
         );
+        return; // Successfully handled collision
       }
     }
 
-    // Also try the old damage method as fallback
+    // Fallback: If we couldn't identify the specific part, use general damage
     if (this.aiManager) {
       const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
       if (wasDestroyed) {
-        console.log(`🎯 AI ship destroyed by laser: ${aiShip.id}`);
+        console.log(`🎯 AI ship destroyed by laser (fallback): ${aiShip.id}`);
       }
+      console.log(
+        "⚠️ Used fallback damage method - couldn't identify specific part"
+      );
     }
   }
 

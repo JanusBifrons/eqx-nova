@@ -2,6 +2,7 @@ import type { Engine } from '../engine';
 import type { IGameEngine } from './interfaces/IGameEngine';
 import type { MouseInputEvent } from '../engine/input';
 import { GameEngineAdapter } from './adapters/GameEngineAdapter';
+import { CompositeShipFactory } from './factories/CompositeShipFactory';
 import {
   PlayerManager,
   LaserManager,
@@ -275,6 +276,30 @@ export class AsteroidsGame {
     if (this.inputManager.isKeyPressed('x')) {
       this.debugDamagePlayerShip();
     }
+
+    // Debug controls for testing AI ship damage system
+    if (this.inputManager.isKeyPressed('z')) {
+      console.log('🔧 Z key pressed - testing AI ship damage');
+      this.debugDamageAIShip();
+    }
+
+    // Debug controls for testing ship connectivity
+    if (this.inputManager.isKeyPressed('t')) {
+      console.log('🔧 T key pressed - testing ship connectivity');
+      this.debugTestShipConnectivity();
+    }
+
+    // Debug controls for manual ship breakage testing
+    if (this.inputManager.isKeyPressed('b')) {
+      console.log('🔧 B key pressed - manually breaking first AI ship');
+      this.debugManualBreakShip();
+    }
+
+    // Debug controls for manual connectivity testing
+    if (this.inputManager.isKeyPressed('c')) {
+      console.log('🔧 C key pressed - testing manual connectivity');
+      this.debugTestManualConnectivity();
+    }
   }
 
   private updateManagers(deltaTime: number): void {
@@ -520,5 +545,156 @@ export class AsteroidsGame {
     } else {
       console.log('🔧 DEBUG: No composite ship to damage');
     }
+  }
+
+  private debugDamageAIShip(): void {
+    if (!this.aiManager) return;
+
+    const aiShips = this.aiManager.getAllAIShips();
+    if (aiShips.length > 0) {
+      // Find the first active AI ship and damage it
+      const targetShip = aiShips.find(ship => ship.isActive);
+      if (targetShip) {
+        const activeParts = targetShip.ship.getActiveParts();
+        if (activeParts.length > 0) {
+          const targetPart = activeParts[0];
+          const damageAmount = 30; // Test damage amount
+          console.log(
+            '🔧 DEBUG: Manually damaging AI ship part:',
+            targetPart.partId,
+            'from ship:',
+            targetShip.id
+          );
+          const wasDestroyed = targetShip.ship.takeDamageAtPart(
+            targetPart.partId,
+            damageAmount
+          );
+          console.log(
+            '🔧 DEBUG: AI part destroyed:',
+            wasDestroyed,
+            'Active parts remaining:',
+            activeParts.length - (wasDestroyed ? 1 : 0)
+          );
+        } else {
+          console.log('🔧 DEBUG: No active parts to damage on AI ship');
+        }
+      } else {
+        console.log('🔧 DEBUG: No active AI ships to damage');
+      }
+    } else {
+      console.log('🔧 DEBUG: No AI ships available');
+    }
+  }
+
+  /**
+   * Debug function to test grid-based ship connectivity
+   */
+  private debugTestShipConnectivity(): void {
+    if (!this.aiManager) return;
+
+    const aiShips = this.aiManager.getAllAIShips();
+    console.log(`🔧 Testing connectivity for ${aiShips.length} AI ships:`);
+
+    aiShips.forEach((aiShip, index) => {
+      const ship = aiShip.ship;
+      const activeParts = ship.getActiveParts();
+
+      console.log(`\n🛸 Ship ${index + 1} (${aiShip.faction}):`);
+      console.log(`  📊 Parts: ${activeParts.length} active`);
+
+      // Test connectivity by checking each part's connections
+      let totalConnections = 0;
+      activeParts.forEach(part => {
+        const connections = part.connectedParts.size;
+        totalConnections += connections;
+        if (connections === 0 && activeParts.length > 1) {
+          console.log(
+            `  ⚠️  Part ${part.partId} has no connections (isolated!)`
+          );
+        }
+      });
+
+      console.log(
+        `  🔗 Total connections: ${totalConnections / 2} (bidirectional pairs)`
+      );
+
+      // Test grid positioning
+      let gridAligned = 0;
+      const partSize = activeParts.length > 0 ? activeParts[0].size : 20; // Get actual part size
+      activeParts.forEach(part => {
+        const pos = part.relativePosition;
+        const isAligned = pos.x % partSize === 0 && pos.y % partSize === 0;
+        if (isAligned) gridAligned++;
+      });
+
+      console.log(
+        `  📐 Grid alignment: ${gridAligned}/${activeParts.length} parts properly aligned (${partSize}px grid)`
+      );
+
+      if (gridAligned !== activeParts.length) {
+        console.warn(`  ❌ Ship ${index + 1} has non-grid-aligned parts!`);
+      } else {
+        console.log(`  ✅ Ship ${index + 1} is properly grid-aligned`);
+      }
+    });
+  }
+
+  private debugManualBreakShip(): void {
+    console.log('🔧 Manual ship breakage test');
+
+    const aiShips = this.aiManager?.getAllAIShips() || [];
+    if (aiShips.length === 0) {
+      console.log('❌ No AI ships found for breakage test');
+      return;
+    }
+
+    const firstShip = aiShips[0];
+    const compositeShip = firstShip.ship;
+    const activeParts = compositeShip.getActiveParts();
+
+    if (activeParts.length === 0) {
+      console.log('❌ No active parts found in first AI ship');
+      return;
+    }
+
+    // Destroy a part in the middle to test connectivity breakage
+    const middleIndex = Math.floor(activeParts.length / 2);
+    const partToDestroy = activeParts[middleIndex];
+
+    console.log(
+      `🔧 Manually destroying part ${partToDestroy.partId} from ship with ${activeParts.length} parts`
+    );
+    compositeShip.destroyPart(partToDestroy.partId);
+  }
+
+  private debugTestManualConnectivity(): void {
+    console.log('🔧 Manual connectivity test');
+    
+    // Create a simple 3-part horizontal ship manually
+    const engine = (this.gameEngine as any).engine;
+    const testPositions = [
+      { x: -20, y: 0 }, // Left part
+      { x: 0, y: 0 },   // Center part  
+      { x: 20, y: 0 },  // Right part
+    ];
+    
+    console.log('🔧 Creating test ship with positions:', testPositions);
+    
+    const testShip = CompositeShipFactory.createCustomShip(
+      engine,
+      { x: 100, y: 100 }, // World position
+      testPositions,
+      20, // Part size
+      'test_ship',
+      0xff0000, // Red color
+      3
+    );
+    
+    const activeParts = testShip.getActiveParts();
+    console.log('🔧 Test ship created with parts:');
+    activeParts.forEach((part: any, i: number) => {
+      console.log(`  Part ${i}: relative pos (${part.relativePosition.x}, ${part.relativePosition.y}), size: ${part.size}`);
+      console.log(`  Part ${i}: connections: ${Array.from(part.connectedParts).join(', ') || 'none'}`);
+    });
   }
 }

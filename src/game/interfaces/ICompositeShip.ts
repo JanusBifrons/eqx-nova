@@ -24,6 +24,7 @@ export interface IShipPart {
   disconnect(): void;
   connectToPart(partId: string): void;
   disconnectFromPart(partId: string): void;
+  disconnectFromAllParts(): void;
   updatePosition(
     shipPosition: Vector2D,
     shipRotation: number,

@@ -7,6 +7,7 @@ import type {
 } from '../../engine/interfaces/IPhysicsSystem';
 import type { ICompositeShip, IShipPart } from '../interfaces/ICompositeShip';
 import { ShipPart } from './ShipPart';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * CompositeShip - Manages a collection of ship parts as a single unit
@@ -40,8 +41,10 @@ export class CompositeShip implements ICompositeShip {
 
   private _onDestroy?: (ship: CompositeShip) => void;
 
+  private _cockpitPartId: string; // The main part everything must connect to
+
   constructor(
-    id: string,
+    id: string = uuidv4(), // Use UUID by default
     parts: ShipPart[],
     engine: Engine,
     centerPosition: Vector2D,
@@ -56,13 +59,44 @@ export class CompositeShip implements ICompositeShip {
     this._collisionRadius = this.calculateCollisionRadius();
     this._onDestroy = onDestroy;
 
+    // Set the center part as the cockpit (command center) for better connectivity
+    // Find the part closest to center (0,0) in relative coordinates
+    let cockpitIndex = 0;
+    let minDistanceToCenter = Infinity;
+    
+    parts.forEach((part, index) => {
+      const distance = Math.sqrt(
+        part.relativePosition.x ** 2 + part.relativePosition.y ** 2
+      );
+      if (distance < minDistanceToCenter) {
+        minDistanceToCenter = distance;
+        cockpitIndex = index;
+      }
+    });
+    
+    this._cockpitPartId = parts.length > 0 ? parts[cockpitIndex].partId : '';
+    console.log(`🛸 Selected cockpit: Part ${cockpitIndex} at distance ${minDistanceToCenter.toFixed(1)} from center`);
+
     // Set engine reference for all parts so they can access renderer for visual effects
     this._parts.forEach(part => {
       (part as ShipPart).setEngine(engine);
+      
+      // Make the cockpit visually distinct
+      if (part.partId === this._cockpitPartId) {
+        // This part is the cockpit - make it visually distinct
+        (part as ShipPart).setCockpitVisuals();
+      }
     });
 
     // Create a single compound body instead of using constraints
     this.createCompoundBody();
+
+    // IMPORTANT: Set up part connections after creating the compound body
+    this.updatePartConnections();
+
+    console.log(
+      `🚢 Created CompositeShip ${id} with ${parts.length} parts, cockpit: ${this._cockpitPartId}`
+    );
   }
 
   public get id(): string {
@@ -488,28 +522,205 @@ export class CompositeShip implements ICompositeShip {
   }
 
   private updatePartConnections(): void {
-    // Simplified connection logic - in a full implementation,
-    // this would check spatial adjacency and connectivity graphs
+    // Cockpit-based connectivity system
+    // All parts must be connected to the cockpit to remain part of the ship
 
-    // For now, just ensure isolated parts become disconnected
+    const activeParts = this.getActiveParts();
+
+    if (activeParts.length === 0) return;
+
+    // Get the actual part size - use the first part's size as reference
+    const GRID_SIZE = activeParts[0].size;
+
+    console.log(
+      `🔧 Updating connections for ${activeParts.length} parts with grid size ${GRID_SIZE}, cockpit: ${this._cockpitPartId}`
+    );
+
+    // Clear all connections first
     this._parts.forEach(part => {
       if (!part.isDestroyed) {
-        const remainingConnections = Array.from(part.connectedParts).filter(
-          partId => {
-            const connectedPart = this._parts.find(p => p.partId === partId);
-
-            return connectedPart && !connectedPart.isDestroyed;
-          }
-        );
-
-        if (
-          remainingConnections.length === 0 &&
-          this.getActiveParts().length > 1
-        ) {
-          (part as ShipPart).disconnect();
-        }
+        (part as ShipPart).disconnectFromAllParts();
       }
     });
+
+    let connectionsCreated = 0;
+
+    // Rebuild connections based on grid adjacency
+    for (let i = 0; i < activeParts.length; i++) {
+      const partA = activeParts[i];
+      const posA = partA.relativePosition;
+
+      for (let j = i + 1; j < activeParts.length; j++) {
+        const partB = activeParts[j];
+        const posB = partB.relativePosition;
+
+        // Check if parts are adjacent in grid (within one grid cell distance)
+        const dx = Math.abs(posA.x - posB.x);
+        const dy = Math.abs(posA.y - posB.y);
+
+        // Add tolerance for floating point precision issues
+        const tolerance = 0.1;
+
+        // Parts are connected if they are exactly one grid cell apart horizontally or vertically
+        const isHorizontallyAdjacent =
+          Math.abs(dx - GRID_SIZE) < tolerance && dy < tolerance;
+        const isVerticallyAdjacent =
+          dx < tolerance && Math.abs(dy - GRID_SIZE) < tolerance;
+
+        if (isHorizontallyAdjacent || isVerticallyAdjacent) {
+          (partA as ShipPart).connectToPart(partB.partId);
+          (partB as ShipPart).connectToPart(partA.partId);
+          connectionsCreated++;
+          console.log(
+            `🔗 Connected parts at (${posA.x},${posA.y}) and (${posB.x},${posB.y}): dx=${dx.toFixed(1)}, dy=${dy.toFixed(1)}`
+          );
+        }
+      }
+    }
+
+    console.log(
+      `🔧 Created ${connectionsCreated} connections for ship with ${activeParts.length} parts`
+    );
+
+    // Now check cockpit connectivity - disconnect parts not connected to cockpit
+    if (activeParts.length > 1) {
+      this.validateCockpitConnectivity();
+    }
+  }
+
+  /**
+   * Validate cockpit connectivity - parts not connected to cockpit become debris
+   */
+  private validateCockpitConnectivity(): void {
+    const activeParts = this.getActiveParts();
+    if (activeParts.length <= 1) return;
+
+    // Find the cockpit part
+    const cockpitPart = activeParts.find(p => p.partId === this._cockpitPartId);
+    if (!cockpitPart) {
+      console.log('⚠️ Cockpit part not found! Ship becomes debris');
+      // If cockpit is destroyed, all parts become debris
+      activeParts.forEach(part => {
+        if (!part.isDestroyed) {
+          console.log(`🗑️ Converting part ${part.partId} to debris (no cockpit)`);
+          this.convertPartToDebris(part as ShipPart);
+        }
+      });
+      return;
+    }
+
+    // Flood fill from cockpit to find all connected parts
+    const visited = new Set<string>();
+    const queue: IShipPart[] = [cockpitPart];
+    visited.add(cockpitPart.partId);
+
+    while (queue.length > 0) {
+      const currentPart = queue.shift()!;
+
+      // Check all connected parts
+      Array.from(currentPart.connectedParts).forEach(connectedPartId => {
+        if (!visited.has(connectedPartId)) {
+          const connectedPart = activeParts.find(
+            p => p.partId === connectedPartId
+          );
+          if (connectedPart) {
+            visited.add(connectedPartId);
+            queue.push(connectedPart);
+          }
+        }
+      });
+    }
+
+    // Convert any parts not connected to cockpit into debris
+    activeParts.forEach(part => {
+      if (!visited.has(part.partId)) {
+        console.log(`🗑️ Converting part ${part.partId} to debris (not connected to cockpit)`);
+        this.convertPartToDebris(part as ShipPart);
+      }
+    });
+
+    const connectedCount = visited.size;
+    const debrisCount = activeParts.length - connectedCount;
+
+    if (debrisCount > 0) {
+      console.log(
+        `🛸 Ship connectivity: ${connectedCount} connected to cockpit, ${debrisCount} became debris`
+      );
+    }
+  }
+
+  /**
+   * Convert a part to floating debris (no longer part of the ship)
+   */
+  private convertPartToDebris(part: ShipPart): void {
+    // Create individual physics body for this part
+    this.createIndividualBodyForPart(part);
+
+    // Apply small drift force for realistic debris motion
+    this.applyDebrisForce(part);
+
+    // Mark as disconnected debris
+    part.disconnect();
+
+    // Remove from ship's parts array
+    const partIndex = this._parts.indexOf(part);
+    if (partIndex >= 0) {
+      this._parts.splice(partIndex, 1);
+    }
+
+    console.log(`🗑️ Part ${part.partId} converted to debris and removed from ship`);
+  }
+
+  /**
+   * Apply gentle drift force to debris (less dramatic than explosion)
+   */
+  private applyDebrisForce(part: ShipPart): void {
+    const physicsSystem = this._engine.getPhysicsSystem();
+    const allBodies = physicsSystem.getAllBodies();
+    const physicsBody = allBodies.find(
+      body => body.id === part.entity.physicsBodyId
+    );
+
+    if (physicsBody) {
+      // Apply gentle drift force
+      const driftForce = 0.02; // Much gentler than explosive force
+      const randomAngle = Math.random() * Math.PI * 2;
+      const forceX = Math.cos(randomAngle) * driftForce;
+      const forceY = Math.sin(randomAngle) * driftForce;
+
+      physicsSystem.applyForce(physicsBody, { x: forceX, y: forceY });
+
+      // Add gentle spin
+      const randomSpin = (Math.random() - 0.5) * 0.05;
+      physicsSystem.setAngularVelocity(physicsBody, randomSpin);
+
+      console.log(
+        `🌌 Applied debris drift to part ${part.partId}: (${forceX.toFixed(3)}, ${forceY.toFixed(3)})`
+      );
+    }
+  }
+
+  /**
+   * Recreate the compound body for the remaining parts
+   */
+  private recreateCompoundBody(): void {
+    // Remove the old compound body
+    if (this._compoundBody) {
+      const physicsSystem = this._engine.getPhysicsSystem();
+      physicsSystem.removeBody(this._compoundBody);
+      this._compoundBody = null;
+    }
+
+    // Recalculate center position based on remaining parts
+    this._centerPosition = this.calculateCenterPosition();
+    this._collisionRadius = this.calculateCollisionRadius();
+
+    // Create new compound body
+    this.createCompoundBody();
+
+    console.log(
+      `🔧 Recreated compound body with ${this.getActiveParts().length} remaining parts`
+    );
   }
 
   private respawnWithRemainingParts(): void {
@@ -521,30 +732,37 @@ export class CompositeShip implements ICompositeShip {
   }
 
   private checkForBreakage(): void {
-    // For ship breaking, we need to transition from compound body to individual bodies
-    // when parts are destroyed and connections are severed
+    // Check if cockpit is destroyed
+    const cockpitPart = this._parts.find(p => p.partId === this._cockpitPartId);
+    
+    if (!cockpitPart || cockpitPart.isDestroyed) {
+      console.log(`💀 Cockpit destroyed! Ship becomes debris`);
+      
+      // Convert all remaining parts to debris
+      const activeParts = this.getActiveParts();
+      activeParts.forEach(part => {
+        console.log(`🗑️ Converting part ${part.partId} to debris (cockpit destroyed)`);
+        this.convertPartToDebris(part as ShipPart);
+      });
+      
+      // Ship is effectively destroyed when cockpit is gone
+      this._lives--;
+      if (this._lives <= 0) {
+        this.destroy();
+      } else {
+        this.respawnWithRemainingParts();
+      }
+      return;
+    }
+
+    // Update connections to check what's still connected to cockpit
     this.updatePartConnections();
 
-    // Find any disconnected parts and break them away from the ship
-    const disconnectedParts = this._parts.filter(
-      part => !part.isDestroyed && !part.isConnected
-    );
-
-    if (disconnectedParts.length > 0) {
-      console.log(
-        '🔧 Breaking ship apart! Disconnected parts:',
-        disconnectedParts.length
-      );
-
-      // Convert ship back to individual physics bodies for dramatic breakage
-      this.convertToIndividualBodies();
-
-      // Apply separation forces to make parts fly apart
-      disconnectedParts.forEach(part => {
-        (part as ShipPart).applyFloatingPhysics(this._engine);
-        // Add some explosive force
-        this.applyExplosiveForce(part as ShipPart);
-      });
+    // Recreate compound body for remaining connected parts
+    const connectedParts = this.getActiveParts();
+    if (connectedParts.length > 0) {
+      this.recreateCompoundBody();
+      console.log(`🛸 Ship has ${connectedParts.length} parts still connected to cockpit`);
     }
   }
 
@@ -604,23 +822,6 @@ export class CompositeShip implements ICompositeShip {
     console.log(
       `Created compound body with ${compoundParts.length} parts at position (${this._centerPosition.x}, ${this._centerPosition.y})`
     );
-  }
-
-  private convertToIndividualBodies(): void {
-    const physicsSystem = this._engine.getPhysicsSystem();
-
-    // Remove the compound body
-    if (this._compoundBody) {
-      physicsSystem.removeBody(this._compoundBody);
-      this._compoundBody = null;
-      console.log('🔧 Removed compound body for ship breakage');
-    }
-
-    // Create individual physics bodies for each active part
-    const activeParts = this.getActiveParts();
-    activeParts.forEach(part => {
-      this.createIndividualBodyForPart(part as ShipPart);
-    });
   }
 
   private createIndividualBodyForPart(part: ShipPart): void {
@@ -685,38 +886,5 @@ export class CompositeShip implements ICompositeShip {
       x: this._centerPosition.x + (relX * cos - relY * sin),
       y: this._centerPosition.y + (relX * sin + relY * cos),
     };
-  }
-
-  private applyExplosiveForce(part: ShipPart): void {
-    const physicsSystem = this._engine.getPhysicsSystem();
-    const allBodies = physicsSystem.getAllBodies();
-    const physicsBody = allBodies.find(
-      body => body.id === part.entity.physicsBodyId
-    );
-
-    if (physicsBody) {
-      // Calculate direction from ship center to part
-      const partPos = physicsBody.position;
-      const dx = partPos.x - this._centerPosition.x;
-      const dy = partPos.y - this._centerPosition.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (distance > 0) {
-        // Apply explosive force away from center
-        const explosiveForce = 0.1; // Increased for more dramatic effect
-        const forceX = (dx / distance) * explosiveForce;
-        const forceY = (dy / distance) * explosiveForce;
-
-        physicsSystem.applyForce(physicsBody, { x: forceX, y: forceY });
-
-        // Add random spin for dramatic effect
-        const randomSpin = (Math.random() - 0.5) * 0.2;
-        physicsSystem.setAngularVelocity(physicsBody, randomSpin);
-
-        console.log(
-          `💥 Applied explosive force to part ${part.partId}: (${forceX.toFixed(3)}, ${forceY.toFixed(3)})`
-        );
-      }
-    }
   }
 }

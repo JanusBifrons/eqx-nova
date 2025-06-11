@@ -2,6 +2,7 @@ import { Entity } from '../../engine/entity/Entity';
 import type { Engine } from '../../engine';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IShipPart } from '../interfaces/ICompositeShip';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * ShipPart - Represents an individual square component of a composite ship
@@ -38,7 +39,7 @@ export class ShipPart implements IShipPart {
 
   constructor(
     entity: Entity,
-    partId: string,
+    partId: string = uuidv4(), // Use UUID by default
     relativePosition: Vector2D,
     size: number,
     baseColor: number = 0x00ff00,
@@ -247,6 +248,11 @@ export class ShipPart implements IShipPart {
     }
   }
 
+  public disconnectFromAllParts(): void {
+    this._connectedParts.clear();
+    this._isConnected = false;
+  }
+
   public updatePosition(
     shipPosition: Vector2D,
     shipRotation: number,
@@ -394,6 +400,25 @@ export class ShipPart implements IShipPart {
           pulseColor
         );
       }
+    }
+  }
+
+  public setCockpitVisuals(): void {
+    // Make cockpit part visually distinct with a special color/effect
+    if (this._engine) {
+      const rendererSystem = this._engine.getRendererSystem();
+      
+      // Use a bright cyan/blue color for cockpit to distinguish it
+      const cockpitColor = 0x00ffff; // Bright cyan
+      
+      rendererSystem.updateRenderObjectColor(
+        this._entity.renderObjectId,
+        cockpitColor
+      );
+      
+      console.log(
+        `🛸 Part ${this._partId} marked as COCKPIT with cyan color - RenderID: ${this._entity.renderObjectId}`
+      );
     }
   }
 }
