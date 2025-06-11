@@ -2,9 +2,13 @@ import type { Entity } from '../../engine/entity';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IGameEngine } from '../interfaces/IGameEngine';
 
+export type LaserSource = 'player' | 'ai' | string; // Allow for specific AI ship IDs
+
 interface LaserData {
   entity: Entity;
   createdAt: number;
+  source: LaserSource; // Track who fired this laser
+  sourceId?: string; // Specific ID for AI ships
 }
 
 /**
@@ -35,7 +39,9 @@ export class LaserManager {
   public fireLaser(
     position: Vector2D,
     rotation: number,
-    shipVelocity?: Vector2D
+    shipVelocity?: Vector2D,
+    source: LaserSource = 'player',
+    sourceId?: string
   ): boolean {
     const now = performance.now();
 
@@ -70,6 +76,8 @@ export class LaserManager {
     this.lasers.push({
       entity,
       createdAt: now,
+      source,
+      sourceId,
     });
 
     this.lastFireTime = now;

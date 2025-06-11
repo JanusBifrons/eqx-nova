@@ -21,7 +21,8 @@ export class AIManager {
   private _onFireLaser?: (
     position: Vector2D,
     rotation: number,
-    velocity?: Vector2D
+    velocity?: Vector2D,
+    sourceId?: string
   ) => boolean;
 
   constructor(gameEngine: IGameEngine) {
@@ -35,7 +36,8 @@ export class AIManager {
     callback: (
       position: Vector2D,
       rotation: number,
-      velocity?: Vector2D
+      velocity?: Vector2D,
+      sourceId?: string
     ) => boolean
   ): void {
     this._onFireLaser = callback;
@@ -309,7 +311,7 @@ export class AIManager {
     const rotation = ship.rotation;
     const velocity = ship.velocity;
 
-    return this._onFireLaser(position, rotation, velocity);
+    return this._onFireLaser(position, rotation, velocity, ship.id);
   }
 
   /**

@@ -109,6 +109,13 @@ export class CollisionManager {
     // Check laser-AI ship collisions
     if (laserData && aiShip) {
       console.log(`💥 LASER-AI SHIP COLLISION DETECTED!`);
+
+      // Check for friendly fire
+      const targetEntity = aiShip.ship.parts[0]?.entity; // Get representative entity
+      if (targetEntity && this.isLaserFriendlyFire(laserData, targetEntity)) {
+        return; // Ignore friendly fire
+      }
+
       this.handleLaserAIShipCollision(laserData, aiShip);
       return;
     }
@@ -116,6 +123,13 @@ export class CollisionManager {
     // Check laser-player collisions (player getting hit by AI lasers)
     if (laserData && isPlayerCollision) {
       console.log(`💥 LASER-PLAYER COLLISION DETECTED!`);
+
+      // Check for friendly fire - get player entity for checking
+      const playerEntity = isPlayerCollisionA ? entityA : entityB;
+      if (this.isLaserFriendlyFire(laserData, playerEntity)) {
+        return; // Ignore friendly fire
+      }
+
       this.handleLaserPlayerCollision(laserData, entityA, entityB);
       return;
     }
@@ -416,6 +430,36 @@ export class CollisionManager {
 
       return parts.some(part => part.entity === entity);
     }
+    return false;
+  }
+
+  /**
+   * Check if a laser collision should be ignored due to friendly fire
+   */
+  private isLaserFriendlyFire(laserData: any, targetEntity: Entity): boolean {
+    // Import LaserSource type if needed
+    const laserSource = laserData.source;
+    const laserSourceId = laserData.sourceId;
+
+    // Check if laser is from player hitting player
+    if (laserSource === 'player' && this.isPlayerEntity(targetEntity)) {
+      console.log(
+        '🚫 FRIENDLY FIRE: Player laser hitting player ship - ignoring collision'
+      );
+      return true;
+    }
+
+    // Check if laser is from AI hitting the same AI ship
+    if (laserSource === 'ai' && laserSourceId) {
+      const targetAIShip = this.aiManager?.findAIShipByEntity(targetEntity);
+      if (targetAIShip && targetAIShip.ship.id === laserSourceId) {
+        console.log(
+          `🚫 FRIENDLY FIRE: AI ship ${laserSourceId} laser hitting itself - ignoring collision`
+        );
+        return true;
+      }
+    }
+
     return false;
   }
 }

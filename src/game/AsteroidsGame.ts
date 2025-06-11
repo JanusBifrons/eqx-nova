@@ -88,9 +88,17 @@ export class AsteroidsGame {
     this.aiManager = new AIManager(this.gameEngine);
 
     // Set up AI manager's laser firing callback
-    this.aiManager.setFireLaserCallback((position, rotation, velocity) => {
-      return this.laserManager!.fireLaser(position, rotation, velocity);
-    });
+    this.aiManager.setFireLaserCallback(
+      (position, rotation, velocity, sourceId) => {
+        return this.laserManager!.fireLaser(
+          position,
+          rotation,
+          velocity,
+          'ai',
+          sourceId
+        );
+      }
+    );
 
     // Collision manager orchestrates interactions between other managers
     this.collisionManager = new CollisionManager(
@@ -205,7 +213,12 @@ export class AsteroidsGame {
       // Get ship velocity for inheritance
       const shipVelocity = compositeShip.velocity;
 
-      this.laserManager.fireLaser(shipPosition, shipRotation, shipVelocity);
+      this.laserManager.fireLaser(
+        shipPosition,
+        shipRotation,
+        shipVelocity,
+        'player'
+      );
     } else if (player) {
       // Handle traditional player firing
       const shipPosition = player.position;
@@ -217,7 +230,12 @@ export class AsteroidsGame {
         y: 0,
       };
 
-      this.laserManager.fireLaser(shipPosition, shipRotation, shipVelocity);
+      this.laserManager.fireLaser(
+        shipPosition,
+        shipRotation,
+        shipVelocity,
+        'player'
+      );
     }
   }
 
