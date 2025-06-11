@@ -22,7 +22,7 @@ export class PlayerManager {
 
   private readonly ROTATION_SPEED = 0.003;
 
-  private readonly THRUST_FORCE = 0.0005;
+  private readonly THRUST_FORCE = 0.001; // Increased from 0.0005 for better responsiveness
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;

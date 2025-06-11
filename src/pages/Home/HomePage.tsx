@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { GameCanvas } from '../../engine';
 import { Engine } from '../../engine/Engine';
 import { AsteroidsGame } from '../../game/AsteroidsGame';
+import { Minimap } from '../../components';
 
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -153,8 +154,15 @@ export function HomePage() {
           )}
         </div>
       </div>
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
         <GameCanvas ref={canvasRef} className="flex-1" />
+        {/* Minimap positioned in top-right corner */}
+        <div
+          className="absolute top-6 right-6 z-50"
+          style={{ pointerEvents: 'none' }}
+        >
+          <Minimap game={gameRef.current} width={220} height={165} />
+        </div>
       </div>
     </div>
   );

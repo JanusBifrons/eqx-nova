@@ -248,13 +248,38 @@ export class CompositeShip implements ICompositeShip {
     }
 
     // Update all ship parts (for visual effects like impact flashes)
-    this._parts.forEach(part => {
+    // Collect parts to remove to avoid modifying array during iteration
+    const partsToRemove: number[] = [];
+
+    this._parts.forEach((part, index) => {
       (part as ShipPart).update(deltaTime);
 
       // Apply floating physics to disconnected parts
       if (!part.isConnected && !part.isDestroyed) {
         (part as ShipPart).applyFloatingPhysics(this._engine);
+
+        // Track floating time and cleanup parts that have been floating too long
+        const shipPart = part as ShipPart;
+        if (!shipPart.floatingStartTime) {
+          shipPart.floatingStartTime = Date.now();
+        } else {
+          const floatingTime = Date.now() - shipPart.floatingStartTime;
+          // Remove floating parts after 10 seconds to prevent accumulation
+          if (floatingTime > 10000) {
+            console.log(
+              `🧹 Removing floating part ${shipPart.partId} after ${floatingTime}ms`
+            );
+            partsToRemove.push(index);
+          }
+        }
       }
+    });
+
+    // Remove parts in reverse order to maintain indices
+    partsToRemove.reverse().forEach(index => {
+      const part = this._parts[index];
+      (part as ShipPart).destroy();
+      this._parts.splice(index, 1);
     });
 
     // Update center position based on physics of compound body
@@ -446,8 +471,14 @@ export class CompositeShip implements ICompositeShip {
   private applyThrustForce(): void {
     if (!this._compoundBody) return;
 
-    // Base thrust magnitude - same as traditional player ship
-    const baseThrustMagnitude = 0.002;
+    // Calculate thrust proportional to ship size (number of active parts)
+    const activeParts = this.getActiveParts();
+    const partCount = activeParts.length;
+
+    // Base thrust for single part, then scale with ship size
+    const baseThrust = 0.002;
+    const sizeMultiplier = Math.sqrt(partCount); // Square root scaling for balanced growth
+    const baseThrustMagnitude = baseThrust * sizeMultiplier * 2.0; // 2x multiplier for faster movement
 
     // Apply thrust force to the compound body
     const physicsSystem = this._engine.getPhysicsSystem();
@@ -599,6 +630,16 @@ export class CompositeShip implements ICompositeShip {
     // Calculate world position for this part
     const worldPos = this.calculatePartWorldPosition(part);
 
+    // IMPORTANT: Clean up the old render object before creating new one
+    const oldRenderObjectId = part.entity.renderObjectId;
+    if (oldRenderObjectId) {
+      console.log(`🧹 Cleaning up old render object: ${oldRenderObjectId}`);
+      rendererSystem.removeRenderObject(oldRenderObjectId);
+    }
+
+    // Properly destroy the old entity
+    part.entity.destroy();
+
     // Create new entity with individual physics body and render object
     const newEntity = entityManager.createRectangle({
       x: worldPos.x,
@@ -616,10 +657,6 @@ export class CompositeShip implements ICompositeShip {
 
     // Set the initial angle for the new entity
     newEntity.angle = this._rotation;
-
-    // Remove the old entity's render object (physics body is part of compound body)
-    rendererSystem.removeRenderObject(part.entity.renderObjectId);
-    part.entity.destroy();
 
     // Replace the part's entity with the new independent one
     // Since _entity is readonly, we need to use a workaround

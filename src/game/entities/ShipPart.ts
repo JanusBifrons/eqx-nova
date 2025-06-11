@@ -34,6 +34,8 @@ export class ShipPart implements IShipPart {
 
   private _engine?: Engine;
 
+  public floatingStartTime?: number; // Track when part started floating for cleanup
+
   constructor(
     entity: Entity,
     partId: string,
@@ -206,6 +208,17 @@ export class ShipPart implements IShipPart {
     this._isDestroyed = true;
     this._isConnected = false;
     this._connectedParts.clear();
+    this.floatingStartTime = undefined; // Clear floating timer
+
+    // Clean up render object explicitly if we have an engine reference
+    if (this._engine && this._entity.renderObjectId) {
+      const rendererSystem = this._engine.getRendererSystem();
+      console.log(
+        `🧹 ShipPart ${this._partId}: Cleaning up render object ${this._entity.renderObjectId}`
+      );
+      rendererSystem.removeRenderObject(this._entity.renderObjectId);
+    }
+
     this._entity.destroy();
 
     if (this._onDestroy) {
@@ -215,6 +228,7 @@ export class ShipPart implements IShipPart {
 
   public disconnect(): void {
     this._isConnected = false;
+    this.floatingStartTime = Date.now(); // Start tracking floating time
     // Keep connected parts info for potential reconnection logic
   }
 

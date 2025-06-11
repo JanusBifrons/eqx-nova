@@ -8,6 +8,10 @@ import type { AIManager } from './AIManager';
 /**
  * CollisionManager - Handles collision detection and resolution
  * Following Single Responsibility Principle
+ *
+ * TEMPORARY CHANGE: Player immunity is currently ENABLED for testing.
+ * To restore normal damage: Set playerImmune = false in constructor
+ * or use setPlayerImmunity(false) method.
  */
 export class CollisionManager {
   private playerManager: PlayerManager;
@@ -17,6 +21,9 @@ export class CollisionManager {
   private asteroidManager: AsteroidManager;
 
   private aiManager: AIManager | null = null;
+
+  // TEMPORARY: Player immunity toggle for testing/debugging
+  private playerImmune: boolean = true; // Set to false to restore normal damage
 
   constructor(
     playerManager: PlayerManager,
@@ -30,6 +37,16 @@ export class CollisionManager {
 
   public setAIManager(aiManager: AIManager): void {
     this.aiManager = aiManager;
+  }
+
+  // TEMPORARY: Methods to control player immunity for testing
+  public setPlayerImmunity(immune: boolean): void {
+    this.playerImmune = immune;
+    console.log(`🛡️ Player immunity ${immune ? 'ENABLED' : 'DISABLED'}`);
+  }
+
+  public getPlayerImmunity(): boolean {
+    return this.playerImmune;
   }
 
   public handleCollision(event: CollisionEvent): void {
@@ -267,63 +284,22 @@ export class CollisionManager {
 
   private handleLaserPlayerCollision(
     laserData: any,
-    entityA: Entity,
-    entityB: Entity
+    _entityA: Entity,
+    _entityB: Entity
   ): void {
     // Remove laser
     this.laserManager.removeLaser(laserData);
 
-    // Determine which entity is the player entity
-    const playerEntity = this.isPlayerEntity(entityA) ? entityA : entityB;
-
-    // For composite ships, handle part-by-part damage
-    const compositeShip = this.playerManager.getCompositeShip();
-
-    if (compositeShip && !compositeShip.isInvulnerable) {
-      // Check if this was a compound body collision (playerEntity is a representative)
-      const compoundBody = (compositeShip as any)._compoundBody;
-      let hitPart = null;
-
-      if (
-        compoundBody &&
-        (entityA === playerEntity || entityB === playerEntity)
-      ) {
-        // This is a compound body collision - damage a random active part since we can't determine exact hit location
-        const activeParts = compositeShip.getActiveParts();
-        if (activeParts.length > 0) {
-          const randomIndex = Math.floor(Math.random() * activeParts.length);
-          hitPart = activeParts[randomIndex];
-          console.log(
-            `🎯 Compound body hit! Damaging random part: ${hitPart.partId}`
-          );
-        }
-      } else {
-        // Try to find the specific part that was hit (for individual part collisions)
-        const parts = compositeShip.parts;
-        hitPart = parts.find(part => part.entity === playerEntity);
-        if (hitPart) {
-          console.log(`🎯 Individual part hit: ${hitPart.partId}`);
-        }
-      }
-
-      if (hitPart) {
-        // Damage the part that was hit
-        const damageAmount = 30; // Laser damage amount
-        const wasDestroyed = compositeShip.takeDamageAtPart(
-          hitPart.partId,
-          damageAmount
-        );
-        console.log(
-          `🎯 Player laser hit! Part ${hitPart.partId} ${wasDestroyed ? 'DESTROYED' : 'damaged'}. Parts remaining: ${compositeShip.getActiveParts().length}`
-        );
-      } else {
-        console.log(
-          `⚠️ Could not determine which part was hit in player collision`
-        );
-      }
-    } else if (compositeShip?.isInvulnerable) {
-      console.log(`🛡️ Player is invulnerable - laser hit ignored`);
+    // TEMPORARY: Check immunity flag
+    if (this.playerImmune) {
+      console.log(
+        `🛡️ Player is temporarily immune to damage - laser hit ignored`
+      );
+      return;
     }
+
+    // Original damage logic would go here when immunity is disabled
+    console.log(`💥 Player would take laser damage here (immunity disabled)`);
   }
 
   private handleAIShipAsteroidCollision(aiShip: any, asteroidData: any): void {
@@ -367,7 +343,14 @@ export class CollisionManager {
         `AI ship ${aiDestroyed ? 'destroyed' : 'damaged'} in player collision`
       );
     }
-    // Handle player damage
+
+    // TEMPORARY: Check immunity flag for player damage
+    if (this.playerImmune) {
+      console.log(`🛡️ Player is temporarily immune to collision damage`);
+      return;
+    }
+
+    // Handle player damage (original logic when immunity is disabled)
     const compositeShip = this.playerManager.getCompositeShip();
 
     if (compositeShip && playerEntity) {
@@ -393,7 +376,13 @@ export class CollisionManager {
     // Determine which entity is the player entity
     const playerEntity = this.isPlayerEntity(entityA) ? entityA : entityB;
 
-    // For composite ships, handle part-by-part damage
+    // TEMPORARY: Check immunity flag
+    if (this.playerImmune) {
+      console.log(`🛡️ Player is temporarily immune to asteroid damage`);
+      return;
+    }
+
+    // For composite ships, handle part-by-part damage (original logic when immunity is disabled)
     const compositeShip = this.playerManager.getCompositeShip();
 
     if (compositeShip && playerEntity) {

@@ -215,15 +215,24 @@ export class AIManager {
    * Update all AI ships
    */
   public update(deltaTime: number): void {
+    // Collect inactive ships to remove after iteration
+    const inactiveShipIds: string[] = [];
+
     // Update all active AI ships
     for (const [shipId, aiShip] of this._aiShips) {
       if (aiShip.isActive) {
         aiShip.update(deltaTime);
       } else {
-        // Remove inactive ships
-        this._aiShips.delete(shipId);
+        // Mark inactive ships for removal
+        inactiveShipIds.push(shipId);
       }
     }
+
+    // Remove inactive ships after iteration to avoid modifying map during iteration
+    inactiveShipIds.forEach(shipId => {
+      this._aiShips.delete(shipId);
+    });
+
     // Make AI ships target each other and the player
     this.updateAITargeting();
   }
