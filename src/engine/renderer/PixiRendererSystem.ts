@@ -165,7 +165,9 @@ export class PixiRendererSystem implements IRendererSystem {
   public updateRenderObjectColor(id: string, color: number): void {
     const graphics = this.renderObjects.get(id);
 
-    console.log(`🎨 Renderer: Updating color for ID ${id} to #${color.toString(16).padStart(6, '0')} - Found graphics: ${!!graphics}`);
+    console.log(
+      `🎨 Renderer: Updating color for ID ${id} to #${color.toString(16).padStart(6, '0')} - Found graphics: ${!!graphics}`
+    );
 
     if (graphics) {
       // Clear and redraw with new color
@@ -174,9 +176,16 @@ export class PixiRendererSystem implements IRendererSystem {
       // Get the stored shape information to redraw
       const renderData = (graphics as any)._renderData;
       if (renderData) {
-        console.log(`🎨 Renderer: Redrawing ${renderData.type} with color #${color.toString(16).padStart(6, '0')}`);
+        console.log(
+          `🎨 Renderer: Redrawing ${renderData.type} with color #${color.toString(16).padStart(6, '0')}`
+        );
         if (renderData.type === 'rectangle') {
-          graphics.rect(-renderData.width / 2, -renderData.height / 2, renderData.width, renderData.height);
+          graphics.rect(
+            -renderData.width / 2,
+            -renderData.height / 2,
+            renderData.width,
+            renderData.height
+          );
           graphics.fill(color);
           graphics.stroke({ color: 0x0f3460, width: 2 });
         } else if (renderData.type === 'circle') {
@@ -184,7 +193,9 @@ export class PixiRendererSystem implements IRendererSystem {
           graphics.fill(color);
           graphics.stroke({ color: 0x0f3460, width: 2 });
         } else if (renderData.type === 'polygon') {
-          graphics.poly(renderData.vertices.map((v: any) => ({ x: v.x, y: v.y })));
+          graphics.poly(
+            renderData.vertices.map((v: any) => ({ x: v.x, y: v.y }))
+          );
           graphics.fill(color);
           graphics.stroke({ color: 0x0f3460, width: 2 });
         }
@@ -192,7 +203,10 @@ export class PixiRendererSystem implements IRendererSystem {
         console.warn(`🎨 Renderer: No render data found for ID ${id}`);
       }
     } else {
-      console.warn(`🎨 Renderer: Graphics object not found for ID ${id}. Available IDs:`, Array.from(this.renderObjects.keys()));
+      console.warn(
+        `🎨 Renderer: Graphics object not found for ID ${id}. Available IDs:`,
+        Array.from(this.renderObjects.keys())
+      );
     }
   }
 

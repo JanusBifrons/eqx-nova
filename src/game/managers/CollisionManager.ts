@@ -36,13 +36,17 @@ export class CollisionManager {
     const { bodyA, bodyB } = event;
 
     // Log ALL collisions for debugging
-    console.log(`🔥 COLLISION DETECTED: BodyA=${bodyA.id} vs BodyB=${bodyB.id}`);
+    console.log(
+      `🔥 COLLISION DETECTED: BodyA=${bodyA.id} vs BodyB=${bodyB.id}`
+    );
 
     // Find which entities these bodies belong to
     const entityA = this.findEntityByPhysicsBodyId(bodyA.id);
     const entityB = this.findEntityByPhysicsBodyId(bodyB.id);
 
-    console.log(`🔍 Entity lookup: A=${entityA?.id || 'NULL'} B=${entityB?.id || 'NULL'}`);
+    console.log(
+      `🔍 Entity lookup: A=${entityA?.id || 'NULL'} B=${entityB?.id || 'NULL'}`
+    );
 
     if (!entityA || !entityB) {
       console.log(`❌ Missing entities - skipping collision`);
@@ -57,21 +61,27 @@ export class CollisionManager {
       this.asteroidManager.findAsteroidByEntity(entityA) ||
       this.asteroidManager.findAsteroidByEntity(entityB);
 
-    console.log(`🎯 Entity types: Laser=${!!laserData} Asteroid=${!!asteroidData}`);
+    console.log(
+      `🎯 Entity types: Laser=${!!laserData} Asteroid=${!!asteroidData}`
+    );
 
     // Check for player entities
     const isPlayerCollisionA = this.isPlayerEntity(entityA);
     const isPlayerCollisionB = this.isPlayerEntity(entityB);
     const isPlayerCollision = isPlayerCollisionA || isPlayerCollisionB;
 
-    console.log(`👤 Player check: A=${isPlayerCollisionA} B=${isPlayerCollisionB} Either=${isPlayerCollision}`);
+    console.log(
+      `👤 Player check: A=${isPlayerCollisionA} B=${isPlayerCollisionB} Either=${isPlayerCollision}`
+    );
 
     // Check for AI ships
     const aiShipA = this.aiManager?.findAIShipByEntity(entityA);
     const aiShipB = this.aiManager?.findAIShipByEntity(entityB);
     const aiShip = aiShipA || aiShipB;
 
-    console.log(`🤖 AI Ship check: A=${!!aiShipA} B=${!!aiShipB} Either=${!!aiShip}`);
+    console.log(
+      `🤖 AI Ship check: A=${!!aiShipA} B=${!!aiShipB} Either=${!!aiShip}`
+    );
 
     if (laserData && asteroidData) {
       console.log(`💥 LASER-ASTEROID COLLISION DETECTED!`);
@@ -80,7 +90,8 @@ export class CollisionManager {
     }
 
     // Check player-asteroid collisions (traditional player or composite ship parts)
-    const playerAsteroidData = asteroidData && isPlayerCollision ? asteroidData : null;
+    const playerAsteroidData =
+      asteroidData && isPlayerCollision ? asteroidData : null;
 
     if (playerAsteroidData) {
       console.log(`💥 PLAYER-ASTEROID COLLISION DETECTED!`);
@@ -137,7 +148,9 @@ export class CollisionManager {
       // CRITICAL FIX: Check if this is the main compound body physics ID
       const compoundBody = (compositeShip as any)._compoundBody;
       if (compoundBody && compoundBody.id === physicsBodyId) {
-        console.log(`🎯 Found composite ship compound body: ${physicsBodyId} -> ${compositeShip.id}`);
+        console.log(
+          `🎯 Found composite ship compound body: ${physicsBodyId} -> ${compositeShip.id}`
+        );
         // Return the first part's entity as a representative (for collision handling)
         const activeParts = compositeShip.getActiveParts();
         if (activeParts.length > 0) {
@@ -160,7 +173,9 @@ export class CollisionManager {
         // Check AI ship compound body
         const compoundBody = (aiShip.ship as any)._compoundBody;
         if (compoundBody && compoundBody.id === physicsBodyId) {
-          console.log(`🎯 Found AI ship compound body: ${physicsBodyId} -> ${aiShip.ship.id}`);
+          console.log(
+            `🎯 Found AI ship compound body: ${physicsBodyId} -> ${aiShip.ship.id}`
+          );
           // Return the first part's entity as a representative
           const activeParts = aiShip.ship.getActiveParts();
           if (activeParts.length > 0) {
@@ -201,7 +216,8 @@ export class CollisionManager {
 
     // Break asteroid (no scoring)
     this.asteroidManager.breakAsteroid(asteroidData);
-  } private handleLaserAIShipCollision(laserData: any, aiShip: any): void {
+  }
+  private handleLaserAIShipCollision(laserData: any, aiShip: any): void {
     console.log('🎯 LASER-AI SHIP collision detected!');
 
     // Remove laser
@@ -215,8 +231,14 @@ export class CollisionManager {
       if (activeParts.length > 0) {
         const targetPart = activeParts[0];
         const damageAmount = 30; // Laser damage
-        const wasDestroyed = compositeShip.takeDamageAtPart(targetPart.partId, damageAmount);
-        console.log('🎯 AI ship part hit:', wasDestroyed ? 'destroyed' : 'damaged');
+        const wasDestroyed = compositeShip.takeDamageAtPart(
+          targetPart.partId,
+          damageAmount
+        );
+        console.log(
+          '🎯 AI ship part hit:',
+          wasDestroyed ? 'destroyed' : 'damaged'
+        );
       }
     }
 
@@ -248,13 +270,18 @@ export class CollisionManager {
       const compoundBody = (compositeShip as any)._compoundBody;
       let hitPart = null;
 
-      if (compoundBody && (entityA === playerEntity || entityB === playerEntity)) {
+      if (
+        compoundBody &&
+        (entityA === playerEntity || entityB === playerEntity)
+      ) {
         // This is a compound body collision - damage a random active part since we can't determine exact hit location
         const activeParts = compositeShip.getActiveParts();
         if (activeParts.length > 0) {
           const randomIndex = Math.floor(Math.random() * activeParts.length);
           hitPart = activeParts[randomIndex];
-          console.log(`🎯 Compound body hit! Damaging random part: ${hitPart.partId}`);
+          console.log(
+            `🎯 Compound body hit! Damaging random part: ${hitPart.partId}`
+          );
         }
       } else {
         // Try to find the specific part that was hit (for individual part collisions)
@@ -268,12 +295,17 @@ export class CollisionManager {
       if (hitPart) {
         // Damage the part that was hit
         const damageAmount = 30; // Laser damage amount
-        const wasDestroyed = compositeShip.takeDamageAtPart(hitPart.partId, damageAmount);
+        const wasDestroyed = compositeShip.takeDamageAtPart(
+          hitPart.partId,
+          damageAmount
+        );
         console.log(
           `🎯 Player laser hit! Part ${hitPart.partId} ${wasDestroyed ? 'DESTROYED' : 'damaged'}. Parts remaining: ${compositeShip.getActiveParts().length}`
         );
       } else {
-        console.log(`⚠️ Could not determine which part was hit in player collision`);
+        console.log(
+          `⚠️ Could not determine which part was hit in player collision`
+        );
       }
     } else if (compositeShip?.isInvulnerable) {
       console.log(`🛡️ Player is invulnerable - laser hit ignored`);
@@ -338,7 +370,8 @@ export class CollisionManager {
         );
       }
     }
-  } private handlePlayerAsteroidCollision(
+  }
+  private handlePlayerAsteroidCollision(
     _asteroidData: any,
     entityA: Entity,
     entityB: Entity

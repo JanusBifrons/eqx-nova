@@ -112,8 +112,8 @@ export class HoverRenderer {
           const boundsWidth = matterBody.bounds.max.x - matterBody.bounds.min.x;
           const boundsHeight =
             matterBody.bounds.max.y - matterBody.bounds.min.y;
-          
-return {
+
+          return {
             width: boundsWidth,
             height: boundsHeight,
           };

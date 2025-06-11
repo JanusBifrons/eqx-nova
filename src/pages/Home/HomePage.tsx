@@ -96,7 +96,7 @@ export function HomePage() {
       setGameOver(false);
     }
   };
-return (
+  return (
     <div className="flex flex-1 flex-col">
       {' '}
       <div className="bg-gray-100 p-4">

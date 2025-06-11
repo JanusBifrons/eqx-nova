@@ -482,9 +482,20 @@ export class AsteroidsGame {
       if (activeParts.length > 0) {
         const targetPart = activeParts[0];
         const damageAmount = 25; // Test damage amount
-        console.log('🔧 DEBUG: Manually damaging player ship part:', targetPart.partId);
-        const wasDestroyed = compositeShip.takeDamageAtPart(targetPart.partId, damageAmount);
-        console.log('🔧 DEBUG: Part destroyed:', wasDestroyed, 'Active parts remaining:', activeParts.length - (wasDestroyed ? 1 : 0));
+        console.log(
+          '🔧 DEBUG: Manually damaging player ship part:',
+          targetPart.partId
+        );
+        const wasDestroyed = compositeShip.takeDamageAtPart(
+          targetPart.partId,
+          damageAmount
+        );
+        console.log(
+          '🔧 DEBUG: Part destroyed:',
+          wasDestroyed,
+          'Active parts remaining:',
+          activeParts.length - (wasDestroyed ? 1 : 0)
+        );
       } else {
         console.log('🔧 DEBUG: No active parts to damage');
       }

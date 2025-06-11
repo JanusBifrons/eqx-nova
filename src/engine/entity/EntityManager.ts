@@ -83,8 +83,8 @@ export class EntityManager {
 
   public getEntityByPhysicsBodyId(physicsBodyId: string): Entity | undefined {
     const entityId = this.physicsBodyToEntityMap.get(physicsBodyId);
-    
-return entityId ? this.entities.get(entityId) : undefined;
+
+    return entityId ? this.entities.get(entityId) : undefined;
   }
 
   public getAllEntities(): Entity[] {

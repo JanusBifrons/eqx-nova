@@ -147,7 +147,7 @@ export class AIBehavior implements IAIBehavior {
         `AI ${this._id}: target distance=${distance.toFixed(1)}, angleDiff=${((angleDiff * 180) / Math.PI).toFixed(1)}°, shouldFire=${shouldFire}`
       );
     }
-return shouldFire;
+    return shouldFire;
   }
 
   public shouldRotate(): boolean {
@@ -269,8 +269,8 @@ return shouldFire;
     if (!targetPos) return Infinity;
 
     const shipPos = this._ship.centerPosition;
-    
-return Math.sqrt(
+
+    return Math.sqrt(
       (targetPos.x - shipPos.x) ** 2 + (targetPos.y - shipPos.y) ** 2
     );
   }
@@ -281,16 +281,16 @@ return Math.sqrt(
     if (!targetPos) return this._ship.rotation;
 
     const shipPos = this._ship.centerPosition;
-    
-return Math.atan2(targetPos.y - shipPos.y, targetPos.x - shipPos.x);
+
+    return Math.atan2(targetPos.y - shipPos.y, targetPos.x - shipPos.x);
   }
 
   private normalizeAngle(angle: number): number {
     while (angle > Math.PI) angle -= 2 * Math.PI;
 
     while (angle < -Math.PI) angle += 2 * Math.PI;
-    
-return angle;
+
+    return angle;
   }
 
   private initializePatrolPoints(): void {

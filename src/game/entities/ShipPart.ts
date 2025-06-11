@@ -134,14 +134,20 @@ export class ShipPart implements IShipPart {
     // Temporarily show bright flashing white color
     if (this._engine) {
       const rendererSystem = this._engine.getRendererSystem();
-      rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffffff);
+      rendererSystem.updateRenderObjectColor(
+        this._entity.renderObjectId,
+        0xffffff
+      );
 
       // Log impact for debugging
-      console.log(`💥 IMPACT: Part ${this._partId} flashing white - RenderID: ${this._entity.renderObjectId}`);
+      console.log(
+        `💥 IMPACT: Part ${this._partId} flashing white - RenderID: ${this._entity.renderObjectId}`
+      );
     } else {
       console.warn(`💥 IMPACT: Part ${this._partId} has no engine reference!`);
     }
-  } public updateVisualDamage(): void {
+  }
+  public updateVisualDamage(): void {
     if (this._isDestroyed) return;
 
     // If we're showing impact effect, don't update color yet
@@ -180,10 +186,15 @@ export class ShipPart implements IShipPart {
 
     if (this._engine) {
       const rendererSystem = this._engine.getRendererSystem();
-      rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, damageColor);
+      rendererSystem.updateRenderObjectColor(
+        this._entity.renderObjectId,
+        damageColor
+      );
 
       // Log damage for visibility
-      console.log(`🎨 Part ${this._partId} damage: ${Math.round(damagePercent * 100)}% - Color: #${damageColor.toString(16).padStart(6, '0')} - RenderID: ${this._entity.renderObjectId}`);
+      console.log(
+        `🎨 Part ${this._partId} damage: ${Math.round(damagePercent * 100)}% - Color: #${damageColor.toString(16).padStart(6, '0')} - RenderID: ${this._entity.renderObjectId}`
+      );
     }
   }
 
@@ -311,14 +322,22 @@ export class ShipPart implements IShipPart {
 
         // Flash between white and damage color every 100ms for maximum visibility
         const flashFrequency = 100; // milliseconds per flash
-        const flashCycle = Math.floor((800 - this._impactEffectTimer) / flashFrequency);
+        const flashCycle = Math.floor(
+          (800 - this._impactEffectTimer) / flashFrequency
+        );
 
         if (flashCycle % 2 === 0) {
           // Show bright white
-          rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffffff);
+          rendererSystem.updateRenderObjectColor(
+            this._entity.renderObjectId,
+            0xffffff
+          );
         } else {
           // Show bright yellow for alternate flash
-          rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, 0xffff00);
+          rendererSystem.updateRenderObjectColor(
+            this._entity.renderObjectId,
+            0xffff00
+          );
         }
       }
 
@@ -341,7 +360,9 @@ export class ShipPart implements IShipPart {
       if (baseDamagePercent < 0.75) {
         // 50-75% damage: Pulsing orange-red
         red = 255;
-        green = Math.floor((64 + 64 * pulse) * (1 - (baseDamagePercent - 0.5) * 4));
+        green = Math.floor(
+          (64 + 64 * pulse) * (1 - (baseDamagePercent - 0.5) * 4)
+        );
         blue = 0;
       } else {
         // 75-100% damage: Pulsing red (critical)
@@ -354,7 +375,10 @@ export class ShipPart implements IShipPart {
 
       if (this._engine) {
         const rendererSystem = this._engine.getRendererSystem();
-        rendererSystem.updateRenderObjectColor(this._entity.renderObjectId, pulseColor);
+        rendererSystem.updateRenderObjectColor(
+          this._entity.renderObjectId,
+          pulseColor
+        );
       }
     }
   }

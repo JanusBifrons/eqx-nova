@@ -495,12 +495,15 @@ export class CompositeShip implements ICompositeShip {
     this.updatePartConnections();
 
     // Find any disconnected parts and break them away from the ship
-    const disconnectedParts = this._parts.filter(part =>
-      !part.isDestroyed && !part.isConnected
+    const disconnectedParts = this._parts.filter(
+      part => !part.isDestroyed && !part.isConnected
     );
 
     if (disconnectedParts.length > 0) {
-      console.log('🔧 Breaking ship apart! Disconnected parts:', disconnectedParts.length);
+      console.log(
+        '🔧 Breaking ship apart! Disconnected parts:',
+        disconnectedParts.length
+      );
 
       // Convert ship back to individual physics bodies for dramatic breakage
       this.convertToIndividualBodies();
@@ -608,7 +611,7 @@ export class CompositeShip implements ICompositeShip {
         friction: 0.3,
         frictionAir: 0.02,
         restitution: 0.8, // Make parts bouncy for dramatic effect
-      }
+      },
     });
 
     // Set the initial angle for the new entity
@@ -628,7 +631,9 @@ export class CompositeShip implements ICompositeShip {
     // Set the engine reference so the part can update its visual state
     part.setEngine(this._engine);
 
-    console.log(`🔧 Created individual body for part ${part.partId} at (${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)})`);
+    console.log(
+      `🔧 Created individual body for part ${part.partId} at (${worldPos.x.toFixed(1)}, ${worldPos.y.toFixed(1)})`
+    );
   }
 
   private calculatePartWorldPosition(part: ShipPart): Vector2D {
@@ -641,14 +646,16 @@ export class CompositeShip implements ICompositeShip {
 
     return {
       x: this._centerPosition.x + (relX * cos - relY * sin),
-      y: this._centerPosition.y + (relX * sin + relY * cos)
+      y: this._centerPosition.y + (relX * sin + relY * cos),
     };
   }
 
   private applyExplosiveForce(part: ShipPart): void {
     const physicsSystem = this._engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
-    const physicsBody = allBodies.find(body => body.id === part.entity.physicsBodyId);
+    const physicsBody = allBodies.find(
+      body => body.id === part.entity.physicsBodyId
+    );
 
     if (physicsBody) {
       // Calculate direction from ship center to part
@@ -669,7 +676,9 @@ export class CompositeShip implements ICompositeShip {
         const randomSpin = (Math.random() - 0.5) * 0.2;
         physicsSystem.setAngularVelocity(physicsBody, randomSpin);
 
-        console.log(`💥 Applied explosive force to part ${part.partId}: (${forceX.toFixed(3)}, ${forceY.toFixed(3)})`);
+        console.log(
+          `💥 Applied explosive force to part ${part.partId}: (${forceX.toFixed(3)}, ${forceY.toFixed(3)})`
+        );
       }
     }
   }

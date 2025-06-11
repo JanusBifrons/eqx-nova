@@ -386,7 +386,7 @@ export class InputSystem implements IInputSystem {
         y: touch.clientY - rect.top,
       });
     }
-return positions;
+    return positions;
   }
 
   private dispatchEvent(event: InputEventUnion): void {

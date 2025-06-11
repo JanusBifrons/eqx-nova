@@ -893,7 +893,9 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     console.log(`🌟 Physics collision detected: ${event.pairs.length} pairs`);
 
     event.pairs.forEach((pair: any) => {
-      console.log(`🌟 Pair: ${pair.bodyA.id || 'no-id'} vs ${pair.bodyB.id || 'no-id'}`);
+      console.log(
+        `🌟 Pair: ${pair.bodyA.id || 'no-id'} vs ${pair.bodyB.id || 'no-id'}`
+      );
 
       const bodyA = this.findPhysicsBodyByMatterBody(pair.bodyA);
       const bodyB = this.findPhysicsBodyByMatterBody(pair.bodyB);

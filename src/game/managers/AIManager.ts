@@ -86,8 +86,8 @@ export class AIManager {
     this._aiShips.set(shipId, aiShip);
 
     console.log(`Created AI ship: ${shipId} with faction: ${config.faction}`);
-    
-return aiShip;
+
+    return aiShip;
   }
 
   /**
@@ -266,7 +266,7 @@ return aiShip;
         }
       }
     }
-return null;
+    return null;
   }
 
   /**

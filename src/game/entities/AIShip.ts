@@ -83,7 +83,7 @@ export class AIShip implements IAIShip {
       console.log(`AI ship ${this._id} fired laser!`);
     }
 
-return success;
+    return success;
   }
 
   public takeDamage(): boolean {
@@ -93,10 +93,10 @@ return success;
 
     if (wasDestroyed || !this._ship.isAlive) {
       this.destroy();
-      
-return true;
+
+      return true;
     }
-return false;
+    return false;
   }
 
   public destroy(): void {

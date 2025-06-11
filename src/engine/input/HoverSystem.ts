@@ -48,8 +48,8 @@ export class HoverSystem {
       !screenMousePosition
     ) {
       this.hoveredEntity = null;
-      
-return null;
+
+      return null;
     }
     // Convert screen position to world position
     const worldPosition = this.cameraSystem.screenToWorld(screenMousePosition);
@@ -110,12 +110,12 @@ return null;
             'type:',
             entity.type
           );
-          
-return entity;
+
+          return entity;
         }
       }
     }
-return null;
+    return null;
   }
 
   /**
