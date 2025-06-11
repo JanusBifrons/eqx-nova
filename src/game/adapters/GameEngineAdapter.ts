@@ -80,6 +80,16 @@ export class GameEngineAdapter implements IGameEngine {
     }
   }
 
+  public createPlayerFlagship(position: Vector2D): CompositeShip {
+    const shipId = `player-flagship-${Date.now()}`;
+    
+return CompositeShipFactory.createPlayerFlagship(
+      this.engine,
+      position,
+      shipId
+    );
+  }
+
   public createAsteroid(
     position: Vector2D,
     _size: number,
@@ -187,7 +197,7 @@ export class GameEngineAdapter implements IGameEngine {
     if (body) {
       return body.velocity;
     }
-    return null;
+return null;
   }
 
   public setEntityAngularVelocity(

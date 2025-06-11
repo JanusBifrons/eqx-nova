@@ -82,8 +82,7 @@ export class AIShip implements IAIShip {
       this._behavior.recordFired();
       console.log(`AI ship ${this._id} fired laser!`);
     }
-
-    return success;
+return success;
   }
 
   public takeDamage(): boolean {
@@ -96,7 +95,8 @@ export class AIShip implements IAIShip {
 
       return true;
     }
-    return false;
+
+return false;
   }
 
   public destroy(): void {

@@ -1,5 +1,6 @@
 import type { IGameEngine } from '../interfaces/IGameEngine';
 import type { AIShipConfig, AIBehaviorConfig } from '../interfaces/IAI';
+import type { CompositeShipConfig } from '../interfaces/ICompositeShip';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { ICompositeShip } from '../interfaces/ICompositeShip';
 import { AIShip } from '../entities/AIShip';
@@ -57,15 +58,20 @@ export class AIManager {
     );
     console.log(`🤖 Part size: ${config.partSize}`);
 
-    // Create the composite ship
-    const compositeShip = CompositeShipFactory.createCustomShip(
+    // Create the composite ship using the new configuration-based approach
+    const shipConfig: CompositeShipConfig = {
+      centerPosition: config.position,
+      partSize: config.partSize,
+      partPositions: config.partPositions,
+      partTypes: config.partTypes, // Use AI-specified part types
+      partColor: config.partColor, // Optional override color
+      lives: config.lives,
+    };
+
+    const compositeShip = CompositeShipFactory.create(
       (this._gameEngine as any).engine, // Access underlying engine
-      config.position,
-      [...config.partPositions], // Convert readonly to mutable
-      config.partSize,
+      shipConfig,
       shipId,
-      config.partColor,
-      config.lives,
       () => this.handleShipDestroyed(shipId)
     );
 
@@ -117,15 +123,18 @@ export class AIManager {
         x: gridX * GRID_SIZE,
         y: gridY * GRID_SIZE,
       };
-      console.log(`🔧 Grid (${gridX}, ${gridY}) -> World (${result.x}, ${result.y})`);
-      return result;
+      console.log(
+        `🔧 Grid (${gridX}, ${gridY}) -> World (${result.x}, ${result.y})`
+      );
+      
+return result;
     };
-
     // Helper function to validate that all parts form a connected component
     const validateConnectivity = (
       gridPositions: { x: number; y: number }[]
     ) => {
       if (gridPositions.length === 0) return false;
+
       if (gridPositions.length === 1) return true;
 
       // Convert to grid coordinates for easier connectivity checking
@@ -164,10 +173,8 @@ export class AIManager {
           }
         });
       }
-
-      return visited.size === gridSet.size;
+return visited.size === gridSet.size;
     };
-
     // RED DREADNOUGHT - Heavy battleship in arrow formation
     const redDreadnoughtGrid = [
       // Main spine (horizontal line)
@@ -271,8 +278,8 @@ export class AIManager {
     const yellowInterceptorGrid = [
       // SIMPLIFIED FOR TESTING - Just a 3-part horizontal line
       gridToWorld(-1, 0), // Left
-      gridToWorld(0, 0),  // Center  
-      gridToWorld(1, 0),  // Right
+      gridToWorld(0, 0), // Center
+      gridToWorld(1, 0), // Right
     ];
 
     // CYAN CRUISER - Diamond formation
@@ -312,6 +319,7 @@ export class AIManager {
       console.log(
         `🔧 ${ship.name} grid connectivity: ${isValid ? '✅ VALID' : '❌ INVALID'}`
       );
+
       if (!isValid) {
         console.error(
           `❌ ${ship.name} has disconnected parts! This will cause ship breakage.`
@@ -324,8 +332,25 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.1, y: worldDims.height * 0.1 },
         partPositions: redDreadnoughtGrid,
+        partTypes: [
+          'cockpit', // Center (0,0)
+          'engine',
+          'engine',
+          'engine', // Rear spine (-1,-2,-3)
+          'weapon',
+          'weapon', // Front spine (1,2)
+          'armor',
+          'armor',
+          'armor',
+          'shield', // Upper wing
+          'armor',
+          'armor',
+          'armor',
+          'shield', // Lower wing
+          'engine',
+          'engine', // Rear diagonal extensions
+        ],
         partSize: 20,
-        partColor: 0xff0000, // Red
         faction: 'red_dreadnought',
         behaviorType: 'aggressive',
         fireRate: 400,
@@ -337,8 +362,24 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.9, y: worldDims.height * 0.1 },
         partPositions: blueFortressGrid,
+        partTypes: [
+          'cockpit', // Center (0,0)
+          'armor',
+          'armor', // Horizontal line (-1,1)
+          'armor',
+          'armor', // Vertical line (0,-1,1)
+          'shield',
+          'shield',
+          'shield',
+          'shield', // Corners
+          'weapon',
+          'weapon',
+          'armor',
+          'armor', // Extensions
+          'weapon',
+          'weapon', // Outer corners
+        ],
         partSize: 20,
-        partColor: 0x0000ff, // Blue
         faction: 'blue_fortress',
         behaviorType: 'defensive',
         fireRate: 600,
@@ -350,8 +391,19 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.1, y: worldDims.height * 0.5 },
         partPositions: purpleDestroyerGrid,
+        partTypes: [
+          'cockpit', // Center (0,0)
+          'engine',
+          'engine', // Rear spine (-1,-2)
+          'weapon',
+          'weapon',
+          'weapon', // Front spine (1,2,3)
+          'armor',
+          'armor', // Side wings
+          'engine',
+          'engine', // Engine pods
+        ],
         partSize: 20, // Changed from 18 to match grid size
-        partColor: 0xff00ff, // Purple
         faction: 'purple_destroyer',
         behaviorType: 'hunter',
         fireRate: 300,
@@ -363,8 +415,27 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.85, y: worldDims.height * 0.85 },
         partPositions: orangeCarrierGrid,
+        partTypes: [
+          'cockpit', // Command center (0,0)
+          'armor',
+          'engine',
+          'armor', // Central spine
+          'cargo',
+          'cargo',
+          'cargo',
+          'cargo',
+          'cargo',
+          'cargo', // Flight deck
+          'armor',
+          'armor',
+          'armor',
+          'armor', // Support structure
+          'cargo',
+          'cargo',
+          'cargo',
+          'cargo', // Landing bay extensions
+        ],
         partSize: 20,
-        partColor: 0xffa500, // Orange
         faction: 'orange_carrier',
         behaviorType: 'patrol',
         fireRate: 600,
@@ -376,8 +447,8 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.5, y: worldDims.height * 0.1 },
         partPositions: yellowInterceptorGrid,
+        partTypes: ['engine', 'cockpit', 'weapon'], // Engine, cockpit, weapon - simple line
         partSize: 20, // Changed from 18 to match grid size
-        partColor: 0xffff00, // Yellow
         faction: 'yellow_interceptor',
         behaviorType: 'hunter',
         fireRate: 200,
@@ -389,8 +460,22 @@ export class AIManager {
       {
         position: { x: worldDims.width * 0.5, y: worldDims.height * 0.9 },
         partPositions: cyanCruiserGrid,
+        partTypes: [
+          'cockpit', // Center (0,0)
+          'weapon',
+          'engine', // Front/rear (1,-1)
+          'armor',
+          'armor', // Top/bottom (0,-1,1)
+          'armor',
+          'armor',
+          'armor',
+          'armor', // Secondary ring
+          'weapon',
+          'engine',
+          'shield',
+          'shield', // Extensions
+        ],
         partSize: 20, // Changed from 18 to match grid size
-        partColor: 0x00ffff, // Cyan
         faction: 'cyan_cruiser',
         behaviorType: 'patrol',
         fireRate: 500,
@@ -434,7 +519,6 @@ export class AIManager {
         inactiveShipIds.push(shipId);
       }
     }
-
     // Remove inactive ships after iteration to avoid modifying map during iteration
     inactiveShipIds.forEach(shipId => {
       this._aiShips.delete(shipId);
@@ -484,7 +568,8 @@ export class AIManager {
         }
       }
     }
-    return null;
+
+return null;
   }
 
   /**
@@ -523,11 +608,47 @@ export class AIManager {
   private handleAIFire(ship: ICompositeShip): boolean {
     if (!this._onFireLaser) return false;
 
-    const position = ship.centerPosition;
+    // Check if ship has weapon parts
+    const weaponParts = ship.getWeaponParts();
+
+    if (weaponParts.length === 0) {
+      console.log(`⚠️ AI ship ${ship.id} has no weapon parts - cannot fire`);
+      
+return false;
+    }
     const rotation = ship.rotation;
     const velocity = ship.velocity;
 
-    return this._onFireLaser(position, rotation, velocity, ship.id);
+    // Fire from all weapon positions
+    const firingPositions = ship.getWeaponFiringPositions();
+    let firedCount = 0;
+
+    firingPositions.forEach(position => {
+      if (this._onFireLaser) {
+        const success = this._onFireLaser(
+          position,
+          rotation,
+          velocity,
+          ship.id
+        );
+
+        if (success) firedCount++;
+      }
+    });
+
+    if (firedCount > 0) {
+      // Only log occasionally to avoid spam
+      if (Math.random() < 0.05) {
+        // 5% chance to log
+        const effectiveness = ship.getWeaponEffectiveness();
+        console.log(
+          `🤖 AI ship ${ship.id} fired ${firedCount} lasers (${(effectiveness * 100).toFixed(0)}% effective)`
+        );
+      }
+
+return true;
+    }
+return false;
   }
 
   /**

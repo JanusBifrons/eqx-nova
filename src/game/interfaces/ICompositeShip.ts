@@ -2,12 +2,24 @@ import type { Entity } from '../../engine/entity';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 
 /**
+ * Ship part types with different functions and visual styles
+ */
+export type ShipPartType =
+  | 'cockpit' // Command center - bright cyan
+  | 'engine' // Provides thrust - orange/red
+  | 'weapon' // Fires lasers - yellow/gold
+  | 'armor' // Basic structure - gray/white
+  | 'shield' // Defensive systems - blue
+  | 'cargo'; // Storage/utility - brown
+
+/**
  * Interface for individual ship parts
  * Following Interface Segregation Principle - focused on ship part concerns
  */
 export interface IShipPart {
   readonly entity: Entity;
   readonly partId: string;
+  readonly partType: ShipPartType;
   readonly relativePosition: Vector2D;
   readonly size: number;
   readonly isDestroyed: boolean;
@@ -69,6 +81,13 @@ export interface ICompositeShip {
   takeDamageAtPart(partId: string, amount: number): boolean;
   getActiveParts(): ReadonlyArray<IShipPart>;
   getDestroyedParts(): ReadonlyArray<IShipPart>;
+
+  // Functional part type management
+  getWeaponParts(): ReadonlyArray<IShipPart>;
+  getEngineParts(): ReadonlyArray<IShipPart>;
+  getWeaponFiringPositions(): Vector2D[];
+  getEngineEffectiveness(): number;
+  getWeaponEffectiveness(): number;
 }
 
 /**
@@ -79,6 +98,7 @@ export interface CompositeShipConfig {
   readonly centerPosition: Vector2D;
   readonly partSize: number;
   readonly partPositions: ReadonlyArray<Vector2D>;
-  readonly partColor: number;
+  readonly partTypes?: ReadonlyArray<ShipPartType>; // Optional part types, defaults to 'armor'
+  readonly partColor?: number; // Optional override color (overrides part type colors)
   readonly lives?: number;
 }

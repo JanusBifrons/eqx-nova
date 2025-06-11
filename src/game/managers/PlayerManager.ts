@@ -2,6 +2,7 @@ import type { Entity } from '../../engine/entity';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IGameEngine } from '../interfaces/IGameEngine';
 import type { CompositeShip } from '../entities/CompositeShip';
+import { CompositeShipFactory } from '../factories/CompositeShipFactory';
 
 /**
  * PlayerManager - Handles player-specific logic
@@ -34,17 +35,13 @@ export class PlayerManager {
     const centerY = dimensions.height / 2;
 
     if (this.useCompositeShip) {
-      // Create long thin ship for testing damage system
-      this.compositeShip = this.gameEngine.createCompositeShip(
-        { x: centerX, y: centerY },
-        8 // Eight parts for long thin ship to test damage system
-      );
+      // Create impressive flagship-class player ship
+      this.compositeShip = this.createPlayerFlagship({
+        x: centerX,
+        y: centerY,
+      });
       this.player = null; // Clear traditional player
-      console.log(
-        'Long thin ship (8 parts) created at center:',
-        centerX,
-        centerY
-      );
+      console.log('🚀 Player Flagship created at center:', centerX, centerY);
     } else {
       // Create traditional triangular ship
       this.player = this.gameEngine.createTriangularShip(
@@ -67,7 +64,7 @@ export class PlayerManager {
 
       return parts.length > 0 ? parts[0].entity : null;
     }
-    return this.player;
+return this.player;
   }
 
   public getCompositeShip(): CompositeShip | null {
@@ -154,9 +151,22 @@ export class PlayerManager {
 
     this.rotation = 0;
 
-    if (this.useCompositeShip && this.compositeShip) {
-      // Respawn composite ship
-      this.compositeShip.respawn({ x: centerX, y: centerY });
+    if (this.useCompositeShip) {
+      if (this.compositeShip && this.compositeShip.isAlive) {
+        // Respawn existing composite ship
+        this.compositeShip.respawn({ x: centerX, y: centerY });
+      } else {
+        // Ship is completely destroyed, create new flagship
+        console.log('🚀 Respawning new player flagship...');
+
+        if (this.compositeShip) {
+          this.compositeShip.destroy();
+        }
+        this.compositeShip = this.createPlayerFlagship({
+          x: centerX,
+          y: centerY,
+        });
+      }
     } else if (this.player) {
       // Respawn traditional player
       this.gameEngine.setEntityPosition(this.player, {
@@ -187,6 +197,25 @@ export class PlayerManager {
     } else if (this.player) {
       return this.player.position;
     }
-    return null;
+return null;
+  }
+
+  /**
+   * Create an impressive flagship-class player ship
+   * Using the factory method for consistency with AI ships
+   */
+  private createPlayerFlagship(position: Vector2D): CompositeShip {
+    // Access the underlying engine from the game engine adapter
+    const engine = (this.gameEngine as any).engine;
+
+    return CompositeShipFactory.createPlayerFlagship(
+      engine,
+      position,
+      'player-flagship',
+      () => {
+        console.log('🚀 Player flagship destroyed!');
+        // Handle player ship destruction - could trigger game over or respawn logic
+      }
+    );
   }
 }

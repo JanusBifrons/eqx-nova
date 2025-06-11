@@ -26,7 +26,7 @@ export class LaserManager {
 
   private readonly LASER_LIFETIME = 2000; // milliseconds
 
-  private readonly LASER_COOLDOWN = 100; // milliseconds - reduced for better continuous firing
+  private readonly LASER_COOLDOWN = 50; // milliseconds - reduced for multiple weapon parts
 
   private readonly LASER_WIDTH = 3;
 

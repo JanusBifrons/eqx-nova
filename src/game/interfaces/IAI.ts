@@ -1,5 +1,5 @@
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-import type { ICompositeShip } from './ICompositeShip';
+import type { ICompositeShip, ShipPartType } from './ICompositeShip';
 
 /**
  * Interface for AI behavior
@@ -54,8 +54,9 @@ export interface IAIShip {
 export interface AIShipConfig {
   readonly position: Vector2D;
   readonly partPositions: ReadonlyArray<Vector2D>;
+  readonly partTypes?: ReadonlyArray<ShipPartType>; // Optional part types for each position
   readonly partSize: number;
-  readonly partColor: number;
+  readonly partColor?: number; // Optional override color (overrides part type colors)
   readonly faction: string;
   readonly behaviorType: 'aggressive' | 'defensive' | 'patrol' | 'hunter';
   readonly fireRate: number; // milliseconds between shots

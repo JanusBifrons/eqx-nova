@@ -63,24 +63,27 @@ export class CompositeShip implements ICompositeShip {
     // Find the part closest to center (0,0) in relative coordinates
     let cockpitIndex = 0;
     let minDistanceToCenter = Infinity;
-    
+
     parts.forEach((part, index) => {
       const distance = Math.sqrt(
         part.relativePosition.x ** 2 + part.relativePosition.y ** 2
       );
+
       if (distance < minDistanceToCenter) {
         minDistanceToCenter = distance;
         cockpitIndex = index;
       }
     });
-    
+
     this._cockpitPartId = parts.length > 0 ? parts[cockpitIndex].partId : '';
-    console.log(`🛸 Selected cockpit: Part ${cockpitIndex} at distance ${minDistanceToCenter.toFixed(1)} from center`);
+    console.log(
+      `🛸 Selected cockpit: Part ${cockpitIndex} at distance ${minDistanceToCenter.toFixed(1)} from center`
+    );
 
     // Set engine reference for all parts so they can access renderer for visual effects
     this._parts.forEach(part => {
       (part as ShipPart).setEngine(engine);
-      
+
       // Make the cockpit visually distinct
       if (part.partId === this._cockpitPartId) {
         // This part is the cockpit - make it visually distinct
@@ -150,7 +153,8 @@ export class CompositeShip implements ICompositeShip {
     if (this._compoundBody) {
       return this._compoundBody.velocity;
     }
-    return { x: 0, y: 0 };
+
+return { x: 0, y: 0 };
   }
 
   public setRotation(angle: number): void {
@@ -208,6 +212,7 @@ export class CompositeShip implements ICompositeShip {
     if (this._isInvulnerable) return false;
 
     const part = this._parts.find(p => p.partId === partId);
+
     if (!part || part.isDestroyed) return false;
 
     const partWasDestroyed = (part as ShipPart).takeDamage(amount);
@@ -225,19 +230,18 @@ export class CompositeShip implements ICompositeShip {
 
         if (this._lives <= 0) {
           this.destroy();
-          return true; // Ship is completely destroyed
+          
+return true; // Ship is completely destroyed
         } else {
           // Respawn with fewer parts
           this.respawnWithRemainingParts();
         }
       }
-
       // Make invulnerable briefly after taking damage
       this._isInvulnerable = true;
       this._invulnerabilityTimer = 2000; // 2 seconds
     }
-
-    return false; // Ship damaged but not completely destroyed
+return false; // Ship damaged but not completely destroyed
   }
 
   public respawn(position: Vector2D): void {
@@ -280,7 +284,6 @@ export class CompositeShip implements ICompositeShip {
         this._isInvulnerable = false;
       }
     }
-
     // Update all ship parts (for visual effects like impact flashes)
     // Collect parts to remove to avoid modifying array during iteration
     const partsToRemove: number[] = [];
@@ -294,10 +297,12 @@ export class CompositeShip implements ICompositeShip {
 
         // Track floating time and cleanup parts that have been floating too long
         const shipPart = part as ShipPart;
+
         if (!shipPart.floatingStartTime) {
           shipPart.floatingStartTime = Date.now();
         } else {
           const floatingTime = Date.now() - shipPart.floatingStartTime;
+
           // Remove floating parts after 10 seconds to prevent accumulation
           if (floatingTime > 10000) {
             console.log(
@@ -391,6 +396,80 @@ export class CompositeShip implements ICompositeShip {
 
   public getDestroyedParts(): ReadonlyArray<IShipPart> {
     return this._parts.filter(part => part.isDestroyed);
+  }
+
+  /**
+   * Get all active weapon parts that can fire lasers
+   */
+  public getWeaponParts(): ReadonlyArray<IShipPart> {
+    return this.getActiveParts().filter(part => part.partType === 'weapon');
+  }
+
+  /**
+   * Get all active engine parts that provide thrust
+   */
+  public getEngineParts(): ReadonlyArray<IShipPart> {
+    return this.getActiveParts().filter(part => part.partType === 'engine');
+  }
+
+  /**
+   * Get firing positions from all weapon parts
+   */
+  public getWeaponFiringPositions(): Vector2D[] {
+    const weaponParts = this.getWeaponParts();
+    
+return weaponParts.map(part => {
+      // Calculate world position of weapon part
+      const cos = Math.cos(this._rotation);
+      const sin = Math.sin(this._rotation);
+
+      const rotatedX =
+        part.relativePosition.x * cos - part.relativePosition.y * sin;
+      const rotatedY =
+        part.relativePosition.x * sin + part.relativePosition.y * cos;
+
+      // Add small offset in front of weapon part for laser spawn
+      const offsetDistance = 15;
+      const offsetX = Math.cos(this._rotation) * offsetDistance;
+      const offsetY = Math.sin(this._rotation) * offsetDistance;
+
+      return {
+        x: this._centerPosition.x + rotatedX + offsetX,
+        y: this._centerPosition.y + rotatedY + offsetY,
+      };
+    });
+  }
+
+  /**
+   * Get the engine effectiveness (0.0 to 1.0) based on remaining engine parts
+   */
+  public getEngineEffectiveness(): number {
+    const allParts = this._parts;
+    const totalEngines = allParts.filter(
+      part => part.partType === 'engine'
+    ).length;
+
+    if (totalEngines === 0) return 1.0; // If ship has no engines, assume full effectiveness
+
+    const workingEngines = this.getEngineParts().length;
+    
+return workingEngines / totalEngines;
+  }
+
+  /**
+   * Get the weapon effectiveness (0.0 to 1.0) based on remaining weapon parts
+   */
+  public getWeaponEffectiveness(): number {
+    const allParts = this._parts;
+    const totalWeapons = allParts.filter(
+      part => part.partType === 'weapon'
+    ).length;
+
+    if (totalWeapons === 0) return 0.0; // If ship has no weapons, no effectiveness
+
+    const workingWeapons = this.getWeaponParts().length;
+    
+return workingWeapons / totalWeapons;
   }
 
   private calculateCenterPosition(): Vector2D {
@@ -505,20 +584,37 @@ export class CompositeShip implements ICompositeShip {
   private applyThrustForce(): void {
     if (!this._compoundBody) return;
 
-    // Calculate thrust proportional to ship size (number of active parts)
-    const activeParts = this.getActiveParts();
-    const partCount = activeParts.length;
+    // Calculate thrust based on active engine parts only
+    const engineParts = this.getEngineParts();
+    const engineCount = engineParts.length;
 
-    // Base thrust for single part, then scale with ship size
-    const baseThrust = 0.002;
-    const sizeMultiplier = Math.sqrt(partCount); // Square root scaling for balanced growth
-    const baseThrustMagnitude = baseThrust * sizeMultiplier * 2.0; // 2x multiplier for faster movement
+    // No engines = no thrust!
+    if (engineCount === 0) {
+      console.log('⚠️ No engine parts available - cannot apply thrust');
+      
+return;
+    }
+    // Base thrust per engine part
+    const baseThrust = 0.003; // Slightly higher per engine to maintain good feel
+    const thrustMagnitude = baseThrust * engineCount;
+
+    // Get engine effectiveness for feedback
+    const effectiveness = this.getEngineEffectiveness();
 
     // Apply thrust force to the compound body
+    // Fix rotation issue: ship parts are oriented to point right at 0 degrees, so no offset needed
     const physicsSystem = this._engine.getPhysicsSystem();
-    const forceX = Math.cos(this._rotation) * baseThrustMagnitude;
-    const forceY = Math.sin(this._rotation) * baseThrustMagnitude;
+    const forceX = Math.cos(this._rotation) * thrustMagnitude;
+    const forceY = Math.sin(this._rotation) * thrustMagnitude;
     physicsSystem.applyForce(this._compoundBody, { x: forceX, y: forceY });
+
+    // Only log occasionally to avoid spam
+    if (Math.random() < 0.01) {
+      // 1% chance to log
+      console.log(
+        `🚀 Thrust: ${engineCount} engines (${(effectiveness * 100).toFixed(0)}% effective), force: ${thrustMagnitude.toFixed(4)}`
+      );
+    }
   }
 
   private updatePartConnections(): void {
@@ -577,7 +673,6 @@ export class CompositeShip implements ICompositeShip {
         }
       }
     }
-
     console.log(
       `🔧 Created ${connectionsCreated} connections for ship with ${activeParts.length} parts`
     );
@@ -593,22 +688,26 @@ export class CompositeShip implements ICompositeShip {
    */
   private validateCockpitConnectivity(): void {
     const activeParts = this.getActiveParts();
+
     if (activeParts.length <= 1) return;
 
     // Find the cockpit part
     const cockpitPart = activeParts.find(p => p.partId === this._cockpitPartId);
+
     if (!cockpitPart) {
       console.log('⚠️ Cockpit part not found! Ship becomes debris');
       // If cockpit is destroyed, all parts become debris
       activeParts.forEach(part => {
         if (!part.isDestroyed) {
-          console.log(`🗑️ Converting part ${part.partId} to debris (no cockpit)`);
+          console.log(
+            `🗑️ Converting part ${part.partId} to debris (no cockpit)`
+          );
           this.convertPartToDebris(part as ShipPart);
         }
       });
-      return;
+      
+return;
     }
-
     // Flood fill from cockpit to find all connected parts
     const visited = new Set<string>();
     const queue: IShipPart[] = [cockpitPart];
@@ -623,6 +722,7 @@ export class CompositeShip implements ICompositeShip {
           const connectedPart = activeParts.find(
             p => p.partId === connectedPartId
           );
+
           if (connectedPart) {
             visited.add(connectedPartId);
             queue.push(connectedPart);
@@ -630,11 +730,12 @@ export class CompositeShip implements ICompositeShip {
         }
       });
     }
-
     // Convert any parts not connected to cockpit into debris
     activeParts.forEach(part => {
       if (!visited.has(part.partId)) {
-        console.log(`🗑️ Converting part ${part.partId} to debris (not connected to cockpit)`);
+        console.log(
+          `🗑️ Converting part ${part.partId} to debris (not connected to cockpit)`
+        );
         this.convertPartToDebris(part as ShipPart);
       }
     });
@@ -664,11 +765,13 @@ export class CompositeShip implements ICompositeShip {
 
     // Remove from ship's parts array
     const partIndex = this._parts.indexOf(part);
+
     if (partIndex >= 0) {
       this._parts.splice(partIndex, 1);
     }
-
-    console.log(`🗑️ Part ${part.partId} converted to debris and removed from ship`);
+    console.log(
+      `🗑️ Part ${part.partId} converted to debris and removed from ship`
+    );
   }
 
   /**
@@ -710,7 +813,6 @@ export class CompositeShip implements ICompositeShip {
       physicsSystem.removeBody(this._compoundBody);
       this._compoundBody = null;
     }
-
     // Recalculate center position based on remaining parts
     this._centerPosition = this.calculateCenterPosition();
     this._collisionRadius = this.calculateCollisionRadius();
@@ -734,35 +836,41 @@ export class CompositeShip implements ICompositeShip {
   private checkForBreakage(): void {
     // Check if cockpit is destroyed
     const cockpitPart = this._parts.find(p => p.partId === this._cockpitPartId);
-    
+
     if (!cockpitPart || cockpitPart.isDestroyed) {
       console.log(`💀 Cockpit destroyed! Ship becomes debris`);
-      
+
       // Convert all remaining parts to debris
       const activeParts = this.getActiveParts();
       activeParts.forEach(part => {
-        console.log(`🗑️ Converting part ${part.partId} to debris (cockpit destroyed)`);
+        console.log(
+          `🗑️ Converting part ${part.partId} to debris (cockpit destroyed)`
+        );
         this.convertPartToDebris(part as ShipPart);
       });
-      
+
       // Ship is effectively destroyed when cockpit is gone
       this._lives--;
+
       if (this._lives <= 0) {
         this.destroy();
       } else {
         this.respawnWithRemainingParts();
       }
-      return;
-    }
 
+return;
+    }
     // Update connections to check what's still connected to cockpit
     this.updatePartConnections();
 
     // Recreate compound body for remaining connected parts
     const connectedParts = this.getActiveParts();
+
     if (connectedParts.length > 0) {
       this.recreateCompoundBody();
-      console.log(`🛸 Ship has ${connectedParts.length} parts still connected to cockpit`);
+      console.log(
+        `🛸 Ship has ${connectedParts.length} parts still connected to cockpit`
+      );
     }
   }
 
@@ -833,11 +941,11 @@ export class CompositeShip implements ICompositeShip {
 
     // IMPORTANT: Clean up the old render object before creating new one
     const oldRenderObjectId = part.entity.renderObjectId;
+
     if (oldRenderObjectId) {
       console.log(`🧹 Cleaning up old render object: ${oldRenderObjectId}`);
       rendererSystem.removeRenderObject(oldRenderObjectId);
     }
-
     // Properly destroy the old entity
     part.entity.destroy();
 

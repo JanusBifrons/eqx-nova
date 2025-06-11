@@ -47,7 +47,7 @@ export class ShapeUtils {
         y: Math.sin(angle) * radius,
       });
     }
-    return vertices;
+return vertices;
   }
 
   /**

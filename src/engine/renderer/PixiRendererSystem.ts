@@ -175,10 +175,12 @@ export class PixiRendererSystem implements IRendererSystem {
 
       // Get the stored shape information to redraw
       const renderData = (graphics as any)._renderData;
+
       if (renderData) {
         console.log(
           `🎨 Renderer: Redrawing ${renderData.type} with color #${color.toString(16).padStart(6, '0')}`
         );
+
         if (renderData.type === 'rectangle') {
           graphics.rect(
             -renderData.width / 2,

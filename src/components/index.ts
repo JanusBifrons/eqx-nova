@@ -1,1 +1,2 @@
-export { Minimap } from './Minimap';
+export * from './Minimap';
+export * from './ShipStatusHUD';

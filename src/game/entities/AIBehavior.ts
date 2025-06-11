@@ -147,7 +147,7 @@ export class AIBehavior implements IAIBehavior {
         `AI ${this._id}: target distance=${distance.toFixed(1)}, angleDiff=${((angleDiff * 180) / Math.PI).toFixed(1)}°, shouldFire=${shouldFire}`
       );
     }
-    return shouldFire;
+return shouldFire;
   }
 
   public shouldRotate(): boolean {

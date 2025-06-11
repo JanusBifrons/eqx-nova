@@ -48,7 +48,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-    return AsteroidsGame.instance;
+return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -207,19 +207,40 @@ export class AsteroidsGame {
     const player = this.playerManager.getPlayer();
 
     if (compositeShip) {
-      // Handle composite ship firing
-      const shipPosition = compositeShip.centerPosition;
-      const shipRotation = this.playerManager.getRotation();
+      // Handle composite ship firing from weapon parts only
+      const weaponParts = compositeShip.getWeaponParts();
 
-      // Get ship velocity for inheritance
+      if (weaponParts.length === 0) {
+        console.log('⚠️ No weapon parts available - cannot fire lasers');
+        
+return;
+      }
+      const shipRotation = this.playerManager.getRotation();
       const shipVelocity = compositeShip.velocity;
 
-      this.laserManager.fireLaser(
-        shipPosition,
-        shipRotation,
-        shipVelocity,
-        'player'
-      );
+      // Fire from all weapon positions
+      const firingPositions = compositeShip.getWeaponFiringPositions();
+      let firedCount = 0;
+
+      firingPositions.forEach(position => {
+        const success = this.laserManager!.fireLaser(
+          position,
+          shipRotation,
+          shipVelocity,
+          'player'
+        );
+
+        if (success) firedCount++;
+      });
+
+      // Only log occasionally to avoid spam
+      if (firedCount > 0 && Math.random() < 0.1) {
+        // 10% chance to log
+        const effectiveness = compositeShip.getWeaponEffectiveness();
+        console.log(
+          `🔫 Fired ${firedCount} lasers (${(effectiveness * 100).toFixed(0)}% weapon effectiveness)`
+        );
+      }
     } else if (player) {
       // Handle traditional player firing
       const shipPosition = player.position;
@@ -271,30 +292,25 @@ export class AsteroidsGame {
     if (this.inputManager.isFirePressed()) {
       this.handleFireLaser();
     }
-
     // Debug controls for testing damage system
     if (this.inputManager.isKeyPressed('x')) {
       this.debugDamagePlayerShip();
     }
-
     // Debug controls for testing AI ship damage system
     if (this.inputManager.isKeyPressed('z')) {
       console.log('🔧 Z key pressed - testing AI ship damage');
       this.debugDamageAIShip();
     }
-
     // Debug controls for testing ship connectivity
     if (this.inputManager.isKeyPressed('t')) {
       console.log('🔧 T key pressed - testing ship connectivity');
       this.debugTestShipConnectivity();
     }
-
     // Debug controls for manual ship breakage testing
     if (this.inputManager.isKeyPressed('b')) {
       console.log('🔧 B key pressed - manually breaking first AI ship');
       this.debugManualBreakShip();
     }
-
     // Debug controls for manual connectivity testing
     if (this.inputManager.isKeyPressed('c')) {
       console.log('🔧 C key pressed - testing manual connectivity');
@@ -519,12 +535,14 @@ export class AsteroidsGame {
     if (!this.playerManager) return;
 
     const compositeShip = this.playerManager.getCompositeShip();
+
     if (compositeShip) {
       // Find the first active part and damage it
       const activeParts = compositeShip.getActiveParts();
+
       if (activeParts.length > 0) {
         const targetPart = activeParts[0];
-        const damageAmount = 25; // Test damage amount
+        const damageAmount = 15; // Test damage amount (reduced from 25)
         console.log(
           '🔧 DEBUG: Manually damaging player ship part:',
           targetPart.partId
@@ -551,14 +569,17 @@ export class AsteroidsGame {
     if (!this.aiManager) return;
 
     const aiShips = this.aiManager.getAllAIShips();
+
     if (aiShips.length > 0) {
       // Find the first active AI ship and damage it
       const targetShip = aiShips.find(ship => ship.isActive);
+
       if (targetShip) {
         const activeParts = targetShip.ship.getActiveParts();
+
         if (activeParts.length > 0) {
           const targetPart = activeParts[0];
-          const damageAmount = 30; // Test damage amount
+          const damageAmount = 20; // Test damage amount (reduced from 30)
           console.log(
             '🔧 DEBUG: Manually damaging AI ship part:',
             targetPart.partId,
@@ -607,6 +628,7 @@ export class AsteroidsGame {
       activeParts.forEach(part => {
         const connections = part.connectedParts.size;
         totalConnections += connections;
+
         if (connections === 0 && activeParts.length > 1) {
           console.log(
             `  ⚠️  Part ${part.partId} has no connections (isolated!)`
@@ -624,6 +646,7 @@ export class AsteroidsGame {
       activeParts.forEach(part => {
         const pos = part.relativePosition;
         const isAligned = pos.x % partSize === 0 && pos.y % partSize === 0;
+
         if (isAligned) gridAligned++;
       });
 
@@ -643,20 +666,21 @@ export class AsteroidsGame {
     console.log('🔧 Manual ship breakage test');
 
     const aiShips = this.aiManager?.getAllAIShips() || [];
+
     if (aiShips.length === 0) {
       console.log('❌ No AI ships found for breakage test');
-      return;
+      
+return;
     }
-
     const firstShip = aiShips[0];
     const compositeShip = firstShip.ship;
     const activeParts = compositeShip.getActiveParts();
 
     if (activeParts.length === 0) {
       console.log('❌ No active parts found in first AI ship');
-      return;
+      
+return;
     }
-
     // Destroy a part in the middle to test connectivity breakage
     const middleIndex = Math.floor(activeParts.length / 2);
     const partToDestroy = activeParts[middleIndex];
@@ -669,17 +693,17 @@ export class AsteroidsGame {
 
   private debugTestManualConnectivity(): void {
     console.log('🔧 Manual connectivity test');
-    
+
     // Create a simple 3-part horizontal ship manually
     const engine = (this.gameEngine as any).engine;
     const testPositions = [
       { x: -20, y: 0 }, // Left part
-      { x: 0, y: 0 },   // Center part  
-      { x: 20, y: 0 },  // Right part
+      { x: 0, y: 0 }, // Center part
+      { x: 20, y: 0 }, // Right part
     ];
-    
+
     console.log('🔧 Creating test ship with positions:', testPositions);
-    
+
     const testShip = CompositeShipFactory.createCustomShip(
       engine,
       { x: 100, y: 100 }, // World position
@@ -689,12 +713,16 @@ export class AsteroidsGame {
       0xff0000, // Red color
       3
     );
-    
+
     const activeParts = testShip.getActiveParts();
     console.log('🔧 Test ship created with parts:');
     activeParts.forEach((part: any, i: number) => {
-      console.log(`  Part ${i}: relative pos (${part.relativePosition.x}, ${part.relativePosition.y}), size: ${part.size}`);
-      console.log(`  Part ${i}: connections: ${Array.from(part.connectedParts).join(', ') || 'none'}`);
+      console.log(
+        `  Part ${i}: relative pos (${part.relativePosition.x}, ${part.relativePosition.y}), size: ${part.size}`
+      );
+      console.log(
+        `  Part ${i}: connections: ${Array.from(part.connectedParts).join(', ') || 'none'}`
+      );
     });
   }
 }

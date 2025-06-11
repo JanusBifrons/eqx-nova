@@ -30,6 +30,7 @@ export const Minimap: React.FC<MinimapProps> = ({
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+
     if (!ctx) return; // Set canvas dimensions with device pixel ratio for crisp rendering
     const devicePixelRatio = window.devicePixelRatio || 1;
     canvas.width = width * devicePixelRatio;
@@ -41,7 +42,8 @@ export const Minimap: React.FC<MinimapProps> = ({
     const render = () => {
       if (!ctx || !game || !game.isReady()) {
         animationRef.current = requestAnimationFrame(render);
-        return;
+        
+return;
       } // Clear canvas with dark background
       ctx.clearRect(0, 0, width, height);
       ctx.fillStyle = '#1a1a2e';
@@ -51,6 +53,7 @@ export const Minimap: React.FC<MinimapProps> = ({
       ctx.strokeStyle = '#2a2a3e';
       ctx.lineWidth = 0.5;
       const gridSize = 20;
+
       for (let x = 0; x <= width; x += gridSize) {
         ctx.beginPath();
         ctx.moveTo(x, 0);
@@ -63,7 +66,6 @@ export const Minimap: React.FC<MinimapProps> = ({
         ctx.lineTo(width, y);
         ctx.stroke();
       }
-
       // Draw border
       ctx.strokeStyle = '#4a5568';
       ctx.lineWidth = 2;
@@ -72,11 +74,12 @@ export const Minimap: React.FC<MinimapProps> = ({
       try {
         // Get world dimensions from the game engine
         const gameEngine = (game as any).gameEngine;
+
         if (!gameEngine) {
           animationRef.current = requestAnimationFrame(render);
-          return;
+          
+return;
         }
-
         const worldDimensions = gameEngine.getWorldDimensions();
         const scaleX = width / worldDimensions.width;
         const scaleY = height / worldDimensions.height;
@@ -85,6 +88,7 @@ export const Minimap: React.FC<MinimapProps> = ({
 
         // Get player
         const playerManager = (game as any).playerManager;
+
         if (playerManager) {
           const compositeShip = playerManager.getCompositeShip();
           const player = playerManager.getPlayer();
@@ -108,9 +112,9 @@ export const Minimap: React.FC<MinimapProps> = ({
             });
           }
         }
-
         // Get AI ships
         const aiManager = (game as any).aiManager;
+
         if (aiManager) {
           const aiShips = aiManager.getAllAIShips();
           aiShips.forEach((aiShip: any) => {
@@ -126,14 +130,15 @@ export const Minimap: React.FC<MinimapProps> = ({
             }
           });
         }
-
         // Get asteroids
         const asteroidManager = (game as any).asteroidManager;
+
         if (asteroidManager) {
           const asteroids = asteroidManager.getAllAsteroids();
           asteroids.forEach((asteroidData: any) => {
             const pos = asteroidData.entity.position;
             let size = 2;
+
             if (asteroidData.size === 'large') size = 3;
             else if (asteroidData.size === 'medium') size = 2;
             else size = 1;
@@ -146,9 +151,9 @@ export const Minimap: React.FC<MinimapProps> = ({
             });
           });
         }
-
         // Get lasers
         const laserManager = (game as any).laserManager;
+
         if (laserManager) {
           const lasers = laserManager.getAllLasers();
           lasers.forEach((laserData: any) => {
@@ -173,7 +178,6 @@ export const Minimap: React.FC<MinimapProps> = ({
           ) {
             return;
           }
-
           // Draw glow
           ctx.shadowColor = entity.color;
           ctx.shadowBlur =
@@ -201,8 +205,10 @@ export const Minimap: React.FC<MinimapProps> = ({
           );
           ctx.fill();
         }); // Draw camera viewport indicator
+
         try {
           const cameraSystem = gameEngine.getCameraSystem();
+
           if (cameraSystem) {
             const camera = cameraSystem.getCamera();
             const cameraPos = camera.getPosition();
@@ -230,10 +236,8 @@ export const Minimap: React.FC<MinimapProps> = ({
       } catch (error) {
         console.warn('Minimap render error:', error);
       }
-
       animationRef.current = requestAnimationFrame(render);
     };
-
     render();
 
     return () => {
@@ -242,7 +246,8 @@ export const Minimap: React.FC<MinimapProps> = ({
       }
     };
   }, [game, width, height]);
-  return (
+  
+return (
     <div
       className={`bg-gray-900 border-2 border-gray-500 rounded-lg shadow-2xl backdrop-blur-sm ${className}`}
       style={{ backgroundColor: 'rgba(17, 24, 39, 0.95)' }}

@@ -174,7 +174,7 @@ export class MouseInteractionSystem {
       // Fallback to screen coordinates if camera system is not available
       return screenPosition;
     }
-    return this.cameraSystem.screenToWorld(screenPosition);
+return this.cameraSystem.screenToWorld(screenPosition);
   }
 
   public isReady(): boolean {

@@ -1,7 +1,7 @@
 import { Entity } from '../../engine/entity/Entity';
 import type { Engine } from '../../engine';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-import type { IShipPart } from '../interfaces/ICompositeShip';
+import type { IShipPart, ShipPartType } from '../interfaces/ICompositeShip';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -12,6 +12,8 @@ export class ShipPart implements IShipPart {
   private readonly _entity: Entity;
 
   private readonly _partId: string;
+
+  private readonly _partType: ShipPartType;
 
   private readonly _relativePosition: Vector2D;
 
@@ -40,6 +42,7 @@ export class ShipPart implements IShipPart {
   constructor(
     entity: Entity,
     partId: string = uuidv4(), // Use UUID by default
+    partType: ShipPartType,
     relativePosition: Vector2D,
     size: number,
     baseColor: number = 0x00ff00,
@@ -51,6 +54,7 @@ export class ShipPart implements IShipPart {
     }
     this._entity = entity;
     this._partId = partId;
+    this._partType = partType;
     this._relativePosition = { ...relativePosition };
     this._size = size;
     this._baseColor = baseColor;
@@ -64,6 +68,10 @@ export class ShipPart implements IShipPart {
 
   public get partId(): string {
     return this._partId;
+  }
+
+  public get partType(): ShipPartType {
+    return this._partType;
   }
 
   public get relativePosition(): Vector2D {
@@ -124,10 +132,10 @@ export class ShipPart implements IShipPart {
     // Check if part should be destroyed
     if (this._health <= 0) {
       this.destroy();
-      return true; // Part was destroyed
+      
+return true; // Part was destroyed
     }
-
-    return false; // Part survived
+return false; // Part survived
   }
 
   public showImpactEffect(): void {
@@ -150,6 +158,7 @@ export class ShipPart implements IShipPart {
       console.warn(`💥 IMPACT: Part ${this._partId} has no engine reference!`);
     }
   }
+
   public updateVisualDamage(): void {
     if (this._isDestroyed) return;
 
@@ -183,7 +192,6 @@ export class ShipPart implements IShipPart {
       green = 0;
       blue = 0;
     }
-
     // Create color (RGB format)
     const damageColor = (red << 16) | (green << 8) | blue;
 
@@ -219,7 +227,6 @@ export class ShipPart implements IShipPart {
       );
       rendererSystem.removeRenderObject(this._entity.renderObjectId);
     }
-
     this._entity.destroy();
 
     if (this._onDestroy) {
@@ -360,7 +367,6 @@ export class ShipPart implements IShipPart {
           );
         }
       }
-
       // When impact effect ends, restore damage-based color
       if (this._impactEffectTimer <= 0) {
         this.updateVisualDamage();
@@ -390,7 +396,6 @@ export class ShipPart implements IShipPart {
         green = Math.floor(32 * pulse); // Slight green pulse for urgency
         blue = 0;
       }
-
       const pulseColor = (red << 16) | (green << 8) | blue;
 
       if (this._engine) {
@@ -405,20 +410,43 @@ export class ShipPart implements IShipPart {
 
   public setCockpitVisuals(): void {
     // Make cockpit part visually distinct with a special color/effect
+    this.setPartTypeVisuals('cockpit');
+  }
+
+  public setPartTypeVisuals(partType: ShipPartType): void {
     if (this._engine) {
       const rendererSystem = this._engine.getRendererSystem();
-      
-      // Use a bright cyan/blue color for cockpit to distinguish it
-      const cockpitColor = 0x00ffff; // Bright cyan
-      
+
+      // Get color based on part type
+      const partColor = this.getPartTypeColor(partType);
+
       rendererSystem.updateRenderObjectColor(
         this._entity.renderObjectId,
-        cockpitColor
+        partColor
       );
-      
+
       console.log(
-        `🛸 Part ${this._partId} marked as COCKPIT with cyan color - RenderID: ${this._entity.renderObjectId}`
+        `🎨 Part ${this._partId} set to ${partType.toUpperCase()} with color 0x${partColor.toString(16)} - RenderID: ${this._entity.renderObjectId}`
       );
+    }
+  }
+
+  private getPartTypeColor(partType: ShipPartType): number {
+    switch (partType) {
+      case 'cockpit':
+        return 0x00ffff; // Bright cyan
+      case 'engine':
+        return 0xff4500; // Orange-red
+      case 'weapon':
+        return 0xffd700; // Gold/yellow
+      case 'armor':
+        return 0xc0c0c0; // Silver/gray
+      case 'shield':
+        return 0x4169e1; // Royal blue
+      case 'cargo':
+        return 0x8b4513; // Saddle brown
+      default:
+        return 0x00ff00; // Default green
     }
   }
 }

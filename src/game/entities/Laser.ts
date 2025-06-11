@@ -39,7 +39,7 @@ export class Laser {
 
       return true;
     }
-    return false;
+return false;
   }
 
   /**

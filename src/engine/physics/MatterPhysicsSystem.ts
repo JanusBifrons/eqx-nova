@@ -722,7 +722,8 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         }
       }
     }
-    return null;
+
+return null;
   }
 
   public attachMouseConstraintToBody(
@@ -943,7 +944,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         return physicsBody;
       }
     }
-
     // If no direct match, check if this is a part of a compound body
     for (const physicsBody of this.bodies.values()) {
       const compoundBody = (physicsBody as any).matterBody;
@@ -953,7 +953,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         return physicsBody; // Return the compound body for the part collision
       }
     }
-
-    return null;
+return null;
   }
 }
