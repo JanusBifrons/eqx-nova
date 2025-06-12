@@ -38,8 +38,8 @@ export class LaserFactory {
     });
 
     // Set rotation and velocity for the laser
-    // Add 90 degrees (π/2 radians) to correct the orientation since rectangles default to vertical
-    const rotation = Math.atan2(direction.y, direction.x) + Math.PI / 2;
+    // Ship parts are oriented to point right at 0 degrees, so no rotation offset needed
+    const rotation = Math.atan2(direction.y, direction.x);
     const physicsSystem = engine.getPhysicsSystem();
     const allBodies = physicsSystem.getAllBodies();
     const laserBody = allBodies.find(body => body.id === entity.physicsBodyId);
@@ -121,7 +121,7 @@ export class AsteroidFactory {
       const angularVelocity = (Math.random() - 0.5) * 0.02;
       physicsSystem.setAngularVelocity(asteroidBody, angularVelocity);
     }
-return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
+    return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
   }
 
   public static createAtRandomEdge(
@@ -154,7 +154,7 @@ return new Asteroid(entity, size, finalVelocity, baseRadius / 2, onDestroy);
         y = Math.random() * height;
         break;
     }
-return this.create(engine, { x, y }, size, onDestroy);
+    return this.create(engine, { x, y }, size, onDestroy);
   }
 
   private static generateRandomVelocity(): Vector2D {

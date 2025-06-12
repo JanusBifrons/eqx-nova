@@ -2,15 +2,16 @@ import { useRef, useEffect, useState } from 'react';
 import { GameCanvas } from '../../engine';
 import { Engine } from '../../engine/Engine';
 import { AsteroidsGame } from '../../game/AsteroidsGame';
-import { Minimap } from '../../components';
+import { Minimap, ShipStatusHUD } from '../../components';
+import type { ICompositeShip } from '../../game/interfaces/ICompositeShip';
 
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<Engine | null>(null);
   const gameRef = useRef<AsteroidsGame | null>(null);
   const [score, setScore] = useState(0);
-  const [lives, setLives] = useState(3);
   const [gameOver, setGameOver] = useState(false);
+  const [playerShip, setPlayerShip] = useState<ICompositeShip | null>(null); // Track player ship for MUI HUD
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -56,8 +57,14 @@ export function HomePage() {
         const uiUpdateInterval = setInterval(() => {
           if (gameRef.current) {
             setScore(gameRef.current.getScore());
-            setLives(gameRef.current.getLives());
             setGameOver(gameRef.current.isGameOver());
+
+            // Update player ship for MUI HUD
+            const playerManager = (gameRef.current as any).playerManager;
+            if (playerManager) {
+              const compositeShip = playerManager.getCompositeShip();
+              setPlayerShip(compositeShip);
+            }
           }
         }, 16); // ~60fps UI updates
 
@@ -93,77 +100,48 @@ export function HomePage() {
     if (gameRef.current) {
       gameRef.current.restart();
       setScore(0);
-      setLives(3);
       setGameOver(false);
     }
   };
-return (
-    <div className="flex flex-1 flex-col">
-      {' '}
-      <div className="bg-gray-100 p-4">
-        <div className="flex justify-between items-center mb-2">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Asteroids</h2>
-            <div className="text-xs font-medium">
-              <span className="text-green-600">
-                ✓ SOLID Architecture • Separated Concerns
-              </span>
-            </div>
-          </div>
-          <div className="flex gap-6 items-center">
-            <div className="text-sm font-medium text-gray-700">
-              Score:{' '}
-              <span className="text-blue-600">{score.toLocaleString()}</span>
-            </div>
-            <div className="text-sm font-medium text-gray-700">
-              Lives: <span className="text-red-600">{lives}</span>
-            </div>
-            {gameOver && (
-              <button
-                onClick={handleRestart}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm font-medium"
-              >
-                Restart Game
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="text-xs text-gray-600">
-          {gameOver ? (
-            <p className="text-red-600 font-medium">
-              Game Over! Click Restart to play again.
-            </p>
-          ) : (
-            <div>
-              <p className="mb-1">
-                Use <kbd className="px-1 bg-gray-200 rounded">W/↑</kbd> to
-                thrust,
-                <kbd className="px-1 bg-gray-200 rounded mx-1">
-                  A/←
-                </kbd> and <kbd className="px-1 bg-gray-200 rounded">D/→</kbd>{' '}
-                to rotate,
-                <kbd className="px-1 bg-gray-200 rounded mx-1">Space</kbd> to
-                shoot
-              </p>
-              <p className="text-blue-600">
-                This game demonstrates SOLID principles: PlayerManager,
-                LaserManager, AsteroidManager, CollisionManager, and
-                InputManager work together through clean interfaces.
-              </p>
-            </div>
-          )}
-        </div>
+
+  return (
+    <div
+      className="flex flex-1 overflow-hidden"
+      style={{ position: 'relative' }}
+    >
+      <GameCanvas ref={canvasRef} className="flex-1" />
+
+      {/* MUI Ship Status HUD positioned in top-left corner */}
+      <ShipStatusHUD ship={playerShip} />
+
+      {/* Minimap positioned in top-right corner with absolute positioning relative to parent */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '16px',
+          right: '16px',
+          zIndex: 1001,
+          pointerEvents: 'none',
+        }}
+      >
+        <Minimap game={gameRef.current} width={200} height={150} />
       </div>
-      <div className="flex flex-1 overflow-hidden relative">
-        <GameCanvas ref={canvasRef} className="flex-1" />
-        {/* Minimap positioned in top-right corner */}
-        <div
-          className="absolute top-6 right-6 z-50"
-          style={{ pointerEvents: 'none' }}
-        >
-          <Minimap game={gameRef.current} width={220} height={165} />
+
+      {/* Game Over overlay */}
+      {gameOver && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-8 rounded-lg text-center text-white">
+            <h2 className="text-2xl font-bold mb-4">Game Over!</h2>
+            <p className="mb-4">Final Score: {score.toLocaleString()}</p>
+            <button
+              onClick={handleRestart}
+              className="px-6 py-3 bg-blue-500 text-white rounded hover:bg-blue-600 font-medium"
+            >
+              Restart Game
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

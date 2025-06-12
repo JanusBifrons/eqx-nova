@@ -48,8 +48,10 @@ export class LaserManager {
     if (now - this.lastFireTime < this.LASER_COOLDOWN) {
       return false;
     }
-    const laserX = position.x + Math.cos(rotation) * 25;
-    const laserY = position.y + Math.sin(rotation) * 25;
+    // Calculate laser spawn position
+    const laserAngle = rotation - Math.PI / 2; // Align ship coordinate system (up) with physics (right)
+    const laserX = position.x + Math.cos(laserAngle) * 25;
+    const laserY = position.y + Math.sin(laserAngle) * 25;
 
     const entity = this.gameEngine.createLaser(
       { x: laserX, y: laserY },
@@ -58,12 +60,12 @@ export class LaserManager {
     );
 
     // Rotate the laser to point in the direction it's traveling
-    // Add 90 degrees (π/2 radians) to correct the orientation since rectangles default to vertical
-    this.gameEngine.setEntityRotation(entity, rotation + Math.PI / 2);
+    // Use corrected angle to align with ship coordinate system
+    this.gameEngine.setEntityRotation(entity, laserAngle);
 
     // Set direct velocity instead of applying force for predictable speed
-    const velocityX = Math.cos(rotation) * this.LASER_SPEED;
-    const velocityY = Math.sin(rotation) * this.LASER_SPEED;
+    const velocityX = Math.cos(laserAngle) * this.LASER_SPEED;
+    const velocityY = Math.sin(laserAngle) * this.LASER_SPEED;
 
     // Add ship velocity inheritance for better feel when firing while moving
     const finalVelocity = {

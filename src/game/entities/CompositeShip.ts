@@ -143,9 +143,11 @@ export class CompositeShip implements ICompositeShip {
   }
 
   public get forwardDirection(): Vector2D {
+    // Apply coordinate system correction: ship front points up, physics assumes right
+    const forwardAngle = this._rotation - Math.PI / 2;
     return {
-      x: Math.cos(this._rotation),
-      y: Math.sin(this._rotation),
+      x: Math.cos(forwardAngle),
+      y: Math.sin(forwardAngle),
     };
   }
 
@@ -154,7 +156,7 @@ export class CompositeShip implements ICompositeShip {
       return this._compoundBody.velocity;
     }
 
-return { x: 0, y: 0 };
+    return { x: 0, y: 0 };
   }
 
   public setRotation(angle: number): void {
@@ -230,8 +232,8 @@ return { x: 0, y: 0 };
 
         if (this._lives <= 0) {
           this.destroy();
-          
-return true; // Ship is completely destroyed
+
+          return true; // Ship is completely destroyed
         } else {
           // Respawn with fewer parts
           this.respawnWithRemainingParts();
@@ -241,7 +243,7 @@ return true; // Ship is completely destroyed
       this._isInvulnerable = true;
       this._invulnerabilityTimer = 2000; // 2 seconds
     }
-return false; // Ship damaged but not completely destroyed
+    return false; // Ship damaged but not completely destroyed
   }
 
   public respawn(position: Vector2D): void {
@@ -417,8 +419,8 @@ return false; // Ship damaged but not completely destroyed
    */
   public getWeaponFiringPositions(): Vector2D[] {
     const weaponParts = this.getWeaponParts();
-    
-return weaponParts.map(part => {
+
+    return weaponParts.map(part => {
       // Calculate world position of weapon part
       const cos = Math.cos(this._rotation);
       const sin = Math.sin(this._rotation);
@@ -429,9 +431,11 @@ return weaponParts.map(part => {
         part.relativePosition.x * sin + part.relativePosition.y * cos;
 
       // Add small offset in front of weapon part for laser spawn
+      // Use same coordinate system fix: ship front points up, physics assumes right
+      const firingAngle = this._rotation - Math.PI / 2;
       const offsetDistance = 15;
-      const offsetX = Math.cos(this._rotation) * offsetDistance;
-      const offsetY = Math.sin(this._rotation) * offsetDistance;
+      const offsetX = Math.cos(firingAngle) * offsetDistance;
+      const offsetY = Math.sin(firingAngle) * offsetDistance;
 
       return {
         x: this._centerPosition.x + rotatedX + offsetX,
@@ -452,8 +456,8 @@ return weaponParts.map(part => {
     if (totalEngines === 0) return 1.0; // If ship has no engines, assume full effectiveness
 
     const workingEngines = this.getEngineParts().length;
-    
-return workingEngines / totalEngines;
+
+    return workingEngines / totalEngines;
   }
 
   /**
@@ -468,8 +472,8 @@ return workingEngines / totalEngines;
     if (totalWeapons === 0) return 0.0; // If ship has no weapons, no effectiveness
 
     const workingWeapons = this.getWeaponParts().length;
-    
-return workingWeapons / totalWeapons;
+
+    return workingWeapons / totalWeapons;
   }
 
   private calculateCenterPosition(): Vector2D {
@@ -591,8 +595,8 @@ return workingWeapons / totalWeapons;
     // No engines = no thrust!
     if (engineCount === 0) {
       console.log('⚠️ No engine parts available - cannot apply thrust');
-      
-return;
+
+      return;
     }
     // Base thrust per engine part
     const baseThrust = 0.003; // Slightly higher per engine to maintain good feel
@@ -602,10 +606,12 @@ return;
     const effectiveness = this.getEngineEffectiveness();
 
     // Apply thrust force to the compound body
-    // Fix rotation issue: ship parts are oriented to point right at 0 degrees, so no offset needed
+    // IMPORTANT: Ship construction has forward pointing up (negative Y), but physics assumes forward is right (positive X)
+    // Add 90-degree offset to align coordinate systems: -π/2 rotates from pointing up to pointing right
+    const thrustAngle = this._rotation - Math.PI / 2;
     const physicsSystem = this._engine.getPhysicsSystem();
-    const forceX = Math.cos(this._rotation) * thrustMagnitude;
-    const forceY = Math.sin(this._rotation) * thrustMagnitude;
+    const forceX = Math.cos(thrustAngle) * thrustMagnitude;
+    const forceY = Math.sin(thrustAngle) * thrustMagnitude;
     physicsSystem.applyForce(this._compoundBody, { x: forceX, y: forceY });
 
     // Only log occasionally to avoid spam
@@ -705,8 +711,8 @@ return;
           this.convertPartToDebris(part as ShipPart);
         }
       });
-      
-return;
+
+      return;
     }
     // Flood fill from cockpit to find all connected parts
     const visited = new Set<string>();
@@ -858,7 +864,7 @@ return;
         this.respawnWithRemainingParts();
       }
 
-return;
+      return;
     }
     // Update connections to check what's still connected to cockpit
     this.updatePartConnections();

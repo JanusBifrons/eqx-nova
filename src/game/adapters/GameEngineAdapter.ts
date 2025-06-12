@@ -82,8 +82,8 @@ export class GameEngineAdapter implements IGameEngine {
 
   public createPlayerFlagship(position: Vector2D): CompositeShip {
     const shipId = `player-flagship-${Date.now()}`;
-    
-return CompositeShipFactory.createPlayerFlagship(
+
+    return CompositeShipFactory.createPlayerFlagship(
       this.engine,
       position,
       shipId
@@ -197,7 +197,7 @@ return CompositeShipFactory.createPlayerFlagship(
     if (body) {
       return body.velocity;
     }
-return null;
+    return null;
   }
 
   public setEntityAngularVelocity(
@@ -214,44 +214,20 @@ return null;
   }
 
   public wrapEntityPosition(
-    entity: Entity,
-    bounds: { width: number; height: number }
+    _entity: Entity,
+    _bounds: { width: number; height: number }
   ): void {
-    const physicsSystem = this.engine.getPhysicsSystem();
-    const allBodies = physicsSystem.getAllBodies();
-    const body = allBodies.find(b => b.id === entity.physicsBodyId);
-
-    if (!body) return;
-
-    let newX = body.position.x;
-    let newY = body.position.y;
-    let wrapped = false;
-
-    if (body.position.x < 0) {
-      newX = bounds.width;
-      wrapped = true;
-    } else if (body.position.x > bounds.width) {
-      newX = 0;
-      wrapped = true;
-    }
-    if (body.position.y < 0) {
-      newY = bounds.height;
-      wrapped = true;
-    } else if (body.position.y > bounds.height) {
-      newY = 0;
-      wrapped = true;
-    }
-    if (wrapped) {
-      physicsSystem.setPosition(body, { x: newX, y: newY });
-    }
+    // World wrapping is now disabled for uncapped world space
+    // Entities can move freely in infinite space
+    return;
   }
 
   public getWorldDimensions(): { width: number; height: number } {
-    const rendererSystem = this.engine.getRendererSystem();
-    // Return the expanded world dimensions (4x the viewport size)
+    // Return very large dimensions to simulate infinite space
+    // This affects asteroid spawning areas and other world-relative calculations
     return {
-      width: rendererSystem.getWidth() * 4,
-      height: rendererSystem.getHeight() * 4,
+      width: 50000, // Much larger than before (was 4x viewport)
+      height: 50000, // Large enough to feel infinite but not cause precision issues
     };
   }
 

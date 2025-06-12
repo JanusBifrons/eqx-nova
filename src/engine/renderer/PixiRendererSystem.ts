@@ -312,28 +312,9 @@ export class PixiRendererSystem implements IRendererSystem {
   }
 
   private createWorldBorderIfReady(): void {
-    if (!this.app || !this.cameraSystem) {
-      // Camera system not ready yet, world border will be created later
-      return;
-    }
-    // Remove existing world border if it exists
-    const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
-
-    if (existingWorldBorder) {
-      this.app.stage.removeChild(existingWorldBorder);
-      existingWorldBorder.destroy();
-    }
-    // Create the world border
-    const worldBorder = new Graphics();
-    worldBorder.label = 'world-border';
-
-    // Add world border to stage after game container but before viewport border
-    // This way: game objects -> world border -> viewport border (on top)
-    const gameContainerIndex = this.app.stage.getChildIndex(this.gameContainer);
-    this.app.stage.addChildAt(worldBorder, gameContainerIndex + 1);
-
-    // Draw the initial world border
-    this.updateWorldBorder();
+    // World borders are disabled for uncapped world space
+    // Entities can move freely in infinite space without visual boundaries
+    return;
   }
 
   private onResize = (): void => {
@@ -374,37 +355,8 @@ export class PixiRendererSystem implements IRendererSystem {
   }
 
   private updateWorldBorder(): void {
-    if (!this.app || !this.cameraSystem) return;
-
-    const existingWorldBorder = this.app.stage.getChildByLabel('world-border');
-
-    if (!existingWorldBorder) return;
-
-    const worldBorder = existingWorldBorder as Graphics;
-
-    // World dimensions are 4x the viewport size
-    const worldWidth = this.app.screen.width * 4;
-    const worldHeight = this.app.screen.height * 4;
-
-    // Define world boundary corners in world space
-    const topLeft = { x: 0, y: 0 };
-    const topRight = { x: worldWidth, y: 0 };
-    const bottomLeft = { x: 0, y: worldHeight };
-    const bottomRight = { x: worldWidth, y: worldHeight };
-
-    // Transform world corners to screen space
-    const screenTopLeft = this.cameraSystem.worldToScreen(topLeft);
-    const screenTopRight = this.cameraSystem.worldToScreen(topRight);
-    const screenBottomLeft = this.cameraSystem.worldToScreen(bottomLeft);
-    const screenBottomRight = this.cameraSystem.worldToScreen(bottomRight);
-
-    // Clear and redraw the world border using screen coordinates
-    worldBorder.clear();
-    worldBorder.moveTo(screenTopLeft.x, screenTopLeft.y);
-    worldBorder.lineTo(screenTopRight.x, screenTopRight.y);
-    worldBorder.lineTo(screenBottomRight.x, screenBottomRight.y);
-    worldBorder.lineTo(screenBottomLeft.x, screenBottomLeft.y);
-    worldBorder.lineTo(screenTopLeft.x, screenTopLeft.y); // Close the path
-    worldBorder.stroke({ color: 0xff6b6b, width: 4 }); // Red border for world boundary
+    // World borders are disabled for uncapped world space
+    // No visual boundaries are rendered
+    return;
   }
 }

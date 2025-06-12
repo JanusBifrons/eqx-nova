@@ -82,7 +82,7 @@ export class AIShip implements IAIShip {
       this._behavior.recordFired();
       console.log(`AI ship ${this._id} fired laser!`);
     }
-return success;
+    return success;
   }
 
   public takeDamage(): boolean {
@@ -96,7 +96,7 @@ return success;
       return true;
     }
 
-return false;
+    return false;
   }
 
   public destroy(): void {
@@ -126,10 +126,12 @@ return false;
     const position = this._ship.centerPosition;
     const rotation = this._ship.rotation;
     const offset = 25; // Distance in front of ship
+    // Apply coordinate system correction: ship front points up, physics assumes right
+    const firingAngle = rotation - Math.PI / 2;
 
     return {
-      x: position.x + Math.cos(rotation) * offset,
-      y: position.y + Math.sin(rotation) * offset,
+      x: position.x + Math.cos(firingAngle) * offset,
+      y: position.y + Math.sin(firingAngle) * offset,
     };
   }
 

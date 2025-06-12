@@ -49,8 +49,11 @@ export class AsteroidManager {
     // Then spawn additional asteroids throughout the interior space
     this.spawnInteriorAsteroids(12);
 
+    // Spawn the enormous static asteroid in the middle of the map
+    this.createEnormousStaticAsteroid();
+
     console.log(
-      'Spawned initial asteroids: 35 at edges + 12 interior = 47 total asteroids'
+      'Spawned initial asteroids: 35 at edges + 12 interior + 1 enormous static = 48 total asteroids'
     );
   }
 
@@ -261,5 +264,40 @@ export class AsteroidManager {
       this.gameEngine.removeEntity(asteroidData.entity.id);
     });
     this.asteroids = [];
+  }
+
+  /**
+   * Create an enormous static asteroid that's 100x larger than normal asteroids
+   * This creates a massive landmark/obstacle in the center of the game world
+   */
+  public createEnormousStaticAsteroid(): void {
+    const dimensions = this.gameEngine.getWorldDimensions();
+    const centerX = dimensions.width / 2;
+    const centerY = dimensions.height / 2;
+
+    // Make it 100x larger than the largest normal asteroid (40 -> 4000)
+    const enormousSize = this.SIZE_MAP.large * 100; // 4000 pixels diameter!
+    const enormousRadius = enormousSize / 2;
+
+    // Generate a very irregular shape with more vertices for detail
+    const vertices = ShapeUtils.createIrregularPolygon(enormousRadius, 16, 0.3);
+
+    const entity = this.gameEngine.createAsteroid(
+      { x: centerX, y: centerY },
+      enormousSize,
+      vertices
+    );
+
+    // No velocity - it's completely static
+    // No angular velocity - it doesn't rotate
+
+    this.asteroids.push({
+      entity,
+      size: 'large' as const, // Use 'large' as the closest type, though it's much bigger
+    });
+
+    console.log(
+      `🗿 Created ENORMOUS static asteroid at center (${centerX}, ${centerY}) with size ${enormousSize}px - a massive landmark!`
+    );
   }
 }
