@@ -132,15 +132,15 @@ export class ShipPart implements IShipPart {
     // Check if part should be destroyed
     if (this._health <= 0) {
       this.destroy();
-      
-return true; // Part was destroyed
+
+      return true; // Part was destroyed
     }
-return false; // Part survived
+    return false; // Part survived
   }
 
   public showImpactEffect(): void {
     // Set impact effect timer for dramatic multi-flash sequence
-    this._impactEffectTimer = 800; // milliseconds - longer for multi-flash effect
+    this._impactEffectTimer = 1200; // INCREASED: longer duration for better visibility
 
     // Temporarily show bright flashing white color
     if (this._engine) {
@@ -152,7 +152,7 @@ return false; // Part survived
 
       // Log impact for debugging
       console.log(
-        `💥 IMPACT: Part ${this._partId} flashing white - RenderID: ${this._entity.renderObjectId}`
+        `💥 IMPACT: Part ${this._partId} flashing white for 1200ms - RenderID: ${this._entity.renderObjectId}`
       );
     } else {
       console.warn(`💥 IMPACT: Part ${this._partId} has no engine reference!`);
@@ -347,29 +347,32 @@ return false; // Part survived
       if (this._engine) {
         const rendererSystem = this._engine.getRendererSystem();
 
-        // Flash between white and damage color every 100ms for maximum visibility
-        const flashFrequency = 100; // milliseconds per flash
+        // IMPROVED: Slower flash for better visibility, longer white periods
+        const flashFrequency = 200; // INCREASED: milliseconds per flash (slower)
         const flashCycle = Math.floor(
-          (800 - this._impactEffectTimer) / flashFrequency
+          (1200 - this._impactEffectTimer) / flashFrequency
         );
 
         if (flashCycle % 2 === 0) {
-          // Show bright white
+          // Show bright white (longer periods)
           rendererSystem.updateRenderObjectColor(
             this._entity.renderObjectId,
             0xffffff
           );
         } else {
-          // Show bright yellow for alternate flash
+          // Show bright red for dramatic contrast
           rendererSystem.updateRenderObjectColor(
             this._entity.renderObjectId,
-            0xffff00
+            0xff0000
           );
         }
       }
       // When impact effect ends, restore damage-based color
       if (this._impactEffectTimer <= 0) {
         this.updateVisualDamage();
+        console.log(
+          `💥 IMPACT EFFECT ENDED: Part ${this._partId} restoring normal color`
+        );
       }
     }
     // Add pulsing effect for heavily damaged parts (50%+ damage) - only when not flashing

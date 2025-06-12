@@ -11,11 +11,14 @@ export interface IAIBehavior {
   readonly target: Vector2D | ICompositeShip | null;
   readonly isActive: boolean;
   readonly lastFireTime: number;
+  readonly isDisabled: boolean; // New property
 
   // Behavior control
   setTarget(target: Vector2D | ICompositeShip | null): void;
   activate(): void;
   deactivate(): void;
+  disable(): void; // New method
+  enable(): void; // New method
   update(deltaTime: number): void;
   destroy(): void;
   // Decision making

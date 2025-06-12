@@ -21,6 +21,10 @@ export class PixiRendererSystem implements IRendererSystem {
 
   private hoverRenderer: HoverRenderer = new HoverRenderer();
 
+  // Debug visualization - currently unused but available for future debugging
+  // private debugContainer: Container = new Container();
+  // private showDebugBounds: boolean = false;
+
   public async initialize(canvas: HTMLCanvasElement): Promise<void> {
     try {
       // Create PixiJS application

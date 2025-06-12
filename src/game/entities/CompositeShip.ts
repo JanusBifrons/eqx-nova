@@ -287,40 +287,28 @@ export class CompositeShip implements ICompositeShip {
       }
     }
     // Update all ship parts (for visual effects like impact flashes)
-    // Collect parts to remove to avoid modifying array during iteration
-    const partsToRemove: number[] = [];
-
-    this._parts.forEach((part, index) => {
+    this._parts.forEach(part => {
       (part as ShipPart).update(deltaTime);
 
       // Apply floating physics to disconnected parts
       if (!part.isConnected && !part.isDestroyed) {
-        (part as ShipPart).applyFloatingPhysics(this._engine);
-
-        // Track floating time and cleanup parts that have been floating too long
         const shipPart = part as ShipPart;
 
-        if (!shipPart.floatingStartTime) {
-          shipPart.floatingStartTime = Date.now();
-        } else {
-          const floatingTime = Date.now() - shipPart.floatingStartTime;
+        // IMPORTANT: Never treat the cockpit part as floating debris
+        // This prevents single-part ships from vanishing
+        const isCockpitPart = shipPart.partId === this._cockpitPartId;
+        const isOnlyRemainingPart = this.getActiveParts().length === 1;
 
-          // Remove floating parts after 10 seconds to prevent accumulation
-          if (floatingTime > 10000) {
-            console.log(
-              `🧹 Removing floating part ${shipPart.partId} after ${floatingTime}ms`
-            );
-            partsToRemove.push(index);
-          }
+        if (isCockpitPart || isOnlyRemainingPart) {
+          // Cockpit or single remaining part should never be treated as floating debris
+          console.log(
+            `🛸 Preserving essential part ${shipPart.partId} (cockpit: ${isCockpitPart}, only part: ${isOnlyRemainingPart})`
+          );
+        } else {
+          // Apply floating physics to disconnected parts - let them accumulate!
+          shipPart.applyFloatingPhysics(this._engine);
         }
       }
-    });
-
-    // Remove parts in reverse order to maintain indices
-    partsToRemove.reverse().forEach(index => {
-      const part = this._parts[index];
-      (part as ShipPart).destroy();
-      this._parts.splice(index, 1);
     });
 
     // Update center position based on physics of compound body
@@ -482,13 +470,14 @@ export class CompositeShip implements ICompositeShip {
     if (activeParts.length === 0) {
       return { x: 0, y: 0 };
     }
-    // Calculate the actual center of mass based on physics positions
+
+    // Calculate center based on relative positions of remaining parts
     let totalX = 0;
     let totalY = 0;
 
     activeParts.forEach(part => {
-      totalX += part.position.x;
-      totalY += part.position.y;
+      totalX += part.relativePosition.x;
+      totalY += part.relativePosition.y;
     });
 
     return {
@@ -556,31 +545,33 @@ export class CompositeShip implements ICompositeShip {
 
     const rendererSystem = this._engine.getRendererSystem();
     const activeParts = this.getActiveParts();
+    // const physicsSystem = this._engine.getPhysicsSystem(); // Available if needed
 
-    activeParts.forEach(part => {
-      // Calculate the world position of this part based on compound body position and rotation
-      const cos = Math.cos(this._compoundBody!.angle);
-      const sin = Math.sin(this._compoundBody!.angle);
+    // Get the actual Matter.js compound body to access its parts
+    const matterBody = (this._compoundBody as any).body;
+    if (!matterBody || !matterBody.parts) return;
 
-      const rotatedX =
-        part.relativePosition.x * cos - part.relativePosition.y * sin;
-      const rotatedY =
-        part.relativePosition.x * sin + part.relativePosition.y * cos;
+    activeParts.forEach((part, index) => {
+      // Skip the first part (index 0) as it's the compound body itself in Matter.js
+      const matterPart = matterBody.parts[index + 1];
+      if (!matterPart) return;
 
+      // Use the actual physics position of the Matter.js body part
       const worldPosition = {
-        x: this._compoundBody!.position.x + rotatedX,
-        y: this._compoundBody!.position.y + rotatedY,
+        x: matterPart.position.x,
+        y: matterPart.position.y,
       };
 
-      // Update the entity position (for consistency)
+      // IMPORTANT FIX: Use ship's rotation instead of individual part rotation
+      // This prevents parts from spinning individually when the ship rotates
       part.entity.position = worldPosition;
-      part.entity.angle = this._compoundBody!.angle;
+      part.entity.angle = this._rotation; // ✅ Use ship's rotation, not part's rotation
 
-      // Update the render object directly
+      // Update the render object using ship's rotation for unified appearance
       rendererSystem.updateRenderObject(
         part.entity.renderObjectId,
         worldPosition,
-        this._compoundBody!.angle
+        this._rotation // ✅ Use ship's rotation, not matterPart.angle
       );
     });
   }
@@ -683,8 +674,16 @@ export class CompositeShip implements ICompositeShip {
       `🔧 Created ${connectionsCreated} connections for ship with ${activeParts.length} parts`
     );
 
-    // Now check cockpit connectivity - disconnect parts not connected to cockpit
-    if (activeParts.length > 1) {
+    // Handle single-part ships specially
+    if (activeParts.length === 1) {
+      const singlePart = activeParts[0] as ShipPart;
+      // Single parts are always "connected" (to themselves, conceptually)
+      singlePart.connectToPart(singlePart.partId);
+      console.log(
+        `🛸 Single-part ship: marked part ${singlePart.partId} as connected`
+      );
+    } else {
+      // For multi-part ships, check cockpit connectivity
       this.validateCockpitConnectivity();
     }
   }
@@ -819,15 +818,19 @@ export class CompositeShip implements ICompositeShip {
       physicsSystem.removeBody(this._compoundBody);
       this._compoundBody = null;
     }
-    // Recalculate center position based on remaining parts
-    this._centerPosition = this.calculateCenterPosition();
+
+    // IMPORTANT FIX: Don't recalculate center position when recreating compound body
+    // This prevents parts from rearranging when other parts are destroyed
+    // Keep the ship's center position stable
+
+    // Only recalculate collision radius based on remaining parts
     this._collisionRadius = this.calculateCollisionRadius();
 
-    // Create new compound body
+    // Create new compound body at the same center position
     this.createCompoundBody();
 
     console.log(
-      `🔧 Recreated compound body with ${this.getActiveParts().length} remaining parts`
+      `🔧 Recreated compound body with ${this.getActiveParts().length} remaining parts at same position`
     );
   }
 

@@ -332,12 +332,8 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
           if (part.radius === undefined) {
             throw new Error('Circle part must have radius defined');
           }
-          body = Bodies.circle(
-            x + part.x,
-            y + part.y,
-            part.radius,
-            finalOptions
-          );
+          // Create part at relative position only - compound body handles world positioning
+          body = Bodies.circle(part.x, part.y, part.radius, finalOptions);
           break;
 
         case 'rectangle':
@@ -346,9 +342,10 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
               'Rectangle part must have width and height defined'
             );
           }
+          // Create part at relative position only - compound body handles world positioning
           body = Bodies.rectangle(
-            x + part.x,
-            y + part.y,
+            part.x,
+            part.y,
             part.width,
             part.height,
             finalOptions
@@ -360,9 +357,10 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
             throw new Error('Polygon part must have vertices defined');
           }
           const matterVertices = part.vertices.map(v => ({ x: v.x, y: v.y }));
+          // Create part at relative position only - compound body handles world positioning
           body = Bodies.fromVertices(
-            x + part.x,
-            y + part.y,
+            part.x,
+            part.y,
             [matterVertices],
             finalOptions
           );
@@ -666,14 +664,6 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       // Apply transformations to the mouse
       Mouse.setOffset(mouse, offset);
       Mouse.setScale(mouse, scale);
-
-      console.log(`🔧 Updated mouse constraint transform:`, {
-        offset,
-        scale,
-        camera: cameraPosition,
-        zoom: cameraZoom,
-        viewport: viewportSize,
-      });
     }
   }
 
@@ -723,7 +713,7 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
       }
     }
 
-return null;
+    return null;
   }
 
   public attachMouseConstraintToBody(
@@ -903,11 +893,40 @@ return null;
 
       if (bodyA && bodyB) {
         console.log(`🌟 Found physics bodies: ${bodyA.id} vs ${bodyB.id}`);
+
+        // Prepare collision event with enhanced part information
         const collisionEvent: CollisionEvent = {
           bodyA,
           bodyB,
           contactPoint: { x: 0, y: 0 }, // We can improve this later
         };
+
+        // Add part information if available
+        if ((bodyA as any)._hitPartIndex !== undefined) {
+          collisionEvent.partInfoA = {
+            partIndex: (bodyA as any)._hitPartIndex,
+            partBody: (bodyA as any)._hitPartBody,
+          };
+          console.log(
+            `🎯 BodyA hit part index: ${collisionEvent.partInfoA.partIndex}`
+          );
+          // Clear the temporary data
+          delete (bodyA as any)._hitPartIndex;
+          delete (bodyA as any)._hitPartBody;
+        }
+
+        if ((bodyB as any)._hitPartIndex !== undefined) {
+          collisionEvent.partInfoB = {
+            partIndex: (bodyB as any)._hitPartIndex,
+            partBody: (bodyB as any)._hitPartBody,
+          };
+          console.log(
+            `🎯 BodyB hit part index: ${collisionEvent.partInfoB.partIndex}`
+          );
+          // Clear the temporary data
+          delete (bodyB as any)._hitPartIndex;
+          delete (bodyB as any)._hitPartBody;
+        }
 
         this.collisionStartCallbacks.forEach(callback =>
           callback(collisionEvent)
@@ -950,9 +969,19 @@ return null;
 
       // Check if the matter body is one of the parts of this compound body
       if (compoundBody.parts && compoundBody.parts.includes(matterBody)) {
-        return physicsBody; // Return the compound body for the part collision
+        // ENHANCED: Store part information for collision precision
+        // Add part index to the physics body for collision handling
+        const partIndex = compoundBody.parts.indexOf(matterBody);
+        (physicsBody as any)._hitPartIndex = partIndex;
+        (physicsBody as any)._hitPartBody = matterBody;
+
+        console.log(
+          `🎯 Compound body collision: part ${partIndex} of ${compoundBody.parts.length} parts hit`
+        );
+
+        return physicsBody; // Return the compound body with part information
       }
     }
-return null;
+    return null;
   }
 }

@@ -35,13 +35,17 @@ export class PlayerManager {
     const centerY = dimensions.height / 2;
 
     if (this.useCompositeShip) {
-      // Create impressive flagship-class player ship
+      // Create single-part player ship for testing/isolation
       this.compositeShip = this.createPlayerFlagship({
         x: centerX,
         y: centerY,
       });
       this.player = null; // Clear traditional player
-      console.log('🚀 Player Flagship created at center:', centerX, centerY);
+      console.log(
+        '🚀 Player single-part ship created at center:',
+        centerX,
+        centerY
+      );
     } else {
       // Create traditional triangular ship
       this.player = this.gameEngine.createTriangularShip(
@@ -64,7 +68,7 @@ export class PlayerManager {
 
       return parts.length > 0 ? parts[0].entity : null;
     }
-return this.player;
+    return this.player;
   }
 
   public getCompositeShip(): CompositeShip | null {
@@ -156,8 +160,8 @@ return this.player;
         // Respawn existing composite ship
         this.compositeShip.respawn({ x: centerX, y: centerY });
       } else {
-        // Ship is completely destroyed, create new flagship
-        console.log('🚀 Respawning new player flagship...');
+        // Ship is completely destroyed, create new single-part ship
+        console.log('🚀 Respawning new player single-part ship...');
 
         if (this.compositeShip) {
           this.compositeShip.destroy();
@@ -197,12 +201,12 @@ return this.player;
     } else if (this.player) {
       return this.player.position;
     }
-return null;
+    return null;
   }
 
   /**
-   * Create an impressive flagship-class player ship
-   * Using the factory method for consistency with AI ships
+   * Create a powerful 4x4 flagship player ship
+   * Using the impressive Sovereign-class Heavy Cruiser design
    */
   private createPlayerFlagship(position: Vector2D): CompositeShip {
     // Access the underlying engine from the game engine adapter

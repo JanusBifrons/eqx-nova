@@ -126,8 +126,8 @@ export class AIManager {
       console.log(
         `🔧 Grid (${gridX}, ${gridY}) -> World (${result.x}, ${result.y})`
       );
-      
-return result;
+
+      return result;
     };
     // Helper function to validate that all parts form a connected component
     const validateConnectivity = (
@@ -173,7 +173,7 @@ return result;
           }
         });
       }
-return visited.size === gridSet.size;
+      return visited.size === gridSet.size;
     };
     // RED DREADNOUGHT - Heavy battleship in arrow formation
     const redDreadnoughtGrid = [
@@ -327,10 +327,16 @@ return visited.size === gridSet.size;
       }
     });
 
+    // Player spawns at world center, so place AI ships within viewport distance from center
+    const centerX = worldDims.width / 2;
+    const centerY = worldDims.height / 2;
+
+    // Place ships within ~400 pixels of center (typical viewport is around 800x600)
+
     return [
-      // RED DREADNOUGHT - Heavy assault battleship
+      // RED DREADNOUGHT - Heavy assault battleship (top-left of center)
       {
-        position: { x: worldDims.width * 0.1, y: worldDims.height * 0.1 },
+        position: { x: centerX - 200, y: centerY - 150 },
         partPositions: redDreadnoughtGrid,
         partTypes: [
           'cockpit', // Center (0,0)
@@ -358,9 +364,9 @@ return visited.size === gridSet.size;
         lives: 12,
       },
 
-      // BLUE FORTRESS - Defensive battleship
+      // BLUE FORTRESS - Defensive battleship (top-right of center)
       {
-        position: { x: worldDims.width * 0.9, y: worldDims.height * 0.1 },
+        position: { x: centerX + 250, y: centerY - 100 },
         partPositions: blueFortressGrid,
         partTypes: [
           'cockpit', // Center (0,0)
@@ -387,9 +393,9 @@ return visited.size === gridSet.size;
         lives: 15,
       },
 
-      // PURPLE DESTROYER - Fast attack ship
+      // PURPLE DESTROYER - Fast attack ship (left of center)
       {
-        position: { x: worldDims.width * 0.1, y: worldDims.height * 0.5 },
+        position: { x: centerX - 300, y: centerY + 50 },
         partPositions: purpleDestroyerGrid,
         partTypes: [
           'cockpit', // Center (0,0)
@@ -411,9 +417,9 @@ return visited.size === gridSet.size;
         lives: 10,
       },
 
-      // ORANGE CARRIER - Support battleship
+      // ORANGE CARRIER - Support battleship (bottom-right of center)
       {
-        position: { x: worldDims.width * 0.85, y: worldDims.height * 0.85 },
+        position: { x: centerX + 180, y: centerY + 200 },
         partPositions: orangeCarrierGrid,
         partTypes: [
           'cockpit', // Command center (0,0)
@@ -443,9 +449,9 @@ return visited.size === gridSet.size;
         lives: 16,
       },
 
-      // YELLOW INTERCEPTOR - Ultra-fast strike craft
+      // YELLOW INTERCEPTOR - Ultra-fast strike craft (top of center)
       {
-        position: { x: worldDims.width * 0.5, y: worldDims.height * 0.1 },
+        position: { x: centerX + 50, y: centerY - 250 },
         partPositions: yellowInterceptorGrid,
         partTypes: ['engine', 'cockpit', 'weapon'], // Engine, cockpit, weapon - simple line
         partSize: 20, // Changed from 18 to match grid size
@@ -456,9 +462,9 @@ return visited.size === gridSet.size;
         lives: 8,
       },
 
-      // CYAN CRUISER - Balanced medium ship
+      // CYAN CRUISER - Balanced medium ship (bottom of center)
       {
-        position: { x: worldDims.width * 0.5, y: worldDims.height * 0.9 },
+        position: { x: centerX - 100, y: centerY + 280 },
         partPositions: cyanCruiserGrid,
         partTypes: [
           'cockpit', // Center (0,0)
@@ -499,8 +505,11 @@ return visited.size === gridSet.size;
     });
 
     console.log(
-      `Spawned ${shipConfigs.length} AI ships with different configurations`
+      `Spawned ${shipConfigs.length} AI ships close to player at world center`
     );
+
+    // Disable AI movement and shooting for testing
+    this.disableAllAI();
   }
 
   /**
@@ -569,7 +578,7 @@ return visited.size === gridSet.size;
       }
     }
 
-return null;
+    return null;
   }
 
   /**
@@ -613,8 +622,8 @@ return null;
 
     if (weaponParts.length === 0) {
       console.log(`⚠️ AI ship ${ship.id} has no weapon parts - cannot fire`);
-      
-return false;
+
+      return false;
     }
     const rotation = ship.rotation;
     const velocity = ship.velocity;
@@ -646,9 +655,9 @@ return false;
         );
       }
 
-return true;
+      return true;
     }
-return false;
+    return false;
   }
 
   /**
@@ -688,5 +697,35 @@ return false;
    */
   private getDistance(pos1: Vector2D, pos2: Vector2D): number {
     return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
+  }
+
+  /**
+   * Disable all AI ships for testing (stops movement and shooting)
+   */
+  public disableAllAI(): void {
+    let disabledCount = 0;
+    for (const aiShip of this._aiShips.values()) {
+      if (aiShip.isActive) {
+        aiShip.behavior.disable();
+        disabledCount++;
+      }
+    }
+    console.log(
+      `🚫 Disabled ${disabledCount} AI ships for testing - ships remain visible but won't move or shoot`
+    );
+  }
+
+  /**
+   * Enable all AI ships (allows movement and shooting)
+   */
+  public enableAllAI(): void {
+    let enabledCount = 0;
+    for (const aiShip of this._aiShips.values()) {
+      if (aiShip.isActive) {
+        aiShip.behavior.enable();
+        enabledCount++;
+      }
+    }
+    console.log(`✅ Enabled ${enabledCount} AI ships`);
   }
 }

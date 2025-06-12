@@ -18,6 +18,8 @@ export class AIBehavior implements IAIBehavior {
 
   private _isActive: boolean = true;
 
+  private _isDisabled: boolean = false; // New flag to disable AI for testing
+
   private _lastFireTime: number = 0;
 
   private _patrolPoints: Vector2D[] = [];
@@ -51,6 +53,27 @@ export class AIBehavior implements IAIBehavior {
 
   public get isActive(): boolean {
     return this._isActive && this._ship.isAlive;
+  }
+
+  /**
+   * Disable AI movement and shooting for testing
+   */
+  public disable(): void {
+    this._isDisabled = true;
+  }
+
+  /**
+   * Enable AI movement and shooting
+   */
+  public enable(): void {
+    this._isDisabled = false;
+  }
+
+  /**
+   * Check if AI is disabled
+   */
+  public get isDisabled(): boolean {
+    return this._isDisabled;
   }
 
   public get lastFireTime(): number {
@@ -119,7 +142,7 @@ export class AIBehavior implements IAIBehavior {
   }
 
   public shouldFire(): boolean {
-    if (!this._target || !this.isActive) return false;
+    if (!this._target || !this.isActive || this._isDisabled) return false;
 
     const now = performance.now();
 
@@ -147,11 +170,11 @@ export class AIBehavior implements IAIBehavior {
         `AI ${this._id}: target distance=${distance.toFixed(1)}, angleDiff=${((angleDiff * 180) / Math.PI).toFixed(1)}°, shouldFire=${shouldFire}`
       );
     }
-return shouldFire;
+    return shouldFire;
   }
 
   public shouldRotate(): boolean {
-    if (!this.isActive) return false;
+    if (!this.isActive || this._isDisabled) return false;
 
     const targetAngle = this.getDesiredRotation();
     const currentAngle = this._ship.rotation;
@@ -161,7 +184,7 @@ return shouldFire;
   }
 
   public shouldThrust(): boolean {
-    if (!this.isActive) return false;
+    if (!this.isActive || this._isDisabled) return false;
 
     const targetPos = this.getTargetPosition();
 
@@ -231,7 +254,7 @@ return shouldFire;
   }
 
   private applyMovement(deltaTime: number): void {
-    if (!this.isActive) return;
+    if (!this.isActive || this._isDisabled) return;
 
     // Apply rotation
     if (this.shouldRotate()) {

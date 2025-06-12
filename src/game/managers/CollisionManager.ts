@@ -9,8 +9,8 @@ import type { AIManager } from './AIManager';
  * CollisionManager - Handles collision detection and resolution
  * Following Single Responsibility Principle
  *
- * TEMPORARY CHANGE: Player immunity is currently ENABLED for testing.
- * To restore normal damage: Set playerImmune = false in constructor
+ * Player immunity is ENABLED to prevent damage from collisions.
+ * To allow damage: Set playerImmune = false in constructor
  * or use setPlayerImmunity(false) method.
  */
 export class CollisionManager {
@@ -22,8 +22,8 @@ export class CollisionManager {
 
   private aiManager: AIManager | null = null;
 
-  // TEMPORARY: Player immunity toggle for testing/debugging
-  private playerImmune: boolean = true; // Set to true for testing (reduces player death frequency)
+  // Player immunity toggle - DISABLED to allow collision damage for testing
+  private playerImmune: boolean = false; // DISABLED: Set to true to prevent collision damage
 
   constructor(
     playerManager: PlayerManager,
@@ -50,12 +50,24 @@ export class CollisionManager {
   }
 
   public handleCollision(event: CollisionEvent): void {
-    const { bodyA, bodyB } = event;
+    const { bodyA, bodyB, partInfoA, partInfoB } = event;
 
     // Log ALL collisions for debugging
     console.log(
       `🔥 COLLISION DETECTED: BodyA=${bodyA.id} vs BodyB=${bodyB.id}`
     );
+
+    // Enhanced collision logging with part information
+    if (partInfoA) {
+      console.log(
+        `🎯 PRECISE COLLISION: BodyA part ${partInfoA.partIndex} hit`
+      );
+    }
+    if (partInfoB) {
+      console.log(
+        `🎯 PRECISE COLLISION: BodyB part ${partInfoB.partIndex} hit`
+      );
+    }
 
     // Find which entities these bodies belong to
     const entityA = this.findEntityByPhysicsBodyId(bodyA.id);
@@ -67,9 +79,11 @@ export class CollisionManager {
 
     if (!entityA || !entityB) {
       console.log(`❌ Missing entities - skipping collision`);
-      
-return;
+
+      return;
     }
+
+    // Store part information for precise collision handling
     // Check what types of entities we have
     const laserData =
       this.laserManager.findLaserByEntity(entityA) ||
@@ -103,8 +117,8 @@ return;
     if (laserData && asteroidData) {
       console.log(`💥 LASER-ASTEROID COLLISION DETECTED!`);
       this.handleLaserAsteroidCollision(laserData, asteroidData);
-      
-return;
+
+      return;
     }
     // Check player-asteroid collisions (traditional player or composite ship parts)
     const playerAsteroidData =
@@ -113,15 +127,15 @@ return;
     if (playerAsteroidData) {
       console.log(`💥 PLAYER-ASTEROID COLLISION DETECTED!`);
       this.handlePlayerAsteroidCollision(playerAsteroidData, entityA, entityB);
-      
-return;
+
+      return;
     }
     // Check AI ship-asteroid collisions
     if (aiShip && asteroidData) {
       console.log(`💥 AI SHIP-ASTEROID COLLISION DETECTED!`);
       this.handleAIShipAsteroidCollision(aiShip, asteroidData);
-      
-return;
+
+      return;
     }
     // Check laser-AI ship collisions
     if (laserData && aiShip) {
@@ -134,8 +148,8 @@ return;
         return; // Ignore friendly fire
       }
       this.handleLaserAIShipCollision(laserData, aiShip, event);
-      
-return;
+
+      return;
     }
     // Check laser-player collisions (player getting hit by AI lasers)
     if (laserData && isPlayerCollision) {
@@ -148,20 +162,20 @@ return;
         return; // Ignore friendly fire
       }
       this.handleLaserPlayerCollision(laserData, entityA, entityB);
-      
-return;
+
+      return;
     }
     // Check AI ship vs AI ship collisions
     if (aiShipA && aiShipB && aiShipA !== aiShipB) {
       this.handleAIShipCollision(aiShipA, aiShipB);
-      
-return;
+
+      return;
     }
     // Check AI ship vs player collisions
     if (aiShip && isPlayerCollision) {
       this.handleAIShipPlayerCollision(aiShip, entityA, entityB);
-      
-return;
+
+      return;
     }
   }
 
@@ -299,8 +313,8 @@ return;
           `🎯 AI ship part ${targetPartId} hit:`,
           wasDestroyed ? 'destroyed' : 'damaged'
         );
-        
-return; // Successfully handled collision
+
+        return; // Successfully handled collision
       }
     }
     // Fallback: If we couldn't identify the specific part, use general damage
@@ -329,8 +343,8 @@ return; // Successfully handled collision
       console.log(
         `🛡️ Player is temporarily immune to damage - laser hit ignored`
       );
-      
-return;
+
+      return;
     }
     // Original damage logic would go here when immunity is disabled
     console.log(`💥 Player would take laser damage here (immunity disabled)`);
@@ -380,8 +394,8 @@ return;
     // TEMPORARY: Check immunity flag for player damage
     if (this.playerImmune) {
       console.log(`🛡️ Player is temporarily immune to collision damage`);
-      
-return;
+
+      return;
     }
     // Handle player damage (original logic when immunity is disabled)
     const compositeShip = this.playerManager.getCompositeShip();
@@ -413,8 +427,8 @@ return;
     // TEMPORARY: Check immunity flag
     if (this.playerImmune) {
       console.log(`🛡️ Player is temporarily immune to asteroid damage`);
-      
-return;
+
+      return;
     }
     // For composite ships, handle part-by-part damage (original logic when immunity is disabled)
     const compositeShip = this.playerManager.getCompositeShip();
@@ -454,7 +468,7 @@ return;
       return parts.some(part => part.entity === entity);
     }
 
-return false;
+    return false;
   }
 
   /**
@@ -470,8 +484,8 @@ return false;
       console.log(
         '🚫 FRIENDLY FIRE: Player laser hitting player ship - ignoring collision'
       );
-      
-return true;
+
+      return true;
     }
     // Check if laser is from AI hitting the same AI ship
     if (laserSource === 'ai' && laserSourceId) {
@@ -481,10 +495,10 @@ return true;
         console.log(
           `🚫 FRIENDLY FIRE: AI ship ${laserSourceId} laser hitting itself - ignoring collision`
         );
-        
-return true;
+
+        return true;
       }
     }
-return false;
+    return false;
   }
 }

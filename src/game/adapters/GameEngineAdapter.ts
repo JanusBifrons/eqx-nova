@@ -93,7 +93,8 @@ export class GameEngineAdapter implements IGameEngine {
   public createAsteroid(
     position: Vector2D,
     _size: number,
-    vertices: Vector2D[]
+    vertices: Vector2D[],
+    isStatic: boolean = false
   ): Entity {
     return this.engine.createPolygon({
       x: position.x,
@@ -101,7 +102,7 @@ export class GameEngineAdapter implements IGameEngine {
       vertices,
       options: {
         color: 0x888888,
-        isStatic: false,
+        isStatic: isStatic,
         frictionAir: 0,
         density: 0.001,
       },

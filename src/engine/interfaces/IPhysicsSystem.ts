@@ -24,6 +24,15 @@ export interface CollisionEvent {
   bodyA: IPhysicsBody;
   bodyB: IPhysicsBody;
   contactPoint: Vector2D;
+  // Enhanced collision information for compound bodies
+  partInfoA?: {
+    partIndex: number;
+    partBody: any;
+  };
+  partInfoB?: {
+    partIndex: number;
+    partBody: any;
+  };
 }
 
 export type CollisionCallback = (event: CollisionEvent) => void;

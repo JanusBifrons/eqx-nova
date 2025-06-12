@@ -18,7 +18,8 @@ export interface IGameEngine {
   createAsteroid(
     position: Vector2D,
     size: number,
-    vertices: Vector2D[]
+    vertices: Vector2D[],
+    isStatic?: boolean
   ): Entity;
   createLaser(position: Vector2D, width: number, height: number): Entity;
 
