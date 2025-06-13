@@ -1,5 +1,5 @@
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-import type { ICompositeShip, ShipPartType } from './ICompositeShip';
+import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
 
 /**
  * Interface for AI behavior
@@ -7,14 +7,14 @@ import type { ICompositeShip, ShipPartType } from './ICompositeShip';
  */
 export interface IAIBehavior {
   readonly id: string;
-  readonly ship: ICompositeShip;
-  readonly target: Vector2D | ICompositeShip | null;
+  readonly ship: IModularShip;
+  readonly target: Vector2D | IModularShip | null;
   readonly isActive: boolean;
   readonly lastFireTime: number;
   readonly isDisabled: boolean; // New property
 
   // Behavior control
-  setTarget(target: Vector2D | ICompositeShip | null): void;
+  setTarget(target: Vector2D | IModularShip | null): void;
   activate(): void;
   deactivate(): void;
   disable(): void; // New method
@@ -35,14 +35,14 @@ export interface IAIBehavior {
  */
 export interface IAIShip {
   readonly id: string;
-  readonly ship: ICompositeShip;
+  readonly ship: IModularShip;
   readonly behavior: IAIBehavior;
   readonly faction: string;
   readonly isActive: boolean;
 
   // State management
   update(deltaTime: number): void;
-  setTarget(target: Vector2D | ICompositeShip | null): void;
+  setTarget(target: Vector2D | IModularShip | null): void;
   destroy(): void;
 
   // Combat
@@ -57,9 +57,8 @@ export interface IAIShip {
 export interface AIShipConfig {
   readonly position: Vector2D;
   readonly partPositions: ReadonlyArray<Vector2D>;
-  readonly partTypes?: ReadonlyArray<ShipPartType>; // Optional part types for each position
   readonly partSize: number;
-  readonly partColor?: number; // Optional override color (overrides part type colors)
+  readonly partColor?: number; // Optional override color
   readonly faction: string;
   readonly behaviorType: 'aggressive' | 'defensive' | 'patrol' | 'hunter';
   readonly fireRate: number; // milliseconds between shots

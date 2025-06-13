@@ -8,8 +8,8 @@ import type { KeyboardInputEvent } from '../../engine/input';
 import type { IGameEngine, PhysicsConfig } from '../interfaces/IGameEngine';
 import type { ICameraSystem } from '../../engine/interfaces/ICamera';
 import { ShapeUtils } from '../utils/ShapeUtils';
-import { CompositeShipFactory } from '../factories/CompositeShipFactory';
-import type { CompositeShip } from '../entities/CompositeShip';
+import { ModularShipFactory } from '../entities/v2/ModularShipFactory';
+import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
 
 /**
  * GameEngineAdapter - Adapts the core Engine to the game-specific interface
@@ -17,9 +17,15 @@ import type { CompositeShip } from '../entities/CompositeShip';
  */
 export class GameEngineAdapter implements IGameEngine {
   private engine: Engine;
+  private modularShipFactory: ModularShipFactory;
 
   constructor(engine: Engine) {
     this.engine = engine;
+    this.modularShipFactory = new ModularShipFactory(
+      engine.getPhysicsSystem(),
+      engine.getRendererSystem(),
+      engine.getEntityManager()
+    );
   }
 
   public createTriangularShip(position: Vector2D, size: number): Entity {
@@ -38,56 +44,22 @@ export class GameEngineAdapter implements IGameEngine {
     });
   }
 
-  public createCompositeShip(
+  public createModularShip(
     position: Vector2D,
-    numParts?: number
-  ): CompositeShip {
-    const shipId = `composite-ship-${Date.now()}`;
-
-    // Allow customization of part count
-    if (numParts === 1) {
-      return CompositeShipFactory.createSinglePartShip(
-        this.engine,
-        position,
-        shipId
-      );
-    } else if (numParts === 3) {
-      return CompositeShipFactory.createThreePartShip(
-        this.engine,
-        position,
-        shipId
-      );
-    } else if (numParts === 4) {
-      return CompositeShipFactory.createFourPartShip(
-        this.engine,
-        position,
-        shipId
-      );
-    } else if (numParts === 8) {
-      // Long thin ship for testing damage system
-      return CompositeShipFactory.createLongThinShip(
-        this.engine,
-        position,
-        shipId
-      );
-    } else {
-      // Default to 2-part ship
-      return CompositeShipFactory.createTwoPartShip(
-        this.engine,
-        position,
-        shipId
-      );
+    shipType?: string
+  ): IModularShip {
+    // Support different ship types for variety
+    switch (shipType) {
+      case 'linear':
+        return this.modularShipFactory.createLinearTestShip(position);
+      case 'cross':
+        return this.modularShipFactory.createCrossTestShip(position);
+      case 'compact':
+        return this.modularShipFactory.createCompactTestShip(position);
+      case 'flagship':
+      default:
+        return this.modularShipFactory.createPlayerFlagship(position);
     }
-  }
-
-  public createPlayerFlagship(position: Vector2D): CompositeShip {
-    const shipId = `player-flagship-${Date.now()}`;
-
-    return CompositeShipFactory.createPlayerFlagship(
-      this.engine,
-      position,
-      shipId
-    );
   }
 
   public createAsteroid(

@@ -3,9 +3,7 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import { Laser } from '../entities/Laser';
 import { Asteroid, type AsteroidSize } from '../entities/Asteroid';
 import { Player } from '../entities/Player';
-import { CompositeShip } from '../entities/CompositeShip';
 import { ShapeUtils } from '../shapes/ShapeUtils';
-import { CompositeShipFactory } from './CompositeShipFactory';
 
 /**
  * LaserFactory - Creates laser entities
@@ -199,19 +197,5 @@ export class PlayerFactory {
     return new Player(entity, onDestroy);
   }
 
-  /**
-   * Create a composite ship player (new ship system)
-   */
-  public static createCompositeShip(
-    engine: Engine,
-    position: Vector2D,
-    onDestroy: (ship: CompositeShip) => void
-  ): CompositeShip {
-    return CompositeShipFactory.createTwoPartShip(
-      engine,
-      position,
-      'player_ship',
-      onDestroy
-    );
-  }
+  // createCompositeShip method removed - replaced by ModularShip system
 }

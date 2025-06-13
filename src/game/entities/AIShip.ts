@@ -1,4 +1,5 @@
-import type { ICompositeShip } from '../interfaces/ICompositeShip';
+// import type { ICompositeShip } from '../interfaces/ICompositeShip'; // Removed - old system
+// import type { IModularShip } from './v2/interfaces/IModularShip'; // TODO: Enable when AI migration complete
 import type { IAIShip, IAIBehavior } from '../interfaces/IAI';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 
@@ -10,7 +11,7 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 export class AIShip implements IAIShip {
   private readonly _id: string;
 
-  private readonly _ship: ICompositeShip;
+  private readonly _ship: any; // TODO: Migrate to IModularShip
 
   private readonly _behavior: IAIBehavior;
 
@@ -22,7 +23,7 @@ export class AIShip implements IAIShip {
 
   constructor(
     id: string,
-    ship: ICompositeShip,
+    ship: any, // TODO: Migrate to IModularShip
     behavior: IAIBehavior,
     faction: string,
     onFireLaser?: () => boolean
@@ -38,7 +39,8 @@ export class AIShip implements IAIShip {
     return this._id;
   }
 
-  public get ship(): ICompositeShip {
+  public get ship(): any {
+    // TODO: Migrate to IModularShip
     return this._ship;
   }
 
@@ -68,7 +70,8 @@ export class AIShip implements IAIShip {
     this._ship.update(deltaTime);
   }
 
-  public setTarget(target: Vector2D | ICompositeShip | null): void {
+  public setTarget(target: Vector2D | any | null): void {
+    // TODO: Migrate to IModularShip
     this._behavior.setTarget(target);
   }
 
@@ -111,7 +114,8 @@ export class AIShip implements IAIShip {
   /**
    * Check if this AI ship can attack the given target
    */
-  public canAttack(target: ICompositeShip): boolean {
+  public canAttack(target: any): boolean {
+    // TODO: Migrate to IModularShip
     if (!this.isActive) return false;
 
     // For now, AI ships attack anyone who isn't their faction

@@ -130,13 +130,12 @@ export const Minimap: React.FC<MinimapProps> = ({
 
         // Get player
         const playerManager = (game as any).playerManager;
-
         if (playerManager) {
-          const compositeShip = playerManager.getCompositeShip();
+          const modularShip = playerManager.getModularShip();
           const player = playerManager.getPlayer();
 
-          if (compositeShip) {
-            const pos = compositeShip.centerPosition;
+          if (modularShip) {
+            const pos = modularShip.position;
             if (isInBounds(pos)) {
               const minimapPos = worldToMinimap(pos);
               entities.push({

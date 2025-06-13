@@ -1,32 +1,38 @@
 import type { Entity } from '../../engine/entity';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IGameEngine } from '../interfaces/IGameEngine';
-import type { CompositeShip } from '../entities/CompositeShip';
-import { CompositeShipFactory } from '../factories/CompositeShipFactory';
+import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
+import { ModularShipFactory } from '../entities/v2/ModularShipFactory';
 
 /**
- * PlayerManager - Handles player-specific logic
+ * PlayerManager - Handles player-specific logic with new ModularShip system
  * Following Single Responsibility Principle
  */
 export class PlayerManager {
   private player: Entity | null = null;
-
-  private compositeShip: CompositeShip | null = null;
-
-  private useCompositeShip: boolean = true; // Flag to switch between ship types
+  private modularShip: IModularShip | null = null;
+  private modularShipFactory: ModularShipFactory;
 
   private rotation = 0;
-
   private thrust = false;
-
   private gameEngine: IGameEngine;
 
   private readonly ROTATION_SPEED = 0.003;
-
-  private readonly THRUST_FORCE = 0.001; // Increased from 0.0005 for better responsiveness
+  private readonly THRUST_FORCE = 0.008; // Balanced for compound body physics
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
+
+    // Access the underlying engine systems through the adapter
+    const engineAdapter = gameEngine as any;
+    const engine = engineAdapter.engine;
+
+    // Create factory for modular ships
+    this.modularShipFactory = new ModularShipFactory(
+      engine.getPhysicsSystem(),
+      engine.getRendererSystem(),
+      engine.getEntityManager()
+    );
   }
 
   public createPlayer(): void {
@@ -34,45 +40,38 @@ export class PlayerManager {
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
 
-    if (this.useCompositeShip) {
-      // Create single-part player ship for testing/isolation
-      this.compositeShip = this.createPlayerFlagship({
-        x: centerX,
-        y: centerY,
-      });
-      this.player = null; // Clear traditional player
-      console.log(
-        '🚀 Player single-part ship created at center:',
-        centerX,
-        centerY
-      );
-    } else {
-      // Create traditional triangular ship
-      this.player = this.gameEngine.createTriangularShip(
-        { x: centerX, y: centerY },
-        20
-      );
-      this.compositeShip = null; // Clear composite ship
-      console.log('Traditional player created at center:', centerX, centerY);
-    }
-    this.rotation = 0;
-    this.thrust = false;
+    // Create modular ship player
+    this.modularShip = this.modularShipFactory.createPlayerFlagship({
+      x: centerX,
+      y: centerY,
+    });
 
-    console.log('World dimensions:', dimensions.width, 'x', dimensions.height);
+    this.player = null; // We use modular ship instead of traditional player
+    console.log('🚀 Modular player ship created at center:', centerX, centerY);
+  }
+
+  public hasPlayer(): boolean {
+    return this.modularShip !== null && this.modularShip.isAlive;
   }
 
   public getPlayer(): Entity | null {
-    if (this.useCompositeShip && this.compositeShip) {
-      // For composite ships, return the first part's entity for compatibility
-      const parts = this.compositeShip.parts;
-
-      return parts.length > 0 ? parts[0].entity : null;
-    }
     return this.player;
   }
 
-  public getCompositeShip(): CompositeShip | null {
-    return this.compositeShip;
+  public getModularShip(): IModularShip | null {
+    return this.modularShip;
+  }
+
+  public getPlayerPosition(): Vector2D | null {
+    if (this.modularShip) {
+      return this.modularShip.position;
+    }
+
+    if (this.player) {
+      return this.player.position;
+    }
+
+    return null;
   }
 
   public getRotation(): number {
@@ -88,18 +87,37 @@ export class PlayerManager {
   }
 
   public update(deltaTime: number): void {
-    if (this.useCompositeShip && this.compositeShip) {
-      // Update composite ship internal state first
-      this.compositeShip.update(deltaTime);
-      // Then apply movement inputs
-      this.updateCompositeMovement();
-    } else if (this.player) {
-      // Update traditional player
-      this.updateMovement();
+    if (this.modularShip) {
+      this.modularShip.update(deltaTime);
+      this.applyPlayerInput();
+    }
+
+    // Update traditional player if present
+    if (this.player) {
+      this.updateTraditionalPlayer();
     }
   }
 
-  private updateMovement(): void {
+  private applyPlayerInput(): void {
+    if (!this.modularShip) return;
+
+    // Apply angular velocity for rotation (physics-based)
+    // The rotation variable is now used as angular velocity
+    this.modularShip.setAngularVelocity(this.rotation);
+
+    // Apply thrust
+    if (this.thrust) {
+      // Get current ship rotation for thrust direction
+      const currentAngle = this.modularShip.rotation;
+      const thrustVector = {
+        x: Math.cos(currentAngle) * this.THRUST_FORCE,
+        y: Math.sin(currentAngle) * this.THRUST_FORCE,
+      };
+      this.modularShip.applyForce(thrustVector);
+    }
+  }
+
+  private updateTraditionalPlayer(): void {
     if (!this.player) return;
 
     // Apply thrust
@@ -110,16 +128,6 @@ export class PlayerManager {
     }
     // Apply rotation
     this.gameEngine.setEntityRotation(this.player, this.rotation);
-  }
-
-  private updateCompositeMovement(): void {
-    if (!this.compositeShip) return;
-
-    // Apply rotation to the composite ship
-    this.compositeShip.setRotation(this.rotation);
-
-    // Apply thrust to the composite ship
-    this.compositeShip.setThrust(this.thrust);
   }
 
   public handleInput(key: string, pressed: boolean): void {
@@ -149,77 +157,36 @@ export class PlayerManager {
   }
 
   public respawn(): void {
+    if (!this.modularShip || this.modularShip.isAlive) return;
+
     const dimensions = this.gameEngine.getWorldDimensions();
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
 
+    // Destroy old ship
+    this.modularShip.destroy();
+
+    // Create new ship
+    this.modularShip = this.modularShipFactory.createPlayerFlagship({
+      x: centerX,
+      y: centerY,
+    });
+
     this.rotation = 0;
+    this.thrust = false;
 
-    if (this.useCompositeShip) {
-      if (this.compositeShip && this.compositeShip.isAlive) {
-        // Respawn existing composite ship
-        this.compositeShip.respawn({ x: centerX, y: centerY });
-      } else {
-        // Ship is completely destroyed, create new single-part ship
-        console.log('🚀 Respawning new player single-part ship...');
-
-        if (this.compositeShip) {
-          this.compositeShip.destroy();
-        }
-        this.compositeShip = this.createPlayerFlagship({
-          x: centerX,
-          y: centerY,
-        });
-      }
-    } else if (this.player) {
-      // Respawn traditional player
-      this.gameEngine.setEntityPosition(this.player, {
-        x: centerX,
-        y: centerY,
-      });
-      this.gameEngine.setEntityRotation(this.player, this.rotation);
-      // Stop any movement
-      this.gameEngine.applyForceToEntity(this.player, { x: 0, y: 0 });
-    }
+    console.log('🔄 Player respawned at center');
   }
 
   public destroy(): void {
-    if (this.useCompositeShip && this.compositeShip) {
-      // Destroy composite ship
-      this.compositeShip.destroy();
-      this.compositeShip = null;
-    } else if (this.player) {
-      // Destroy traditional player
+    if (this.modularShip) {
+      this.modularShip.destroy();
+      this.modularShip = null;
+    }
+
+    if (this.player) {
       this.gameEngine.removeEntity(this.player.id);
       this.player = null;
     }
-  }
-
-  public getPlayerPosition(): Vector2D | null {
-    if (this.useCompositeShip && this.compositeShip) {
-      return this.compositeShip.centerPosition;
-    } else if (this.player) {
-      return this.player.position;
-    }
-    return null;
-  }
-
-  /**
-   * Create a powerful 4x4 flagship player ship
-   * Using the impressive Sovereign-class Heavy Cruiser design
-   */
-  private createPlayerFlagship(position: Vector2D): CompositeShip {
-    // Access the underlying engine from the game engine adapter
-    const engine = (this.gameEngine as any).engine;
-
-    return CompositeShipFactory.createPlayerFlagship(
-      engine,
-      position,
-      'player-flagship',
-      () => {
-        console.log('🚀 Player flagship destroyed!');
-        // Handle player ship destruction - could trigger game over or respawn logic
-      }
-    );
   }
 }

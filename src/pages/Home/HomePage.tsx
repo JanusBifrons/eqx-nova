@@ -3,7 +3,7 @@ import { GameCanvas } from '../../engine';
 import { Engine } from '../../engine/Engine';
 import { AsteroidsGame } from '../../game/AsteroidsGame';
 import { Minimap, ShipStatusHUD } from '../../components';
-import type { ICompositeShip } from '../../game/interfaces/ICompositeShip';
+import type { IModularShip } from '../../game/entities/v2/interfaces/IModularShip';
 
 export function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,7 +11,7 @@ export function HomePage() {
   const gameRef = useRef<AsteroidsGame | null>(null);
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [playerShip, setPlayerShip] = useState<ICompositeShip | null>(null); // Track player ship for MUI HUD
+  const [playerShip, setPlayerShip] = useState<IModularShip | null>(null); // Track player ship for MUI HUD
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -62,8 +62,8 @@ export function HomePage() {
             // Update player ship for MUI HUD
             const playerManager = (gameRef.current as any).playerManager;
             if (playerManager) {
-              const compositeShip = playerManager.getCompositeShip();
-              setPlayerShip(compositeShip);
+              const modularShip = playerManager.getModularShip();
+              setPlayerShip(modularShip);
             }
           }
         }, 16); // ~60fps UI updates

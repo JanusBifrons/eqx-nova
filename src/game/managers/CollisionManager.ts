@@ -1,5 +1,8 @@
 import type { Entity } from '../../engine/entity';
-import type { CollisionEvent } from '../../engine/interfaces/IPhysicsSystem';
+import type {
+  CollisionEvent,
+  Vector2D,
+} from '../../engine/interfaces/IPhysicsSystem';
 import type { PlayerManager } from './PlayerManager';
 import type { LaserManager } from './LaserManager';
 import type { AsteroidManager } from './AsteroidManager';
@@ -52,7 +55,21 @@ export class CollisionManager {
   public handleCollision(event: CollisionEvent): void {
     const { bodyA, bodyB, partInfoA, partInfoB } = event;
 
-    // Log ALL collisions for debugging
+    // CRITICAL: Check for modular ship self-collision and ignore it
+    const bodyAIsModular = (bodyA as any).isModularShip;
+    const bodyBIsModular = (bodyB as any).isModularShip;
+    const bodyAShipId = (bodyA as any).modularShipId;
+    const bodyBShipId = (bodyB as any).modularShipId;
+
+    if (bodyAIsModular && bodyBIsModular && bodyAShipId === bodyBShipId) {
+      // This is a self-collision within the same modular ship - ignore it
+      console.log(
+        `🛡️ IGNORED: Self-collision within modular ship ${bodyAShipId}`
+      );
+      return;
+    }
+
+    // Log collision for debugging (but only non-self-collisions)
     console.log(
       `🔥 COLLISION DETECTED: BodyA=${bodyA.id} vs BodyB=${bodyB.id}`
     );
@@ -126,7 +143,18 @@ export class CollisionManager {
 
     if (playerAsteroidData) {
       console.log(`💥 PLAYER-ASTEROID COLLISION DETECTED!`);
-      this.handlePlayerAsteroidCollision(playerAsteroidData, entityA, entityB);
+
+      // Determine which part was hit based on collision info
+      const playerPartInfo = isPlayerCollisionA ? partInfoA : partInfoB;
+      const contactPoint = event.contactPoint;
+
+      this.handlePlayerAsteroidCollision(
+        playerAsteroidData,
+        entityA,
+        entityB,
+        playerPartInfo,
+        contactPoint
+      );
 
       return;
     }
@@ -161,7 +189,16 @@ export class CollisionManager {
       if (this.isLaserFriendlyFire(laserData, playerEntity)) {
         return; // Ignore friendly fire
       }
-      this.handleLaserPlayerCollision(laserData, entityA, entityB);
+
+      // Determine which part was hit based on collision info
+      const playerPartInfo = isPlayerCollisionA ? partInfoA : partInfoB;
+
+      this.handleLaserPlayerCollision(
+        laserData,
+        entityA,
+        entityB,
+        playerPartInfo
+      );
 
       return;
     }
@@ -186,29 +223,37 @@ export class CollisionManager {
     if (player?.physicsBodyId === physicsBodyId) {
       return player;
     }
-    // Check composite ship compound body AND individual parts
-    const compositeShip = this.playerManager.getCompositeShip();
 
-    if (compositeShip) {
-      // CRITICAL FIX: Check if this is the main compound body physics ID
-      const compoundBody = (compositeShip as any)._compoundBody;
+    // Check modular ship compound body
+    const modularShip = this.playerManager.getModularShip();
 
-      if (compoundBody && compoundBody.id === physicsBodyId) {
+    if (modularShip) {
+      // Check if this is the main compound body physics ID
+      const shipPhysicsBodyId = modularShip.physicsBodyId;
+
+      if (shipPhysicsBodyId === physicsBodyId) {
         console.log(
-          `🎯 Found composite ship compound body: ${physicsBodyId} -> ${compositeShip.id}`
+          `🎯 Found modular ship compound body: ${physicsBodyId} -> ${modularShip.id}`
         );
-        // Return the first part's entity as a representative (for collision handling)
-        const activeParts = compositeShip.getActiveParts();
-
-        if (activeParts.length > 0) {
-          return activeParts[0].entity;
+        // Return a representative entity for collision handling
+        // We need to get the cockpit component entity
+        const cockpitComponent = modularShip.structure.cockpitComponent;
+        if (cockpitComponent) {
+          return cockpitComponent.entity;
+        }
+        // Fallback to first component
+        const components = modularShip.structure.components;
+        if (components.length > 0) {
+          return components[0].entity;
         }
       }
-      // Also check individual parts (for when ship has broken apart)
-      const parts = compositeShip.parts;
-      const part = parts.find(p => p.entity.physicsBodyId === physicsBodyId);
 
-      if (part) return part.entity;
+      // Also check individual component entities (for detailed collision handling)
+      const components = modularShip.structure.components;
+      const component = components.find(
+        c => c.entity.physicsBodyId === physicsBodyId
+      );
+      if (component) return component.entity;
     }
     // Check AI ships compound bodies AND individual parts
     if (this.aiManager) {
@@ -231,7 +276,9 @@ export class CollisionManager {
         }
         // Check individual parts
         const parts = aiShip.ship.parts;
-        const part = parts.find(p => p.entity.physicsBodyId === physicsBodyId);
+        const part = parts.find(
+          (p: any) => p.entity.physicsBodyId === physicsBodyId
+        );
 
         if (part) return part.entity;
       }
@@ -333,7 +380,8 @@ export class CollisionManager {
   private handleLaserPlayerCollision(
     laserData: any,
     _entityA: Entity,
-    _entityB: Entity
+    _entityB: Entity,
+    playerPartInfo?: { partIndex: number } | null
   ): void {
     // Remove laser
     this.laserManager.removeLaser(laserData);
@@ -346,8 +394,33 @@ export class CollisionManager {
 
       return;
     }
-    // Original damage logic would go here when immunity is disabled
-    console.log(`💥 Player would take laser damage here (immunity disabled)`);
+
+    // Handle modular ship laser damage with part precision
+    const modularShip = this.playerManager.getModularShip();
+
+    if (
+      modularShip &&
+      playerPartInfo &&
+      typeof playerPartInfo.partIndex === 'number'
+    ) {
+      // Use precise part index for damage
+      const damageAmount = 15; // Laser damage
+      const wasDestroyed = modularShip.takeDamageAtPartIndex(
+        playerPartInfo.partIndex,
+        damageAmount
+      );
+
+      console.log(
+        `💥 Laser hit modular ship part ${playerPartInfo.partIndex}, destroyed: ${wasDestroyed}`
+      );
+    } else if (modularShip) {
+      // Fallback to position-based damage if no part info
+      console.log(`💥 Laser hit modular ship (fallback damage)`);
+      // Could implement fallback damage here
+    } else {
+      // Traditional player damage
+      console.log(`💥 Laser hit traditional player`);
+    }
   }
 
   private handleAIShipAsteroidCollision(aiShip: any, asteroidData: any): void {
@@ -398,19 +471,21 @@ export class CollisionManager {
       return;
     }
     // Handle player damage (original logic when immunity is disabled)
-    const compositeShip = this.playerManager.getCompositeShip();
+    const modularShip = this.playerManager.getModularShip();
 
-    if (compositeShip && playerEntity) {
-      const parts = compositeShip.parts;
-      const hitPart = parts.find(part => part.entity === playerEntity);
+    if (modularShip && playerEntity) {
+      const components = modularShip.structure.components;
+      const hitComponent = components.find(
+        component => component.entity === playerEntity
+      );
 
-      if (hitPart && !compositeShip.isInvulnerable) {
-        // Damage the specific part that was hit with a large amount
-        const damageAmount = 25; // Collisions do more damage than lasers (reduced from 50)
-        compositeShip.takeDamageAtPart(hitPart.partId, damageAmount);
+      if (hitComponent && modularShip.isAlive) {
+        // Damage the specific component that was hit with a large amount
+        const damageAmount = 25; // Collisions do more damage than lasers
+        modularShip.takeDamageAtComponent(hitComponent.id, damageAmount);
         console.log(
-          'Player damaged in AI ship collision! Parts remaining:',
-          parts.filter(p => !p.isDestroyed).length
+          'Player damaged in AI ship collision! Components remaining:',
+          components.filter(c => !c.isDestroyed).length
         );
       }
     }
@@ -418,36 +493,56 @@ export class CollisionManager {
 
   private handlePlayerAsteroidCollision(
     _asteroidData: any,
-    entityA: Entity,
-    entityB: Entity
+    _entityA: Entity,
+    _entityB: Entity,
+    playerPartInfo?: { partIndex: number; partBody: any },
+    contactPoint?: Vector2D
   ): void {
-    // Determine which entity is the player entity
-    const playerEntity = this.isPlayerEntity(entityA) ? entityA : entityB;
-
     // TEMPORARY: Check immunity flag
     if (this.playerImmune) {
       console.log(`🛡️ Player is temporarily immune to asteroid damage`);
 
       return;
     }
-    // For composite ships, handle part-by-part damage (original logic when immunity is disabled)
-    const compositeShip = this.playerManager.getCompositeShip();
 
-    if (compositeShip && playerEntity) {
-      // Find which part was hit
-      const parts = compositeShip.parts;
-      const hitPart = parts.find(part => part.entity === playerEntity);
+    // For modular ships, handle component-by-component damage
+    const modularShip = this.playerManager.getModularShip();
 
-      if (hitPart && !compositeShip.isInvulnerable) {
-        // Damage the specific part that was hit with a large amount
-        const damageAmount = 35; // Asteroids do heavy damage (reduced from 60)
-        compositeShip.takeDamageAtPart(hitPart.partId, damageAmount);
+    if (modularShip && modularShip.isAlive) {
+      let damageSuccess = false;
+
+      // If we have part info (compound body collision), use that to find the component
+      if (playerPartInfo && playerPartInfo.partIndex !== undefined) {
         console.log(
-          'Composite ship hit! Parts remaining:',
-          parts.filter(p => !p.isDestroyed).length
+          `🎯 Hit component at part index ${playerPartInfo.partIndex}`
         );
+        const damageAmount = 35; // Asteroids do heavy damage
+        damageSuccess = modularShip.takeDamageAtPartIndex(
+          playerPartInfo.partIndex,
+          damageAmount
+        );
+        if (damageSuccess) {
+          console.log(
+            `🔥 Component at part ${playerPartInfo.partIndex} damaged by asteroid! Components remaining:`,
+            modularShip.structure.components.filter(c => !c.isDestroyed).length
+          );
+        }
+      }
+      // Fallback: Use contact point to find closest component
+      else if (contactPoint) {
+        console.log(
+          `🎯 Using contact point fallback at (${contactPoint.x.toFixed(1)}, ${contactPoint.y.toFixed(1)})`
+        );
+        damageSuccess = modularShip.takeDamageAtPosition(contactPoint, 35);
+        if (damageSuccess) {
+          console.log(
+            'Modular ship hit by asteroid at contact point! Components remaining:',
+            modularShip.structure.components.filter(c => !c.isDestroyed).length
+          );
+        }
       }
     }
+
     // Traditional player no longer takes damage from asteroids in this implementation
     // But we could add traditional player damage handling here if needed
   }
@@ -459,13 +554,13 @@ export class CollisionManager {
     if (player && entity === player) {
       return true;
     }
-    // Check if entity is part of composite ship
-    const compositeShip = this.playerManager.getCompositeShip();
 
-    if (compositeShip) {
-      const parts = compositeShip.parts;
+    // Check if entity is part of modular ship
+    const modularShip = this.playerManager.getModularShip();
 
-      return parts.some(part => part.entity === entity);
+    if (modularShip) {
+      const components = modularShip.structure.components;
+      return components.some(component => component.entity === entity);
     }
 
     return false;

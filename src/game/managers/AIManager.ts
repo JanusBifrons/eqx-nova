@@ -1,12 +1,11 @@
 import type { IGameEngine } from '../interfaces/IGameEngine';
-import type { AIShipConfig, AIBehaviorConfig } from '../interfaces/IAI';
-import type { CompositeShipConfig } from '../interfaces/ICompositeShip';
+import type { AIShipConfig } from '../interfaces/IAI';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-import type { ICompositeShip } from '../interfaces/ICompositeShip';
+// import type { IModularShip } from '../entities/v2/interfaces/IModularShip'; // TODO: Enable when AI migration complete
 import { AIShip } from '../entities/AIShip';
-import { AIBehavior } from '../entities/AIBehavior';
-import { CompositeShipFactory } from '../factories/CompositeShipFactory';
-import { v4 as uuidv4 } from 'uuid';
+// import { AIBehavior } from '../entities/AIBehavior'; // TODO: Enable when AI migration complete
+// import { ModularShipFactory } from '../entities/v2/ModularShipFactory'; // TODO: Enable when AI migration complete
+// import { v4 as uuidv4 } from 'uuid'; // TODO: Enable when AI migration complete
 
 /**
  * AIManager - Manages all AI ships in the game
@@ -15,96 +14,59 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export class AIManager {
   private readonly _gameEngine: IGameEngine;
-
+  // private readonly _modularShipFactory: ModularShipFactory; // TODO: Enable when AI migration complete
   private readonly _aiShips: Map<string, AIShip> = new Map();
 
-  private _onFireLaser?: (
-    position: Vector2D,
-    rotation: number,
-    velocity?: Vector2D,
-    sourceId?: string
-  ) => boolean;
+  // TODO: Enable when AI migration complete
+  // private _onFireLaser?: (
+  //   position: Vector2D,
+  //   rotation: number,
+  //   velocity?: Vector2D,
+  //   sourceId?: string
+  // ) => boolean;
 
   constructor(gameEngine: IGameEngine) {
     this._gameEngine = gameEngine;
+
+    // Access underlying engine systems for ModularShipFactory
+    // const engineAdapter = gameEngine as any; // TODO: Enable when AI migration complete
+    // const engine = engineAdapter.engine; // TODO: Enable when AI migration complete
+
+    // this._modularShipFactory = new ModularShipFactory( // TODO: Enable when AI migration complete
+    //   engine.getPhysicsSystem(),
+    //   engine.getRendererSystem(),
+    //   engine.getEntityManager()
+    // );
   }
 
   /**
    * Set the laser firing callback
    */
   public setFireLaserCallback(
-    callback: (
+    _callback: (
+      // Prefixed with _ to avoid unused parameter warning
       position: Vector2D,
       rotation: number,
       velocity?: Vector2D,
       sourceId?: string
     ) => boolean
   ): void {
-    this._onFireLaser = callback;
+    // this._onFireLaser = callback; // TODO: Enable when AI migration complete
   }
 
   /**
    * Create an AI ship with the given configuration
    */
   public createAIShip(config: AIShipConfig): AIShip {
-    const shipId = uuidv4(); // Use proper UUID instead of counter
+    // TEMPORARY: Disable AI ship creation for now to focus on core ModularShip system
+    // TODO: Update AI system to work with ModularShip instead of CompositeShip
 
     console.log(
-      `🤖 Creating AI ship ${config.faction} with ${config.partPositions.length} parts:`
-    );
-    console.log(
-      `🤖 Part positions:`,
-      config.partPositions.map(p => `(${p.x},${p.y})`).join(', ')
-    );
-    console.log(`🤖 Part size: ${config.partSize}`);
-
-    // Create the composite ship using the new configuration-based approach
-    const shipConfig: CompositeShipConfig = {
-      centerPosition: config.position,
-      partSize: config.partSize,
-      partPositions: config.partPositions,
-      partTypes: config.partTypes, // Use AI-specified part types
-      partColor: config.partColor, // Optional override color
-      lives: config.lives,
-    };
-
-    const compositeShip = CompositeShipFactory.create(
-      (this._gameEngine as any).engine, // Access underlying engine
-      shipConfig,
-      shipId,
-      () => this.handleShipDestroyed(shipId)
+      `🚫 AI ship creation temporarily disabled - config for ${config.faction} ignored`
     );
 
-    // Create AI behavior
-    const behaviorConfig: AIBehaviorConfig = {
-      behaviorType: config.behaviorType,
-      fireRate: config.fireRate,
-      detectionRange: config.detectionRange,
-      rotationSpeed: 0.003, // Same as player
-      thrustForce: 0.002, // Same as player
-      maxSpeed: 5.0,
-    };
-
-    const behavior = new AIBehavior(
-      `${shipId}_behavior`,
-      compositeShip,
-      behaviorConfig
-    );
-
-    // Create AI ship with firing callback
-    const aiShip = new AIShip(
-      shipId,
-      compositeShip,
-      behavior,
-      config.faction,
-      () => this.handleAIFire(compositeShip)
-    );
-
-    this._aiShips.set(shipId, aiShip);
-
-    console.log(`Created AI ship: ${shipId} with faction: ${config.faction}`);
-
-    return aiShip;
+    // Return a null stub that won't interfere with the game
+    return null as any;
   }
 
   /**
@@ -338,24 +300,6 @@ export class AIManager {
       {
         position: { x: centerX - 200, y: centerY - 150 },
         partPositions: redDreadnoughtGrid,
-        partTypes: [
-          'cockpit', // Center (0,0)
-          'engine',
-          'engine',
-          'engine', // Rear spine (-1,-2,-3)
-          'weapon',
-          'weapon', // Front spine (1,2)
-          'armor',
-          'armor',
-          'armor',
-          'shield', // Upper wing
-          'armor',
-          'armor',
-          'armor',
-          'shield', // Lower wing
-          'engine',
-          'engine', // Rear diagonal extensions
-        ],
         partSize: 20,
         faction: 'red_dreadnought',
         behaviorType: 'aggressive',
@@ -368,23 +312,6 @@ export class AIManager {
       {
         position: { x: centerX + 250, y: centerY - 100 },
         partPositions: blueFortressGrid,
-        partTypes: [
-          'cockpit', // Center (0,0)
-          'armor',
-          'armor', // Horizontal line (-1,1)
-          'armor',
-          'armor', // Vertical line (0,-1,1)
-          'shield',
-          'shield',
-          'shield',
-          'shield', // Corners
-          'weapon',
-          'weapon',
-          'armor',
-          'armor', // Extensions
-          'weapon',
-          'weapon', // Outer corners
-        ],
         partSize: 20,
         faction: 'blue_fortress',
         behaviorType: 'defensive',
@@ -397,18 +324,6 @@ export class AIManager {
       {
         position: { x: centerX - 300, y: centerY + 50 },
         partPositions: purpleDestroyerGrid,
-        partTypes: [
-          'cockpit', // Center (0,0)
-          'engine',
-          'engine', // Rear spine (-1,-2)
-          'weapon',
-          'weapon',
-          'weapon', // Front spine (1,2,3)
-          'armor',
-          'armor', // Side wings
-          'engine',
-          'engine', // Engine pods
-        ],
         partSize: 20, // Changed from 18 to match grid size
         faction: 'purple_destroyer',
         behaviorType: 'hunter',
@@ -421,26 +336,6 @@ export class AIManager {
       {
         position: { x: centerX + 180, y: centerY + 200 },
         partPositions: orangeCarrierGrid,
-        partTypes: [
-          'cockpit', // Command center (0,0)
-          'armor',
-          'engine',
-          'armor', // Central spine
-          'cargo',
-          'cargo',
-          'cargo',
-          'cargo',
-          'cargo',
-          'cargo', // Flight deck
-          'armor',
-          'armor',
-          'armor',
-          'armor', // Support structure
-          'cargo',
-          'cargo',
-          'cargo',
-          'cargo', // Landing bay extensions
-        ],
         partSize: 20,
         faction: 'orange_carrier',
         behaviorType: 'patrol',
@@ -453,34 +348,6 @@ export class AIManager {
       {
         position: { x: centerX + 50, y: centerY - 250 },
         partPositions: yellowInterceptorGrid,
-        partTypes: ['engine', 'cockpit', 'weapon'], // Engine, cockpit, weapon - simple line
-        partSize: 20, // Changed from 18 to match grid size
-        faction: 'yellow_interceptor',
-        behaviorType: 'hunter',
-        fireRate: 200,
-        detectionRange: 600,
-        lives: 8,
-      },
-
-      // CYAN CRUISER - Balanced medium ship (bottom of center)
-      {
-        position: { x: centerX - 100, y: centerY + 280 },
-        partPositions: cyanCruiserGrid,
-        partTypes: [
-          'cockpit', // Center (0,0)
-          'weapon',
-          'engine', // Front/rear (1,-1)
-          'armor',
-          'armor', // Top/bottom (0,-1,1)
-          'armor',
-          'armor',
-          'armor',
-          'armor', // Secondary ring
-          'weapon',
-          'engine',
-          'shield',
-          'shield', // Extensions
-        ],
         partSize: 20, // Changed from 18 to match grid size
         faction: 'cyan_cruiser',
         behaviorType: 'patrol',
@@ -540,7 +407,7 @@ export class AIManager {
   /**
    * Set player as target for all AI ships
    */
-  public setPlayerTarget(playerShip: ICompositeShip | null): void {
+  public setPlayerTarget(playerShip: any | null): void {
     let targetCount = 0;
 
     for (const aiShip of this._aiShips.values()) {
@@ -570,7 +437,7 @@ export class AIManager {
     for (const aiShip of this._aiShips.values()) {
       if (aiShip.isActive) {
         const parts = aiShip.ship.parts;
-        const foundPart = parts.find(part => part.entity === entity);
+        const foundPart = parts.find((part: any) => part.entity === entity);
 
         if (foundPart) {
           return aiShip;
@@ -601,6 +468,7 @@ export class AIManager {
   /**
    * Handle when an AI ship is destroyed
    */
+  /* TODO: Enable when AI migration complete
   private handleShipDestroyed(shipId: string): void {
     const aiShip = this._aiShips.get(shipId);
 
@@ -610,11 +478,14 @@ export class AIManager {
       console.log(`AI ship destroyed: ${shipId}`);
     }
   }
+  */
 
+  /* TODO: Enable when AI migration complete
   /**
    * Handle AI firing
    */
-  private handleAIFire(ship: ICompositeShip): boolean {
+  /*
+  private handleAIFire(ship: any): boolean {
     if (!this._onFireLaser) return false;
 
     // Check if ship has weapon parts
@@ -632,7 +503,7 @@ export class AIManager {
     const firingPositions = ship.getWeaponFiringPositions();
     let firedCount = 0;
 
-    firingPositions.forEach(position => {
+    firingPositions.forEach((position: any) => {
       if (this._onFireLaser) {
         const success = this._onFireLaser(
           position,
@@ -659,6 +530,7 @@ export class AIManager {
     }
     return false;
   }
+  */
 
   /**
    * Update AI targeting logic
@@ -668,7 +540,7 @@ export class AIManager {
 
     for (const aiShip of activeShips) {
       // Find the closest enemy ship from a different faction
-      let closestEnemy: ICompositeShip | null = null;
+      let closestEnemy: any | null = null;
       let closestDistance = Infinity;
 
       for (const otherShip of activeShips) {

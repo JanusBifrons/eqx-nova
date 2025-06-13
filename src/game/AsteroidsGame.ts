@@ -2,7 +2,6 @@ import type { Engine } from '../engine';
 import type { IGameEngine } from './interfaces/IGameEngine';
 import type { MouseInputEvent } from '../engine/input';
 import { GameEngineAdapter } from './adapters/GameEngineAdapter';
-import { CompositeShipFactory } from './factories/CompositeShipFactory';
 import {
   PlayerManager,
   LaserManager,
@@ -48,7 +47,7 @@ export class AsteroidsGame {
     if (!AsteroidsGame.instance) {
       AsteroidsGame.instance = new AsteroidsGame();
     }
-return AsteroidsGame.instance;
+    return AsteroidsGame.instance;
   }
 
   public static resetInstance(): void {
@@ -199,47 +198,30 @@ return AsteroidsGame.instance;
     // Note: Continuous firing is now handled in the game loop (handleInput method)
     // rather than using one-time action callbacks to avoid delay and interruption issues
   }
-
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
-    const compositeShip = this.playerManager.getCompositeShip();
+    const modularShip = this.playerManager.getModularShip();
     const player = this.playerManager.getPlayer();
 
-    if (compositeShip) {
-      // Handle composite ship firing from weapon parts only
-      const weaponParts = compositeShip.getWeaponParts();
-
-      if (weaponParts.length === 0) {
-        console.log('⚠️ No weapon parts available - cannot fire lasers');
-        
-return;
-      }
+    if (modularShip) {
+      // Handle modular ship firing - simplified for now
+      // TODO: Implement weapon component system for ModularShip
+      const shipPosition = modularShip.position;
       const shipRotation = this.playerManager.getRotation();
-      const shipVelocity = compositeShip.velocity;
+      const shipVelocity = modularShip.velocity;
 
-      // Fire from all weapon positions
-      const firingPositions = compositeShip.getWeaponFiringPositions();
-      let firedCount = 0;
+      // Fire from ship center for now
+      const success = this.laserManager!.fireLaser(
+        shipPosition,
+        shipRotation,
+        shipVelocity,
+        'player'
+      );
 
-      firingPositions.forEach(position => {
-        const success = this.laserManager!.fireLaser(
-          position,
-          shipRotation,
-          shipVelocity,
-          'player'
-        );
-
-        if (success) firedCount++;
-      });
-
-      // Only log occasionally to avoid spam
-      if (firedCount > 0 && Math.random() < 0.1) {
+      if (success && Math.random() < 0.1) {
         // 10% chance to log
-        const effectiveness = compositeShip.getWeaponEffectiveness();
-        console.log(
-          `🔫 Fired ${firedCount} lasers (${(effectiveness * 100).toFixed(0)}% weapon effectiveness)`
-        );
+        console.log('🔫 Fired laser from modular ship');
       }
     } else if (player) {
       // Handle traditional player firing
@@ -273,18 +255,19 @@ return;
     this.checkForNewWave();
   }
 
-  private handleInput(deltaTime: number): void {
+  private handleInput(_deltaTime: number): void {
     if (!this.inputManager || !this.playerManager) return;
 
-    // Handle rotation
+    // Handle rotation using angular velocity (physics-based)
+    let angularVelocity = 0;
     if (this.inputManager.isLeftPressed()) {
-      const currentRotation = this.playerManager.getRotation();
-      this.playerManager.setRotation(currentRotation - 0.003 * deltaTime);
+      angularVelocity = -0.05; // Rotate counter-clockwise (increased for visibility)
     }
     if (this.inputManager.isRightPressed()) {
-      const currentRotation = this.playerManager.getRotation();
-      this.playerManager.setRotation(currentRotation + 0.003 * deltaTime);
+      angularVelocity = 0.05; // Rotate clockwise (increased for visibility)
     }
+    this.playerManager.setRotation(angularVelocity);
+
     // Handle thrust
     this.playerManager.setThrust(this.inputManager.isThrustPressed());
 
@@ -326,7 +309,7 @@ return;
     this.aiManager!.update(deltaTime);
 
     // Set player as target for AI ships
-    const playerShip = this.playerManager!.getCompositeShip();
+    const playerShip = this.playerManager!.getModularShip();
 
     if (playerShip) {
       this.aiManager!.setPlayerTarget(playerShip);
@@ -338,11 +321,11 @@ return;
   private updateCamera(): void {
     if (!this.gameEngine || !this.playerManager) return;
 
-    const compositeShip = this.playerManager.getCompositeShip();
+    const modularShip = this.playerManager.getModularShip();
 
-    if (compositeShip) {
-      // For composite ships, track the center position
-      const centerPos = compositeShip.centerPosition;
+    if (modularShip) {
+      // For modular ships, track the center position
+      const centerPos = modularShip.position;
       this.gameEngine.lookAt(centerPos);
 
       // Log camera position for debugging
@@ -382,14 +365,14 @@ return;
 
     const dimensions = this.gameEngine.getWorldDimensions();
 
-    // Wrap player (traditional or composite)
-    const compositeShip = this.playerManager!.getCompositeShip();
+    // Wrap player (traditional or modular)
+    const modularShip = this.playerManager!.getModularShip();
 
-    if (compositeShip) {
-      // For composite ships, wrap all parts
-      const parts = compositeShip.parts;
-      parts.forEach(part => {
-        this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
+    if (modularShip) {
+      // For modular ships, wrap all components
+      const components = modularShip.structure.components;
+      components.forEach((component: any) => {
+        this.gameEngine!.wrapEntityPosition(component.entity, dimensions);
       });
     } else {
       // Traditional player wrapping
@@ -403,7 +386,7 @@ return;
     this.aiManager!.getAllAIShips().forEach(aiShip => {
       if (aiShip.isActive) {
         const parts = aiShip.ship.parts;
-        parts.forEach(part => {
+        parts.forEach((part: any) => {
           this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
         });
       }
@@ -534,34 +517,36 @@ return;
   private debugDamagePlayerShip(): void {
     if (!this.playerManager) return;
 
-    const compositeShip = this.playerManager.getCompositeShip();
+    const modularShip = this.playerManager.getModularShip();
 
-    if (compositeShip) {
-      // Find the first active part and damage it
-      const activeParts = compositeShip.getActiveParts();
+    if (modularShip) {
+      // Find the first active component and damage it
+      const activeComponents = modularShip.structure.components.filter(
+        c => !c.isDestroyed
+      );
 
-      if (activeParts.length > 0) {
-        const targetPart = activeParts[0];
+      if (activeComponents.length > 0) {
+        const targetComponent = activeComponents[0];
         const damageAmount = 15; // Test damage amount (reduced from 25)
         console.log(
-          '🔧 DEBUG: Manually damaging player ship part:',
-          targetPart.partId
+          '🔧 DEBUG: Manually damaging player ship component:',
+          targetComponent.id
         );
-        const wasDestroyed = compositeShip.takeDamageAtPart(
-          targetPart.partId,
+        const wasDestroyed = modularShip.takeDamageAtComponent(
+          targetComponent.id,
           damageAmount
         );
         console.log(
-          '🔧 DEBUG: Part destroyed:',
+          '🔧 DEBUG: Component destroyed:',
           wasDestroyed,
-          'Active parts remaining:',
-          activeParts.length - (wasDestroyed ? 1 : 0)
+          'Active components remaining:',
+          activeComponents.length - (wasDestroyed ? 1 : 0)
         );
       } else {
-        console.log('🔧 DEBUG: No active parts to damage');
+        console.log('🔧 DEBUG: No active components to damage');
       }
     } else {
-      console.log('🔧 DEBUG: No composite ship to damage');
+      console.log('🔧 DEBUG: No modular ship to damage');
     }
   }
 
@@ -625,7 +610,7 @@ return;
 
       // Test connectivity by checking each part's connections
       let totalConnections = 0;
-      activeParts.forEach(part => {
+      activeParts.forEach((part: any) => {
         const connections = part.connectedParts.size;
         totalConnections += connections;
 
@@ -643,7 +628,7 @@ return;
       // Test grid positioning
       let gridAligned = 0;
       const partSize = activeParts.length > 0 ? activeParts[0].size : 20; // Get actual part size
-      activeParts.forEach(part => {
+      activeParts.forEach((part: any) => {
         const pos = part.relativePosition;
         const isAligned = pos.x % partSize === 0 && pos.y % partSize === 0;
 
@@ -669,8 +654,8 @@ return;
 
     if (aiShips.length === 0) {
       console.log('❌ No AI ships found for breakage test');
-      
-return;
+
+      return;
     }
     const firstShip = aiShips[0];
     const compositeShip = firstShip.ship;
@@ -678,8 +663,8 @@ return;
 
     if (activeParts.length === 0) {
       console.log('❌ No active parts found in first AI ship');
-      
-return;
+
+      return;
     }
     // Destroy a part in the middle to test connectivity breakage
     const middleIndex = Math.floor(activeParts.length / 2);
@@ -691,38 +676,10 @@ return;
     compositeShip.destroyPart(partToDestroy.partId);
   }
 
+  // Debug function removed - was using old CompositeShipFactory
   private debugTestManualConnectivity(): void {
-    console.log('🔧 Manual connectivity test');
-
-    // Create a simple 3-part horizontal ship manually
-    const engine = (this.gameEngine as any).engine;
-    const testPositions = [
-      { x: -20, y: 0 }, // Left part
-      { x: 0, y: 0 }, // Center part
-      { x: 20, y: 0 }, // Right part
-    ];
-
-    console.log('🔧 Creating test ship with positions:', testPositions);
-
-    const testShip = CompositeShipFactory.createCustomShip(
-      engine,
-      { x: 100, y: 100 }, // World position
-      testPositions,
-      20, // Part size
-      'test_ship',
-      0xff0000, // Red color
-      3
+    console.log(
+      '🔧 Manual connectivity test disabled - old CompositeShip system removed'
     );
-
-    const activeParts = testShip.getActiveParts();
-    console.log('🔧 Test ship created with parts:');
-    activeParts.forEach((part: any, i: number) => {
-      console.log(
-        `  Part ${i}: relative pos (${part.relativePosition.x}, ${part.relativePosition.y}), size: ${part.size}`
-      );
-      console.log(
-        `  Part ${i}: connections: ${Array.from(part.connectedParts).join(', ') || 'none'}`
-      );
-    });
   }
 }

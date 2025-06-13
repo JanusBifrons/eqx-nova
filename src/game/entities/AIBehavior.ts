@@ -1,5 +1,5 @@
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-import type { ICompositeShip } from '../interfaces/ICompositeShip';
+// import type { ICompositeShip } from '../interfaces/ICompositeShip'; // Removed - old system
 import type { IAIBehavior, AIBehaviorConfig } from '../interfaces/IAI';
 
 /**
@@ -10,11 +10,11 @@ import type { IAIBehavior, AIBehaviorConfig } from '../interfaces/IAI';
 export class AIBehavior implements IAIBehavior {
   private readonly _id: string;
 
-  private readonly _ship: ICompositeShip;
+  private readonly _ship: any; // TODO: Migrate to IModularShip
 
   private readonly _config: AIBehaviorConfig;
 
-  private _target: Vector2D | ICompositeShip | null = null;
+  private _target: Vector2D | any | null = null; // TODO: Migrate to IModularShip
 
   private _isActive: boolean = true;
 
@@ -28,7 +28,8 @@ export class AIBehavior implements IAIBehavior {
 
   private _lastTargetScan: number = 0;
 
-  constructor(id: string, ship: ICompositeShip, config: AIBehaviorConfig) {
+  constructor(id: string, ship: any, config: AIBehaviorConfig) {
+    // TODO: Migrate to IModularShip
     this._id = id;
     this._ship = ship;
     this._config = config;
@@ -43,11 +44,13 @@ export class AIBehavior implements IAIBehavior {
     return this._id;
   }
 
-  public get ship(): ICompositeShip {
+  public get ship(): any {
+    // TODO: Migrate to IModularShip
     return this._ship;
   }
 
-  public get target(): Vector2D | ICompositeShip | null {
+  public get target(): Vector2D | any | null {
+    // TODO: Migrate to IModularShip
     return this._target;
   }
 
@@ -80,7 +83,8 @@ export class AIBehavior implements IAIBehavior {
     return this._lastFireTime;
   }
 
-  public setTarget(target: Vector2D | ICompositeShip | null): void {
+  public setTarget(target: Vector2D | any | null): void {
+    // TODO: Migrate to IModularShip
     this._target = target;
 
     // Debug logging for target setting
