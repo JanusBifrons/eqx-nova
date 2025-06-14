@@ -471,22 +471,17 @@ export class PixiRendererSystem implements IRendererSystem {
     // Create one consolidated Graphics object for all grid elements
     const allGridGraphics = new Graphics();
 
-    // Big green test rectangle
-    allGridGraphics.rect(-2000, -2000, 4000, 4000);
-    allGridGraphics.fill(0x00ff00);
-    allGridGraphics.stroke({ color: 0xff0000, width: 10 });
-
-    // Blue origin cross lines
-    allGridGraphics.moveTo(-5000, 0);
-    allGridGraphics.lineTo(5000, 0);
-    allGridGraphics.moveTo(0, -5000);
-    allGridGraphics.lineTo(0, 5000);
+    // Blue origin cross lines (10x larger)
+    allGridGraphics.moveTo(-50000, 0);
+    allGridGraphics.lineTo(50000, 0);
+    allGridGraphics.moveTo(0, -50000);
+    allGridGraphics.lineTo(0, 50000);
     allGridGraphics.stroke({ color: 0x0000ff, width: 8 });
 
-    // Grid settings
-    const gridSize = 100;
-    const minorGridSize = 20;
-    const gridExtent = 5000;
+    // Grid settings (10x larger spacing - fewer lines, much further apart)
+    const gridSize = 1000; // Major grid lines every 1000 units (was 100)
+    const minorGridSize = 200; // Minor grid lines every 200 units (was 20)
+    const gridExtent = 50000;
 
     // Minor grid lines
     for (let x = -gridExtent; x <= gridExtent; x += minorGridSize) {
@@ -517,6 +512,37 @@ export class PixiRendererSystem implements IRendererSystem {
       }
     }
     allGridGraphics.stroke({ color: 0x888888, width: 2 });
+
+    // Add subtle coordinate labels at major grid intersections
+    const coordTextStyle = new TextStyle({
+      fontSize: 12,
+      fill: 0x666666, // Subtle gray
+      fontFamily: 'Arial, sans-serif',
+    });
+
+    // Add coordinates every few major grid lines to avoid clutter
+    const coordSpacing = gridSize * 5; // Show coords every 5000 units
+    for (let x = -gridExtent; x <= gridExtent; x += coordSpacing) {
+      for (let y = -gridExtent; y <= gridExtent; y += coordSpacing) {
+        // Skip origin (already has the red origin text)
+        if (x === 0 && y === 0) continue;
+
+        // Only show coordinates at reasonable intervals to avoid clutter
+        if (x % (gridSize * 5) === 0 && y % (gridSize * 5) === 0) {
+          const coordText = new Text({
+            text: `${x},${y}`,
+            style: coordTextStyle,
+          });
+
+          coordText.x = x + 20; // Offset slightly from intersection
+          coordText.y = y - 20;
+          coordText.anchor.set(0, 1); // Anchor at bottom-left
+          coordText.alpha = 0.7; // Semi-transparent
+
+          this.gameContainer.addChild(coordText);
+        }
+      }
+    }
 
     // Add single graphics object to gameContainer
     this.gameContainer.addChild(allGridGraphics);
