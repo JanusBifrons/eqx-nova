@@ -7,6 +7,7 @@ export type {
   MouseInputEvent,
   KeyboardInputEvent,
   TouchInputEvent,
+  WheelInputEvent,
   InputEventUnion,
   InputEventHandler,
 } from './InputSystem';

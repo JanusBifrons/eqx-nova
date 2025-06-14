@@ -1,7 +1,7 @@
 import type { Vector2D } from '../interfaces/IPhysicsSystem';
 
 export interface InputEvent {
-  type: 'mouse' | 'keyboard' | 'touch';
+  type: 'mouse' | 'keyboard' | 'touch' | 'wheel';
   timestamp: number;
 }
 
@@ -33,10 +33,20 @@ export interface TouchInputEvent extends InputEvent {
   target: HTMLElement;
 }
 
+export interface WheelInputEvent extends InputEvent {
+  type: 'wheel';
+  deltaX: number;
+  deltaY: number;
+  deltaZ: number;
+  position: Vector2D;
+  target: HTMLElement;
+}
+
 export type InputEventUnion =
   | MouseInputEvent
   | KeyboardInputEvent
-  | TouchInputEvent;
+  | TouchInputEvent
+  | WheelInputEvent;
 
 export type InputEventHandler<T extends InputEvent = InputEventUnion> = (
   event: T
@@ -94,6 +104,8 @@ export class InputSystem implements IInputSystem {
   private boundTouchEndHandler = this.handleTouchEnd.bind(this);
 
   private boundContextMenuHandler = this.handleContextMenu.bind(this);
+
+  private boundWheelHandler = this.handleWheel.bind(this);
 
   public initialize(element: HTMLElement): void {
     if (this.isInitialized) {
@@ -159,6 +171,9 @@ export class InputSystem implements IInputSystem {
     this.element.addEventListener('mousedown', this.boundMouseDownHandler);
     this.element.addEventListener('mouseup', this.boundMouseUpHandler);
     this.element.addEventListener('mousemove', this.boundMouseMoveHandler);
+    this.element.addEventListener('wheel', this.boundWheelHandler, {
+      passive: false,
+    });
     this.element.addEventListener('contextmenu', this.boundContextMenuHandler);
 
     // Keyboard events (on document for global capture)
@@ -189,6 +204,7 @@ export class InputSystem implements IInputSystem {
     this.element.removeEventListener('mousedown', this.boundMouseDownHandler);
     this.element.removeEventListener('mouseup', this.boundMouseUpHandler);
     this.element.removeEventListener('mousemove', this.boundMouseMoveHandler);
+    this.element.removeEventListener('wheel', this.boundWheelHandler);
     this.element.removeEventListener(
       'contextmenu',
       this.boundContextMenuHandler
@@ -349,6 +365,23 @@ export class InputSystem implements IInputSystem {
     event.preventDefault(); // Prevent right-click context menu
   }
 
+  private handleWheel(event: WheelEvent): void {
+    event.preventDefault(); // Prevent default scroll behavior
+    const position = this.getRelativePosition(event as MouseEvent);
+
+    const inputEvent: WheelInputEvent = {
+      type: 'wheel',
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      deltaZ: event.deltaZ,
+      position,
+      target: event.target as HTMLElement,
+      timestamp: performance.now(),
+    };
+
+    this.dispatchEvent(inputEvent);
+  }
+
   private getMouseButtonName(button: number): 'left' | 'right' | 'middle' {
     switch (button) {
       case 0:
@@ -386,7 +419,7 @@ export class InputSystem implements IInputSystem {
         y: touch.clientY - rect.top,
       });
     }
-return positions;
+    return positions;
   }
 
   private dispatchEvent(event: InputEventUnion): void {

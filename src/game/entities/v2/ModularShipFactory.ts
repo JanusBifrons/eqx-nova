@@ -114,17 +114,16 @@ export class ModularShipFactory {
     );
     return ship;
   }
-
   /**
-   * Create a player flagship - larger, more complex ship
-   * Layout:
-   *      [R]
-   *   [R][R][R]
-   * [R][R][C][R][R]
-   *   [R][R][R]
-   *      [R]
-   */
-  public createPlayerFlagship(position: Vector2D): ModularShip {
+   * Create a player flagship using SIMPLE SPOKE PATTERN for coordinate debugging
+   * Layout (using grid coordinates):
+   *        2
+   *        |
+   *   8 ---0--- 4
+   *        |
+   *        6
+   * Where 0=Cockpit (center), and numbered blocks extend in cardinal directions
+   */ public createPlayerFlagship(position: Vector2D): ModularShip {
     const ship = new ModularShip(
       this.entityManager,
       this.physicsSystem,
@@ -135,29 +134,38 @@ export class ModularShipFactory {
 
     // Set initial position
     ship.setPosition(position);
+    console.log('=== CREATING SIMPLE SINGLE BLOCK PLAYER SHIP ===');
 
-    // Add cockpit at center
+    // Just add cockpit at center
+    ship.addComponent({ x: 0, y: 0 }, true);
+    console.log('📍 Single Block: COCKPIT at grid (0, 0)');
+
+    console.log('=== SINGLE BLOCK SHIP CREATED ===');
+    return ship;
+  }
+
+  /**
+   * Create a single block ship for basic testing
+   * Layout: [C] (just a cockpit)
+   */
+  public createSingleBlockShip(position: Vector2D): ModularShip {
+    const ship = new ModularShip(
+      this.entityManager,
+      this.physicsSystem,
+      this.rendererSystem,
+      20, // component size
+      `single_block_ship_${Date.now()}`
+    );
+
+    // Set initial position
+    ship.setPosition(position);
+
+    // Add only cockpit
     ship.addComponent({ x: 0, y: 0 }, true);
 
-    // Core structure
-    ship.addComponent({ x: 1, y: 0 }, false);
-    ship.addComponent({ x: -1, y: 0 }, false);
-    ship.addComponent({ x: 0, y: 1 }, false);
-    ship.addComponent({ x: 0, y: -1 }, false);
-
-    // Extended structure
-    ship.addComponent({ x: 2, y: 0 }, false);
-    ship.addComponent({ x: -2, y: 0 }, false);
-    ship.addComponent({ x: 1, y: 1 }, false);
-    ship.addComponent({ x: -1, y: 1 }, false);
-    ship.addComponent({ x: 1, y: -1 }, false);
-    ship.addComponent({ x: -1, y: -1 }, false);
-
-    // Wing tips
-    ship.addComponent({ x: 0, y: 2 }, false);
-    ship.addComponent({ x: 0, y: -2 }, false);
-
-    console.log(`🚀 Created player flagship at (${position.x}, ${position.y})`);
+    console.log(
+      `🔲 Created single block ship at (${position.x}, ${position.y})`
+    );
     return ship;
   }
 }

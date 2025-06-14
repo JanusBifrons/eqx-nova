@@ -28,10 +28,12 @@ export interface CollisionEvent {
   partInfoA?: {
     partIndex: number;
     partBody: any;
+    componentId?: string;
   };
   partInfoB?: {
     partIndex: number;
     partBody: any;
+    componentId?: string;
   };
 }
 
@@ -73,6 +75,24 @@ export interface CompoundBodyPart {
   // For polygon
   vertices?: Vector2D[];
   options?: PhysicsBodyOptions;
+  // For identifying which component this body part belongs to
+  componentId?: string;
+}
+
+export interface CompoundBodyFullPart {
+  type: 'circle' | 'rectangle' | 'polygon';
+  x: number; // World position where this part should be
+  y: number; // World position where this part should be
+  // For circle
+  radius?: number;
+  // For rectangle
+  width?: number;
+  height?: number;
+  // For polygon
+  vertices?: Vector2D[];
+  options?: PhysicsBodyOptions;
+  // For identifying which component this body part belongs to
+  componentId?: string;
 }
 
 export interface IPhysicsSystem {
@@ -101,6 +121,11 @@ export interface IPhysicsSystem {
     x: number,
     y: number,
     parts: CompoundBodyPart[],
+    options?: PhysicsBodyOptions
+  ): IPhysicsBody;
+  createCompoundBodyFromFullBodies(
+    parts: CompoundBodyFullPart[],
+    desiredPosition: Vector2D,
     options?: PhysicsBodyOptions
   ): IPhysicsBody;
   removeBody(body: IPhysicsBody): void;

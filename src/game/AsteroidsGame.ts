@@ -1,6 +1,6 @@
 import type { Engine } from '../engine';
 import type { IGameEngine } from './interfaces/IGameEngine';
-import type { MouseInputEvent } from '../engine/input';
+import type { MouseInputEvent, WheelInputEvent } from '../engine/input';
 import { GameEngineAdapter } from './adapters/GameEngineAdapter';
 import {
   PlayerManager,
@@ -193,11 +193,17 @@ export class AsteroidsGame {
           this.handleMouseClick(event.position);
         }
       });
+
+      // Handle mouse wheel for camera zoom
+      inputSystem.addEventListener('wheel', (event: WheelInputEvent) => {
+        this.handleWheelZoom(event);
+      });
     }
 
     // Note: Continuous firing is now handled in the game loop (handleInput method)
     // rather than using one-time action callbacks to avoid delay and interruption issues
   }
+
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
@@ -482,7 +488,6 @@ export class AsteroidsGame {
     // Cursor dot removed - hover indicators are sufficient for visual feedback
     // We could add mouse-based interactions here if needed in the future
   }
-
   private handleMouseClick(screenPosition: { x: number; y: number }): void {
     if (!this.gameEngine || !this.asteroidManager) return;
 
@@ -496,6 +501,30 @@ export class AsteroidsGame {
       worldPosition.x,
       worldPosition.y
     );
+  }
+
+  private handleWheelZoom(event: WheelInputEvent): void {
+    if (!this.gameEngine) return;
+
+    const cameraSystem = this.gameEngine.getCameraSystem();
+    const camera = cameraSystem.getCamera();
+    const currentZoom = camera.getZoom();
+
+    // Calculate zoom change - normalize deltaY and apply sensitivity
+    // Typical deltaY values range from -100 to 100, we want smaller changes
+    const zoomSensitivity = 0.001; // Reduced sensitivity for smoother zoom
+    const zoomDelta = -event.deltaY * zoomSensitivity; // Negative for natural feel (scroll up = zoom in)
+
+    // Calculate new zoom with limits
+    const minZoom = 0.1;
+    const maxZoom = 5.0;
+    const newZoom = Math.max(
+      minZoom,
+      Math.min(maxZoom, currentZoom + zoomDelta)
+    );
+
+    // Apply the new zoom
+    camera.setZoom(newZoom);
   }
 
   private updateMouseConstraintTransform(): void {

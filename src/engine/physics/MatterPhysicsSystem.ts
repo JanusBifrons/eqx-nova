@@ -21,6 +21,7 @@ import type {
   IMouseConstraint,
   MouseConstraintOptions,
   CompoundBodyPart,
+  CompoundBodyFullPart,
 } from '../interfaces/IPhysicsSystem';
 
 class MatterPhysicsBody implements IPhysicsBody {
@@ -369,6 +370,12 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
         default:
           throw new Error(`Unknown part type: ${(part as any).type}`);
       }
+
+      // Set the component ID as the body label for collision identification
+      if (part.componentId) {
+        body.label = part.componentId;
+      }
+
       bodyParts.push(body);
     }
     // Create compound body from parts
@@ -395,6 +402,150 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
     this.bodies.set(id, physicsBody);
     World.add(this.world, compoundBody);
+
+    return physicsBody;
+  }
+
+  public createCompoundBodyFromFullBodies(
+    parts: CompoundBodyFullPart[],
+    desiredPosition: Vector2D,
+    options: PhysicsBodyOptions = {}
+  ): IPhysicsBody {
+    if (!this.world) {
+      throw new Error('Physics system not initialized');
+    }
+
+    if (parts.length === 0) {
+      throw new Error('Cannot create compound body with no parts');
+    }
+
+    // Step 1: Create individual full bodies at their desired world positions
+    const fullBodies: Body[] = [];
+
+    for (const part of parts) {
+      let body: Body;
+
+      // Merge part-specific options with defaults and global options
+      const finalOptions = {
+        isStatic:
+          part.options?.isStatic ??
+          options.isStatic ??
+          this.defaultBodyProperties.isStatic ??
+          false,
+        restitution:
+          part.options?.restitution ??
+          options.restitution ??
+          this.defaultBodyProperties.restitution ??
+          0.3,
+        friction:
+          part.options?.friction ??
+          options.friction ??
+          this.defaultBodyProperties.friction ??
+          0.1,
+        frictionAir:
+          part.options?.frictionAir ??
+          options.frictionAir ??
+          this.defaultBodyProperties.frictionAir ??
+          0.01,
+        density:
+          part.options?.density ??
+          options.density ??
+          this.defaultBodyProperties.density ??
+          0.001,
+        isSensor:
+          part.options?.isSensor ??
+          options.isSensor ??
+          this.defaultBodyProperties.isSensor ??
+          false,
+      };
+
+      switch (part.type) {
+        case 'circle':
+          if (part.radius === undefined) {
+            throw new Error('Circle part must have radius defined');
+          }
+          body = Bodies.circle(part.x, part.y, part.radius, finalOptions);
+          break;
+
+        case 'rectangle':
+          if (part.width === undefined || part.height === undefined) {
+            throw new Error(
+              'Rectangle part must have width and height defined'
+            );
+          }
+          body = Bodies.rectangle(
+            part.x,
+            part.y,
+            part.width,
+            part.height,
+            finalOptions
+          );
+          break;
+
+        case 'polygon':
+          if (!part.vertices || part.vertices.length === 0) {
+            throw new Error('Polygon part must have vertices defined');
+          }
+          const matterVertices = part.vertices.map(v => ({ x: v.x, y: v.y }));
+          body = Bodies.fromVertices(
+            part.x,
+            part.y,
+            [matterVertices],
+            finalOptions
+          );
+          break;
+
+        default:
+          throw new Error(`Unknown part type: ${(part as any).type}`);
+      }
+
+      // Set the component ID as the body label for collision identification
+      if (part.componentId) {
+        body.label = part.componentId;
+      }
+
+      fullBodies.push(body);
+    }
+
+    // Step 2: Create the main body (we'll use the first part as the base)
+    const mainBody = fullBodies[0];
+
+    // Step 3: Use Body.setParts to combine all bodies into a compound body
+    Body.setParts(mainBody, fullBodies);
+
+    // Step 4: After setParts, Matter.js will have calculated a new center of mass
+    // We need to determine the offset from our desired position to this center of mass
+    const currentCenterOfMass = mainBody.position;
+
+    // Calculate how much we need to move the compound body so that
+    // our desired position becomes the center of mass
+    const offsetToDesired = Vector.sub(
+      Vector.create(desiredPosition.x, desiredPosition.y),
+      currentCenterOfMass
+    );
+
+    // Move the compound body to position it correctly
+    Body.translate(mainBody, offsetToDesired);
+
+    // Apply final options to compound body
+    Body.set(mainBody, {
+      isStatic:
+        options.isStatic ?? this.defaultBodyProperties.isStatic ?? false,
+      restitution:
+        options.restitution ?? this.defaultBodyProperties.restitution ?? 0.3,
+      friction: options.friction ?? this.defaultBodyProperties.friction ?? 0.1,
+      frictionAir:
+        options.frictionAir ?? this.defaultBodyProperties.frictionAir ?? 0.01,
+      density: options.density ?? this.defaultBodyProperties.density ?? 0.001,
+      isSensor:
+        options.isSensor ?? this.defaultBodyProperties.isSensor ?? false,
+    });
+
+    const id = `body_${this.bodyIdCounter++}`;
+    const physicsBody = new MatterPhysicsBody(mainBody, id);
+
+    this.bodies.set(id, physicsBody);
+    World.add(this.world, mainBody);
 
     return physicsBody;
   }
@@ -906,26 +1057,30 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
           collisionEvent.partInfoA = {
             partIndex: (bodyA as any)._hitPartIndex,
             partBody: (bodyA as any)._hitPartBody,
+            componentId: (bodyA as any)._hitComponentId,
           };
           console.log(
-            `🎯 BodyA hit part index: ${collisionEvent.partInfoA.partIndex}`
+            `🎯 BodyA hit part index: ${collisionEvent.partInfoA.partIndex}, component: ${collisionEvent.partInfoA.componentId}`
           );
           // Clear the temporary data
           delete (bodyA as any)._hitPartIndex;
           delete (bodyA as any)._hitPartBody;
+          delete (bodyA as any)._hitComponentId;
         }
 
         if ((bodyB as any)._hitPartIndex !== undefined) {
           collisionEvent.partInfoB = {
             partIndex: (bodyB as any)._hitPartIndex,
             partBody: (bodyB as any)._hitPartBody,
+            componentId: (bodyB as any)._hitComponentId,
           };
           console.log(
-            `🎯 BodyB hit part index: ${collisionEvent.partInfoB.partIndex}`
+            `🎯 BodyB hit part index: ${collisionEvent.partInfoB.partIndex}, component: ${collisionEvent.partInfoB.componentId}`
           );
           // Clear the temporary data
           delete (bodyB as any)._hitPartIndex;
           delete (bodyB as any)._hitPartBody;
+          delete (bodyB as any)._hitComponentId;
         }
 
         this.collisionStartCallbacks.forEach(callback =>
@@ -969,15 +1124,21 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
 
       // Check if the matter body is one of the parts of this compound body
       if (compoundBody.parts && compoundBody.parts.includes(matterBody)) {
-        // ENHANCED: Store part information for collision precision
-        // Add part index to the physics body for collision handling
+        // ENHANCED: Store part component ID for direct collision mapping
         const partIndex = compoundBody.parts.indexOf(matterBody);
+        const componentId = matterBody.label; // Get the component ID from the label
+
         (physicsBody as any)._hitPartIndex = partIndex;
         (physicsBody as any)._hitPartBody = matterBody;
+        (physicsBody as any)._hitComponentId = componentId; // Store the component ID directly
 
         console.log(
           `🎯 Compound body collision: part ${partIndex} of ${compoundBody.parts.length} parts hit`
         );
+
+        if (componentId) {
+          console.log(`🎯 Component ID from label: ${componentId}`);
+        }
 
         return physicsBody; // Return the compound body with part information
       }

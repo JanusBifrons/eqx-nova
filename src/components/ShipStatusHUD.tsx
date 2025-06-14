@@ -12,6 +12,7 @@ import {
 import {
   Shield as HullIcon,
   Build as ComponentIcon,
+  Navigation as CoordinateIcon,
 } from '@mui/icons-material';
 import type { IModularShip } from '../game/entities/v2/interfaces/IModularShip';
 
@@ -32,6 +33,14 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
     maxTotalHealth > 0 ? (totalHealth / maxTotalHealth) * 100 : 0;
   const structuralIntegrity =
     totalComponents > 0 ? (activeComponents.length / totalComponents) * 100 : 0;
+  // Calculate grid coordinates based on the updated grid system
+  // Grid system uses: minor (100), major (500), super (2000)
+  const gridX = Math.round(ship.position.x / 100) * 100;
+  const gridY = Math.round(ship.position.y / 100) * 100;
+  const majorGridX = Math.round(ship.position.x / 500) * 500;
+  const majorGridY = Math.round(ship.position.y / 500) * 500;
+  const superGridX = Math.round(ship.position.x / 2000) * 2000;
+  const superGridY = Math.round(ship.position.y / 2000) * 2000;
 
   return (
     <Box
@@ -62,14 +71,25 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
           >
             SHIP STATUS
           </Typography>
-
-          <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', marginBottom: '12px' }} />
-
+          <Divider
+            sx={{
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              marginBottom: '12px',
+            }}
+          />
           {/* Overall Health */}
           <Box sx={{ marginBottom: '12px' }}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ marginBottom: '4px' }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ marginBottom: '4px' }}
+            >
               <HullIcon sx={{ color: 'lightblue', fontSize: '1rem' }} />
-              <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+              <Typography
+                variant="body2"
+                sx={{ color: 'white', fontSize: '0.8rem' }}
+              >
                 Overall Health
               </Typography>
             </Stack>
@@ -81,7 +101,12 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
                 borderRadius: '3px',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  backgroundColor: overallHealthPercent > 50 ? 'lightgreen' : overallHealthPercent > 20 ? 'orange' : 'red',
+                  backgroundColor:
+                    overallHealthPercent > 50
+                      ? 'lightgreen'
+                      : overallHealthPercent > 20
+                        ? 'orange'
+                        : 'red',
                 },
               }}
             />
@@ -96,13 +121,20 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
             >
               {overallHealthPercent.toFixed(0)}%
             </Typography>
-          </Box>
-
+          </Box>{' '}
           {/* Structural Integrity */}
           <Box sx={{ marginBottom: '12px' }}>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ marginBottom: '4px' }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ marginBottom: '4px' }}
+            >
               <ComponentIcon sx={{ color: 'lightcyan', fontSize: '1rem' }} />
-              <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem' }}>
+              <Typography
+                variant="body2"
+                sx={{ color: 'white', fontSize: '0.8rem' }}
+              >
                 Structural Integrity
               </Typography>
             </Stack>
@@ -114,7 +146,12 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
                 borderRadius: '3px',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
                 '& .MuiLinearProgress-bar': {
-                  backgroundColor: structuralIntegrity > 75 ? 'lightgreen' : structuralIntegrity > 50 ? 'orange' : 'red',
+                  backgroundColor:
+                    structuralIntegrity > 75
+                      ? 'lightgreen'
+                      : structuralIntegrity > 50
+                        ? 'orange'
+                        : 'red',
                 },
               }}
             />
@@ -130,10 +167,79 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
               {structuralIntegrity.toFixed(0)}%
             </Typography>
           </Box>
-
+          {/* Grid Coordinates */}
+          <Box sx={{ marginBottom: '12px' }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1}
+              sx={{ marginBottom: '4px' }}
+            >
+              <CoordinateIcon sx={{ color: 'lightgreen', fontSize: '1rem' }} />
+              <Typography
+                variant="body2"
+                sx={{ color: 'white', fontSize: '0.8rem' }}
+              >
+                Grid Coordinates
+              </Typography>
+            </Stack>
+            <Box
+              sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                padding: '6px',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'lightgreen',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                }}
+              >
+                Position: ({ship.position.x.toFixed(0)},{' '}
+                {ship.position.y.toFixed(0)})
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'lightblue',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                }}
+              >
+                Minor Grid: ({gridX}, {gridY})
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'lightyellow',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                }}
+              >
+                Major Grid: ({majorGridX}, {majorGridY})
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: 'lightcoral',
+                  fontSize: '0.7rem',
+                  display: 'block',
+                }}
+              >
+                Super Grid: ({superGridX}, {superGridY})
+              </Typography>
+            </Box>
+          </Box>
           {/* Components Status */}
           <Box sx={{ marginBottom: '8px' }}>
-            <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem', marginBottom: '4px' }}>
+            <Typography
+              variant="body2"
+              sx={{ color: 'white', fontSize: '0.8rem', marginBottom: '4px' }}
+            >
               Components: {activeComponents.length} / {totalComponents}
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -143,7 +249,9 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
                   label={`${index + 1}`}
                   size="small"
                   sx={{
-                    backgroundColor: component.isDestroyed ? 'rgba(255, 0, 0, 0.3)' : 'rgba(0, 255, 0, 0.3)',
+                    backgroundColor: component.isDestroyed
+                      ? 'rgba(255, 0, 0, 0.3)'
+                      : 'rgba(0, 255, 0, 0.3)',
                     color: 'white',
                     fontSize: '0.7rem',
                     height: '20px',
@@ -153,10 +261,12 @@ export const ShipStatusHUD: React.FC<ShipStatusHUDProps> = ({ ship }) => {
               ))}
             </Stack>
           </Box>
-
           {/* Status */}
           <Box sx={{ marginTop: '8px' }}>
-            <Typography variant="body2" sx={{ color: 'white', fontSize: '0.8rem', marginBottom: '4px' }}>
+            <Typography
+              variant="body2"
+              sx={{ color: 'white', fontSize: '0.8rem', marginBottom: '4px' }}
+            >
               Status: {ship.isDestroyed ? 'DESTROYED' : 'OPERATIONAL'}
             </Typography>
           </Box>

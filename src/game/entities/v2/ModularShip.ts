@@ -2,7 +2,7 @@ import type { EntityManager } from '../../../engine/entity/EntityManager';
 import type {
   IPhysicsSystem,
   Vector2D,
-  CompoundBodyPart,
+  CompoundBodyFullPart,
   IPhysicsBody,
 } from '../../../engine/interfaces/IPhysicsSystem';
 import type { IRendererSystem } from '../../../engine/interfaces/IRendererSystem';
@@ -341,15 +341,12 @@ export class ModularShip implements IModularShip {
 
     this._needsStructuralCheck = false;
     return disconnected;
-  } /**
+  }
+  /**
    * Rebuild the unified physics body using existing physics system
-   */
-  private rebuildUnifiedPhysicsBody(): void {
-    // CRITICAL: Remove old individual component physics bodies first
-    // This prevents collision detection between old and new bodies
-    const activeComponents = Array.from(this._components.values()).filter(
-      c => !c.isDestroyed
-    );
+   */ private rebuildUnifiedPhysicsBody(): void {
+    // Clean up old individual component physics bodies first
+    const activeComponents = this.getActiveComponentsInOrder();
 
     // Clean up old individual component physics bodies
     for (const component of activeComponents) {
@@ -374,62 +371,83 @@ export class ModularShip implements IModularShip {
 
     if (this._components.size === 0) return;
 
-    // Calculate center position first (this will be the compound body's world position)
-    const centerPos = this.calculateCenterPosition();
+    // Get the desired cockpit world position
+    const desiredCockpitPos = this.calculateCenterPosition();
 
-    // Create compound body parts from components
-    const bodyParts: CompoundBodyPart[] = [];
+    console.log(
+      `🔧 Creating compound body using setParts approach with cockpit target at (${desiredCockpitPos.x}, ${desiredCockpitPos.y})`
+    );
+
+    // Create full body parts at their actual world positions
+    const fullBodyParts: CompoundBodyFullPart[] = [];
 
     for (const component of activeComponents) {
       const worldPos = this.gridToWorldPosition(component.gridPosition);
 
-      // CRITICAL: Use relative positions within the compound body
-      // This prevents Matter.js from adjusting center of mass incorrectly
-      bodyParts.push({
+      console.log(
+        `🔧 Component ${component.id}: Grid(${component.gridPosition.x},${component.gridPosition.y}) -> World(${worldPos.x},${worldPos.y})`
+      );
+
+      fullBodyParts.push({
         type: 'rectangle',
-        x: worldPos.x - centerPos.x, // Relative to compound body center
-        y: worldPos.y - centerPos.y, // Relative to compound body center
+        x: worldPos.x,
+        y: worldPos.y,
         width: this._componentSize,
         height: this._componentSize,
+        componentId: component.id,
         options: {
           density: 0.001,
           friction: 0.1,
           restitution: 0.3,
-          frictionAir: 0.01,
-          // CRITICAL: Disable collision between parts of the same ship
-          isSensor: false, // Parts should be solid
+          frictionAir: 0.02, // Increased from 0.01 for better deceleration
+          isSensor: false,
         },
       });
     }
+    if (fullBodyParts.length === 0) return;
 
-    if (bodyParts.length === 0) return; // Create unified physics body using existing physics system
-    // The physics system handles compound body creation properly
-    this._unifiedPhysicsBody = this._physicsSystem.createCompoundBody(
-      centerPos.x,
-      centerPos.y,
-      bodyParts,
-      {
-        density: 0.001,
-        friction: 0.1,
-        restitution: 0.3,
-        frictionAir: 0.01,
-      }
-    );
+    // Create compound body using the setParts approach
+    // The physics system will handle creating full bodies and combining them
+    this._unifiedPhysicsBody =
+      this._physicsSystem.createCompoundBodyFromFullBodies(
+        fullBodyParts,
+        desiredCockpitPos, // This is where we want the compound body positioned
+        {
+          density: 0.001,
+          friction: 0.1,
+          restitution: 0.3,
+          frictionAir: 0.02, // Increased from 0.01 for better deceleration
+        }
+      );
 
     // Mark this physics body as belonging to a modular ship to prevent self-collision
-    (this._unifiedPhysicsBody as any).isModularShip = true;
-    (this._unifiedPhysicsBody as any).modularShipId = this._id;
+    if (this._unifiedPhysicsBody) {
+      (this._unifiedPhysicsBody as any).isModularShip = true;
+      (this._unifiedPhysicsBody as any).modularShipId = this._id;
+    }
 
     // Update component entities to reference the new compound body
-    for (const component of activeComponents) {
-      // Store reference to the compound body in the component entity
-      (component.entity as any).parentPhysicsBodyId =
-        this._unifiedPhysicsBody.id;
+    if (this._unifiedPhysicsBody) {
+      const physicsBody = this._unifiedPhysicsBody as IPhysicsBody;
+      for (const component of activeComponents) {
+        // Store reference to the compound body in the component entity
+        (component.entity as any).parentPhysicsBodyId = physicsBody.id;
+      }
     }
 
     console.log(
-      `🔧 ModularShip: Rebuilt compound body with ${bodyParts.length} components at (${centerPos.x.toFixed(1)}, ${centerPos.y.toFixed(1)})`
-    );
+      `🔧 ModularShip: Rebuilt compound body with ${fullBodyParts.length} components using setParts approach`
+    ); // DEBUGGING: Check final alignment
+    if (this._unifiedPhysicsBody) {
+      const physicsBody = this._unifiedPhysicsBody as IPhysicsBody;
+      const finalCenter = physicsBody.position;
+      console.log(
+        `✅ Final compound body center: (${finalCenter.x.toFixed(1)}, ${finalCenter.y.toFixed(1)})`
+      );
+      console.log(
+        `✅ Desired cockpit position: (${desiredCockpitPos.x.toFixed(1)}, ${desiredCockpitPos.y.toFixed(1)})`
+      );
+    }
   }
 
   private calculateCenterPosition(): Vector2D {
@@ -530,9 +548,11 @@ export class ModularShip implements IModularShip {
       this.checkStructuralIntegrity();
     } // Sync component positions with unified physics body
     if (this._unifiedPhysicsBody) {
-      const shipPos = this.position;
+      const shipPos = this.position; // Physics body's actual center of mass
       const shipAngle = this.angle;
-      const shipCenter = this.calculateCenterPosition();
+      // CRITICAL: Use physics body's actual center, not our calculated center
+      // This accounts for Matter.js automatic center of mass calculation
+      const physicsCenter = shipPos; // The physics body's center of mass position
 
       // Debug: Log rotation occasionally
       if (Math.random() < 0.01) {
@@ -540,32 +560,38 @@ export class ModularShip implements IModularShip {
         console.log(
           `🔄 Ship angle: ${((shipAngle * 180) / Math.PI).toFixed(1)}°`
         );
+        console.log(
+          `🎯 Physics center: (${physicsCenter.x.toFixed(1)}, ${physicsCenter.y.toFixed(1)})`
+        );
       }
 
       // Update individual component positions based on unified body
       for (const component of this._components.values()) {
         if (!component.isDestroyed) {
-          // Get component's world position
+          // Get component's intended world position based on grid
           const componentWorldPos = this.gridToWorldPosition(
             component.gridPosition
           );
 
-          // Calculate local position relative to ship center
-          const localPos = {
-            x: componentWorldPos.x - shipCenter.x,
-            y: componentWorldPos.y - shipCenter.y,
+          // Calculate what the offset should be from the cockpit to this component
+          const cockpitWorldPos = this.gridToWorldPosition({ x: 0, y: 0 });
+          const relativeToIntendedCenter = {
+            x: componentWorldPos.x - cockpitWorldPos.x,
+            y: componentWorldPos.y - cockpitWorldPos.y,
           };
 
-          // Apply ship's rotation to the local position
+          // Apply ship's rotation to the relative position
           const rotatedX =
-            localPos.x * Math.cos(shipAngle) - localPos.y * Math.sin(shipAngle);
+            relativeToIntendedCenter.x * Math.cos(shipAngle) -
+            relativeToIntendedCenter.y * Math.sin(shipAngle);
           const rotatedY =
-            localPos.x * Math.sin(shipAngle) + localPos.y * Math.cos(shipAngle);
+            relativeToIntendedCenter.x * Math.sin(shipAngle) +
+            relativeToIntendedCenter.y * Math.cos(shipAngle);
 
-          // Calculate final world position
+          // Calculate final world position relative to physics center
           const worldPos = {
-            x: shipPos.x + rotatedX,
-            y: shipPos.y + rotatedY,
+            x: physicsCenter.x + rotatedX,
+            y: physicsCenter.y + rotatedY,
           };
 
           // Update component entity position and rotation
@@ -579,16 +605,12 @@ export class ModularShip implements IModularShip {
   public destroy(): void {
     this.destroyShip();
   }
-
   /**
    * Handle damage from collision system using compound body part index
    * This leverages the Matter.js compound body part information from CollisionManager
-   */
-  public takeDamageAtPartIndex(partIndex: number, amount: number): boolean {
+   */ public takeDamageAtPartIndex(partIndex: number, amount: number): boolean {
     // Get active components (same order as when compound body was created)
-    const activeComponents = Array.from(this._components.values()).filter(
-      c => !c.isDestroyed
-    );
+    const activeComponents = this.getActiveComponentsInOrder();
 
     if (partIndex < 0 || partIndex >= activeComponents.length) {
       console.warn(
@@ -600,15 +622,94 @@ export class ModularShip implements IModularShip {
     // Get the component that corresponds to this part index
     const targetComponent = activeComponents[partIndex];
 
-    // Apply damage to the specific component
+    // ENHANCED DEBUG: Map part index to our numbered block system
+    const blockNumber = this.getBlockNumberFromComponent(targetComponent);
+    const directionName = this.getDirectionNameFromComponent(targetComponent);
+
+    console.log(`🎯 === COLLISION DETECTED ===`);
+    console.log(`📍 Part Index: ${partIndex}`);
+    console.log(`� Block Number: ${blockNumber}`);
+    console.log(`🧭 Direction: ${directionName}`);
     console.log(
-      `💥 Damaging component ${targetComponent.id} at part index ${partIndex}`
+      `📍 Grid Position: (${targetComponent.gridPosition.x}, ${targetComponent.gridPosition.y})`
     );
+    console.log(`🆔 Component ID: ${targetComponent.id}`);
+    console.log(`💥 Taking ${amount} damage`);
+    console.log(`========================`);
 
     // Flash white for damage feedback (leveraging existing renderer system)
     targetComponent.flashDamage();
 
     return this.damageComponent(targetComponent.id, amount);
+  }
+
+  /**
+   * Handle damage from collision system using component ID (better approach than part index)
+   */
+  public takeDamageAtComponentId(componentId: string, amount: number): boolean {
+    if (!componentId) {
+      console.warn(`No component ID provided for damage`);
+      return false;
+    }
+
+    const targetComponent = this._components.get(componentId);
+    if (!targetComponent) {
+      console.warn(`Component ${componentId} not found for damage`);
+      return false;
+    }
+
+    // ENHANCED DEBUG: Map component ID to our numbered block system
+    const blockNumber = this.getBlockNumberFromComponent(targetComponent);
+    const directionName = this.getDirectionNameFromComponent(targetComponent);
+
+    console.log(`🎯 === COLLISION DETECTED ===`);
+    console.log(`🆔 Component ID: ${componentId}`);
+    console.log(`🔢 Block Number: ${blockNumber}`);
+    console.log(`🧭 Direction: ${directionName}`);
+    console.log(
+      `📍 Grid Position: (${targetComponent.gridPosition.x}, ${targetComponent.gridPosition.y})`
+    );
+    console.log(`💥 Taking ${amount} damage`);
+    console.log(`========================`);
+
+    // Flash white for damage feedback (leveraging existing renderer system)
+    targetComponent.flashDamage();
+
+    return this.damageComponent(targetComponent.id, amount);
+  }
+  /**
+   * Map a component to its block number based on grid position
+   */
+  private getBlockNumberFromComponent(component: IShipComponent): string {
+    const { x, y } = component.gridPosition;
+
+    // Map grid coordinates to our L-shaped ship block numbers
+    if (x === 0 && y === 0) return '0 (COCKPIT)';
+    if (x === 0 && y === -1) return '1 (NORTH)';
+    if (x === 1 && y === 0) return '2 (EAST-1)';
+    if (x === 2 && y === 0) return '3 (EAST-2)';
+    if (x === 0 && y === 1) return '4 (SOUTH-1)';
+    if (x === 0 && y === 2) return '5 (SOUTH-2)';
+    if (x === 0 && y === 3) return '6 (SOUTH-3)';
+
+    return `? (${x}, ${y})`;
+  }
+
+  /**
+   * Get direction name from component grid position
+   */
+  private getDirectionNameFromComponent(component: IShipComponent): string {
+    const { x, y } = component.gridPosition;
+
+    if (x === 0 && y === 0) return 'CENTER';
+    if (x === 0 && y === -1) return 'NORTH (TOP)';
+    if (x === 1 && y === 0) return 'EAST-1 (RIGHT OF CENTER)';
+    if (x === 2 && y === 0) return 'EAST-2 (FAR RIGHT)';
+    if (x === 0 && y === 1) return 'SOUTH-1 (BELOW CENTER)';
+    if (x === 0 && y === 2) return 'SOUTH-2 (FAR BELOW)';
+    if (x === 0 && y === 3) return 'SOUTH-3 (BOTTOM TIP)';
+
+    return `UNKNOWN (${x}, ${y})`;
   }
 
   /**
@@ -624,5 +725,35 @@ export class ModularShip implements IModularShip {
    */
   public hasPhysicsBody(physicsBodyId: string): boolean {
     return this._unifiedPhysicsBody?.id === physicsBodyId;
+  } /**
+   * Get active components in a consistent order for compound body creation and collision mapping
+   * Sort by grid position to ensure deterministic ordering
+   * IMPORTANT: Physics Y-axis is flipped (positive Y = down), so we need to match that
+   */
+  private getActiveComponentsInOrder(): IShipComponent[] {
+    const ordered = Array.from(this._components.values())
+      .filter(c => !c.isDestroyed)
+      .sort((a, b) => {
+        // Sort by Y first (FLIPPED: negative Y first to match physics), then X
+        if (a.gridPosition.y !== b.gridPosition.y) {
+          return a.gridPosition.y - b.gridPosition.y; // Keep original Y sorting
+        }
+        return a.gridPosition.x - b.gridPosition.x;
+      });
+
+    // EXPERIMENTAL: Try reversing the array to fix opposite sides issue
+    const reversed = ordered.reverse();
+
+    // Debug: Log the ordering
+    console.log(`🔧 Component ordering for physics body (REVERSED):`);
+    reversed.forEach((component, index) => {
+      const blockNum = this.getBlockNumberFromComponent(component);
+      const dirName = this.getDirectionNameFromComponent(component);
+      console.log(
+        `  [${index}] ${blockNum} ${dirName} at (${component.gridPosition.x}, ${component.gridPosition.y})`
+      );
+    });
+
+    return reversed;
   }
 }

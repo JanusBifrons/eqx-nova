@@ -18,7 +18,7 @@ export class PlayerManager {
   private gameEngine: IGameEngine;
 
   private readonly ROTATION_SPEED = 0.003;
-  private readonly THRUST_FORCE = 0.008; // Balanced for compound body physics
+  private readonly THRUST_FORCE = 0.004; // Reduced from 0.008 for slower ship movement
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;

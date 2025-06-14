@@ -19,10 +19,10 @@ export interface IModularShip {
   setRotation(rotation: number): void;
   setAngularVelocity(angularVelocity: number): void;
   applyForce(force: Vector2D): void;
-
   // Damage system
   takeDamageAtPosition(worldPosition: Vector2D, amount: number): boolean;
   takeDamageAtComponent(componentId: string, amount: number): boolean;
+  takeDamageAtComponentId(componentId: string, amount: number): boolean;
   takeDamageAtPartIndex(partIndex: number, amount: number): boolean;
 
   // State management

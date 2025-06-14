@@ -25,8 +25,8 @@ export class CollisionManager {
 
   private aiManager: AIManager | null = null;
 
-  // Player immunity toggle - DISABLED to allow collision damage for testing
-  private playerImmune: boolean = false; // DISABLED: Set to true to prevent collision damage
+  // Player immunity toggle - ENABLED for coordinate system testing
+  private playerImmune: boolean = true; // ENABLED: Prevents collision damage for testing
 
   constructor(
     playerManager: PlayerManager,
@@ -381,7 +381,7 @@ export class CollisionManager {
     laserData: any,
     _entityA: Entity,
     _entityB: Entity,
-    playerPartInfo?: { partIndex: number } | null
+    playerPartInfo?: { partIndex: number; componentId?: string } | null
   ): void {
     // Remove laser
     this.laserManager.removeLaser(laserData);
@@ -403,12 +403,25 @@ export class CollisionManager {
       playerPartInfo &&
       typeof playerPartInfo.partIndex === 'number'
     ) {
-      // Use precise part index for damage
+      // Use precise component ID for damage if available (preferred method)
       const damageAmount = 15; // Laser damage
-      const wasDestroyed = modularShip.takeDamageAtPartIndex(
-        playerPartInfo.partIndex,
-        damageAmount
-      );
+      let wasDestroyed = false;
+
+      if (playerPartInfo.componentId) {
+        console.log(
+          `🎯 Using component ID for precise damage: ${playerPartInfo.componentId}`
+        );
+        wasDestroyed = modularShip.takeDamageAtComponentId(
+          playerPartInfo.componentId,
+          damageAmount
+        );
+      } else {
+        console.log(`⚠️ Falling back to part index method`);
+        wasDestroyed = modularShip.takeDamageAtPartIndex(
+          playerPartInfo.partIndex,
+          damageAmount
+        );
+      }
 
       console.log(
         `💥 Laser hit modular ship part ${playerPartInfo.partIndex}, destroyed: ${wasDestroyed}`
@@ -495,13 +508,94 @@ export class CollisionManager {
     _asteroidData: any,
     _entityA: Entity,
     _entityB: Entity,
-    playerPartInfo?: { partIndex: number; partBody: any },
+    playerPartInfo?: { partIndex: number; partBody: any; componentId?: string },
     contactPoint?: Vector2D
   ): void {
-    // TEMPORARY: Check immunity flag
+    // CRITICAL: Immunity check - ALWAYS prevent damage during testing
     if (this.playerImmune) {
-      console.log(`🛡️ Player is temporarily immune to asteroid damage`);
+      console.log(`🛡️🛡️🛡️ IMMUNITY ACTIVE - NO DAMAGE WILL BE TAKEN! 🛡️🛡️🛡️`);
 
+      // Still show visual feedback for testing coordinate systems
+      const modularShip = this.playerManager.getModularShip();
+      if (
+        modularShip &&
+        playerPartInfo &&
+        playerPartInfo.partIndex !== undefined
+      ) {
+        // ENHANCED: Show collision result for both methods
+        if (playerPartInfo.componentId) {
+          // Direct component ID method - get component directly
+          const hitComponent = modularShip.structure.components.find(
+            c => c.id === playerPartInfo.componentId
+          );
+          if (hitComponent) {
+            const { x, y } = hitComponent.gridPosition;
+            let blockInfo;
+            if (x === 0 && y === 0) blockInfo = 'Block 0 (COCKPIT/CENTER)';
+            else if (x === 0 && y === -1) blockInfo = 'Block 1 (NORTH/TOP)';
+            else if (x === 1 && y === 0) blockInfo = 'Block 2 (EAST-1)';
+            else if (x === 2 && y === 0) blockInfo = 'Block 3 (EAST-2)';
+            else if (x === 0 && y === 1) blockInfo = 'Block 4 (SOUTH-1)';
+            else if (x === 0 && y === 2) blockInfo = 'Block 5 (SOUTH-2)';
+            else if (x === 0 && y === 3) blockInfo = 'Block 6 (SOUTH-3)';
+            else blockInfo = `Block ? (${x}, ${y})`;
+
+            console.log(
+              `🎯 === COLLISION TEST RESULTS (COMPONENT ID METHOD) ===`
+            );
+            console.log(`📍 Hit: ${blockInfo}`);
+            console.log(`🆔 Component ID: ${hitComponent.id}`);
+            console.log(`🔢 Part Index: ${playerPartInfo.partIndex}`);
+            console.log(`📍 Grid Coordinates: (${x}, ${y})`);
+            console.log(`✅ Visual flash triggered`);
+            console.log(`🛡️ Damage prevented (immunity active)`);
+            console.log(`==============================`);
+
+            // Flash the component for visual feedback
+            hitComponent.flashDamage();
+          }
+        } else {
+          // Fallback: Part index method
+          const components = modularShip.structure.components.filter(
+            c => !c.isDestroyed
+          );
+          if (playerPartInfo.partIndex < components.length) {
+            const hitComponent = components[playerPartInfo.partIndex];
+
+            // Get the block info for clear debugging
+            const { x, y } = hitComponent.gridPosition;
+            let blockInfo;
+            if (x === 0 && y === 0) blockInfo = 'Block 0 (COCKPIT/CENTER)';
+            else if (x === 0 && y === -1) blockInfo = 'Block 1 (NORTH/TOP)';
+            else if (x === 1 && y === 0) blockInfo = 'Block 2 (EAST-1)';
+            else if (x === 2 && y === 0) blockInfo = 'Block 3 (EAST-2)';
+            else if (x === 0 && y === 1) blockInfo = 'Block 4 (SOUTH-1)';
+            else if (x === 0 && y === 2) blockInfo = 'Block 5 (SOUTH-2)';
+            else if (x === 0 && y === 3) blockInfo = 'Block 6 (SOUTH-3)';
+            else blockInfo = `Block ? (${x}, ${y})`;
+
+            console.log(
+              `🎯 === COLLISION TEST RESULTS (PART INDEX METHOD) ===`
+            );
+            console.log(`📍 Hit: ${blockInfo}`);
+            console.log(`🔢 Part Index: ${playerPartInfo.partIndex}`);
+            console.log(`📍 Grid Coordinates: (${x}, ${y})`);
+            console.log(`🆔 Component ID: ${hitComponent.id}`);
+            console.log(`✅ Visual flash triggered`);
+            console.log(`🛡️ Damage prevented (immunity active)`);
+            console.log(`==============================`);
+
+            // Flash the component for visual feedback
+            hitComponent.flashDamage();
+          }
+        }
+      } else if (contactPoint) {
+        console.log(
+          `🎯 COLLISION TEST: Hit at contact point (${contactPoint.x.toFixed(1)}, ${contactPoint.y.toFixed(1)})`
+        );
+      }
+
+      // CRITICAL: Return immediately - prevent any damage
       return;
     }
 
@@ -517,10 +611,24 @@ export class CollisionManager {
           `🎯 Hit component at part index ${playerPartInfo.partIndex}`
         );
         const damageAmount = 35; // Asteroids do heavy damage
-        damageSuccess = modularShip.takeDamageAtPartIndex(
-          playerPartInfo.partIndex,
-          damageAmount
-        );
+
+        // Use component ID for precise damage if available (preferred method)
+        if (playerPartInfo.componentId) {
+          console.log(
+            `🎯 Using component ID for precise damage: ${playerPartInfo.componentId}`
+          );
+          damageSuccess = modularShip.takeDamageAtComponentId(
+            playerPartInfo.componentId,
+            damageAmount
+          );
+        } else {
+          console.log(`⚠️ Falling back to part index method`);
+          damageSuccess = modularShip.takeDamageAtPartIndex(
+            playerPartInfo.partIndex,
+            damageAmount
+          );
+        }
+
         if (damageSuccess) {
           console.log(
             `🔥 Component at part ${playerPartInfo.partIndex} damaged by asteroid! Components remaining:`,

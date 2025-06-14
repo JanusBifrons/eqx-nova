@@ -1,4 +1,4 @@
-import { Application, Graphics, Container } from 'pixi.js';
+import { Application, Graphics, Container, Text, TextStyle } from 'pixi.js';
 import type {
   IRendererSystem,
   RenderableObject,
@@ -20,6 +20,15 @@ export class PixiRendererSystem implements IRendererSystem {
   private physicsSystem: IPhysicsSystem | null = null;
 
   private hoverRenderer: HoverRenderer = new HoverRenderer();
+
+  // Grid container - persistent grid container
+  private gridContainer: Container | null = null;
+
+  // Flag to prevent recreating grid
+  private gridInitialized: boolean = false;
+
+  // Test objects
+  private testText: Text | null = null;
 
   // Debug visualization - currently unused but available for future debugging
   // private debugContainer: Container = new Container();
@@ -47,11 +56,25 @@ export class PixiRendererSystem implements IRendererSystem {
       // Add game container to stage
       this.app.stage.addChild(this.gameContainer);
 
+      // Create a separate container for the background grid that doesn't get camera transforms
+      this.gridContainer = new Container();
+      this.gridContainer.label = 'background-grid-container';
+      this.app.stage.addChild(this.gridContainer);
+
+      // Make sure grid is behind game content
+      this.app.stage.setChildIndex(this.gridContainer, 0);
+
       // Create border around the canvas
       this.createBorder();
 
+      // Create test text at world origin (0, 0)
+      this.createTestText();
+
       // Add resize listener with error handling
       this.app.renderer.on('resize', this.onResize);
+
+      // Test: Add a simple text object at the world origin
+      this.addTestText();
     } catch (error) {
       console.error('Failed to initialize PixiJS renderer:', error);
 
@@ -59,14 +82,49 @@ export class PixiRendererSystem implements IRendererSystem {
     }
   }
 
+  private addTestText(): void {
+    if (!this.app) return;
+
+    // Create a text style with a large, readable font
+    const textStyle = new TextStyle({
+      fontFamily: 'Arial',
+      fontSize: 36,
+      fill: '#ffffff', // White color
+      align: 'center',
+    });
+
+    // Create a text object with the current FPS
+    const fpsText = new Text('FPS: 60', textStyle);
+
+    // Position the text at the top-left corner
+    fpsText.x = 10;
+    fpsText.y = 10;
+
+    // Add the text object to the stage
+    this.app.stage.addChild(fpsText);
+
+    // Update the text content on each render
+    this.app.ticker.add(() => {
+      fpsText.text = `FPS: ${Math.round(this.app!.ticker.FPS)}`;
+    });
+
+    // Store the test text object for later use
+    this.testText = fpsText;
+  }
+
   public render(): void {
     if (!this.app || !this.app.renderer) return;
 
     try {
-      // Update world border to reflect current camera position (only if camera system exists)
+      // Create grid early, before camera system is available
+      this.updateBackgroundGrid();
+
+      // Update camera transforms for the game container
       if (this.cameraSystem) {
+        this.updateCameraTransform();
         this.updateWorldBorder();
       }
+
       // Check if WebGL context is lost
       const canvas = this.app.canvas;
 
@@ -130,16 +188,11 @@ export class PixiRendererSystem implements IRendererSystem {
         graphics.stroke({ color: 0x0f3460, width: 2 });
       }
     }
+    // Use world coordinates directly - camera transform handled by container
     graphics.x = object.position.x;
     graphics.y = object.position.y;
     graphics.rotation = object.angle;
 
-    // Apply camera transformation if camera system is available
-    if (this.cameraSystem) {
-      const screenPosition = this.cameraSystem.worldToScreen(object.position);
-      graphics.x = screenPosition.x;
-      graphics.y = screenPosition.y;
-    }
     this.renderObjects.set(object.id, graphics);
     this.gameContainer.addChild(graphics);
   }
@@ -152,16 +205,9 @@ export class PixiRendererSystem implements IRendererSystem {
     const graphics = this.renderObjects.get(id);
 
     if (graphics) {
-      // Apply camera transformation if camera system is available
-      if (this.cameraSystem) {
-        const screenPosition = this.cameraSystem.worldToScreen(position);
-        graphics.x = screenPosition.x;
-        graphics.y = screenPosition.y;
-      } else {
-        // Fallback to world coordinates if no camera system
-        graphics.x = position.x;
-        graphics.y = position.y;
-      }
+      // Use world coordinates directly - camera transform handled by container
+      graphics.x = position.x;
+      graphics.y = position.y;
       graphics.rotation = angle;
     }
   }
@@ -290,7 +336,14 @@ export class PixiRendererSystem implements IRendererSystem {
     if (existingViewportBorder) {
       this.app.stage.removeChild(existingViewportBorder);
       existingViewportBorder.destroy();
-    } // Create viewport border (around the screen) - this should stay fixed
+    }
+
+    // Create background grid first (behind everything) - only if camera system is available
+    if (this.cameraSystem) {
+      this.updateBackgroundGrid();
+    }
+
+    // Create viewport border (around the screen) - this should stay fixed
     const viewportBorder = new Graphics();
     viewportBorder.label = 'viewport-border';
 
@@ -362,5 +415,130 @@ export class PixiRendererSystem implements IRendererSystem {
     // World borders are disabled for uncapped world space
     // No visual boundaries are rendered
     return;
+  }
+
+  private createTestText(): void {
+    if (!this.app) return;
+
+    // Create test text with a bright color and large size
+    const textStyle = new TextStyle({
+      fontSize: 48,
+      fill: 0xff0000, // Bright red
+      fontFamily: 'Arial, sans-serif',
+      fontWeight: 'bold',
+      stroke: { color: 0xffffff, width: 2 }, // White outline
+    });
+
+    this.testText = new Text({
+      text: 'ORIGIN (0,0)',
+      style: textStyle,
+    });
+
+    // Position at world coordinates (0, 0)
+    this.testText.x = 0;
+    this.testText.y = 0;
+
+    // Center the text on the origin
+    this.testText.anchor.set(0.5, 0.5);
+
+    // Add to game container so it gets camera transforms
+    this.gameContainer.addChild(this.testText);
+
+    console.log('Created test text at world origin (0, 0)');
+  }
+
+  private updateBackgroundGrid(): void {
+    if (!this.app || this.gridInitialized) return;
+
+    // Create grid container if it doesn't exist
+    if (!this.gridContainer) {
+      this.gridContainer = new Container();
+      this.gridContainer.label = 'background-grid';
+      this.gameContainer.addChild(this.gridContainer);
+      // Ensure grid is behind other game content
+      this.gameContainer.setChildIndex(this.gridContainer, 0);
+    }
+
+    // Create the grid contents only once
+    this.createWorldSpaceGrid();
+    this.gridInitialized = true;
+    console.log('Grid initialized once - will not recreate');
+  }
+
+  private createWorldSpaceGrid(): void {
+    if (!this.gridContainer) return;
+
+    // Create one consolidated Graphics object for all grid elements
+    const allGridGraphics = new Graphics();
+
+    // Big green test rectangle
+    allGridGraphics.rect(-2000, -2000, 4000, 4000);
+    allGridGraphics.fill(0x00ff00);
+    allGridGraphics.stroke({ color: 0xff0000, width: 10 });
+
+    // Blue origin cross lines
+    allGridGraphics.moveTo(-5000, 0);
+    allGridGraphics.lineTo(5000, 0);
+    allGridGraphics.moveTo(0, -5000);
+    allGridGraphics.lineTo(0, 5000);
+    allGridGraphics.stroke({ color: 0x0000ff, width: 8 });
+
+    // Grid settings
+    const gridSize = 100;
+    const minorGridSize = 20;
+    const gridExtent = 5000;
+
+    // Minor grid lines
+    for (let x = -gridExtent; x <= gridExtent; x += minorGridSize) {
+      if (x % gridSize !== 0) {
+        allGridGraphics.moveTo(x, -gridExtent);
+        allGridGraphics.lineTo(x, gridExtent);
+      }
+    }
+    for (let y = -gridExtent; y <= gridExtent; y += minorGridSize) {
+      if (y % gridSize !== 0) {
+        allGridGraphics.moveTo(-gridExtent, y);
+        allGridGraphics.lineTo(gridExtent, y);
+      }
+    }
+    allGridGraphics.stroke({ color: 0x444444, width: 1 });
+
+    // Major grid lines
+    for (let x = -gridExtent; x <= gridExtent; x += gridSize) {
+      if (x !== 0) {
+        allGridGraphics.moveTo(x, -gridExtent);
+        allGridGraphics.lineTo(x, gridExtent);
+      }
+    }
+    for (let y = -gridExtent; y <= gridExtent; y += gridSize) {
+      if (y !== 0) {
+        allGridGraphics.moveTo(-gridExtent, y);
+        allGridGraphics.lineTo(gridExtent, y);
+      }
+    }
+    allGridGraphics.stroke({ color: 0x888888, width: 2 });
+
+    // Add single graphics object to gameContainer
+    this.gameContainer.addChild(allGridGraphics);
+
+    // Move to back
+    this.gameContainer.setChildIndex(allGridGraphics, 0);
+
+    console.log('Optimized grid created as single Graphics object');
+  }
+
+  private updateCameraTransform(): void {
+    if (!this.cameraSystem || !this.app) return;
+
+    const cameraPos = this.cameraSystem.getCamera().getPosition();
+    const zoom = this.cameraSystem.getCamera().getZoom();
+    const viewport = this.cameraSystem.getCamera().getViewport();
+
+    // Transform the game container to follow the camera
+    // The camera position represents where the camera is looking,
+    // so we need to move the world in the opposite direction
+    this.gameContainer.x = -cameraPos.x * zoom + viewport.width / 2;
+    this.gameContainer.y = -cameraPos.y * zoom + viewport.height / 2;
+    this.gameContainer.scale.set(zoom);
   }
 }
