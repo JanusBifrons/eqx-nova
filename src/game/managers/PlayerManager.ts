@@ -3,6 +3,7 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IGameEngine } from '../interfaces/IGameEngine';
 import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
 import { ModularShipFactory } from '../entities/v2/ModularShipFactory';
+import type { DebrisManager } from './DebrisManager';
 
 /**
  * PlayerManager - Handles player-specific logic with new ModularShip system
@@ -12,6 +13,7 @@ export class PlayerManager {
   private player: Entity | null = null;
   private modularShip: IModularShip | null = null;
   private modularShipFactory: ModularShipFactory;
+  private debrisManager: DebrisManager | null = null;
 
   private rotation = 0;
   private thrust = false;
@@ -40,11 +42,25 @@ export class PlayerManager {
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
 
-    // Create modular ship player
-    this.modularShip = this.modularShipFactory.createPlayerFlagship({
-      x: centerX,
-      y: centerY,
-    });
+    // Create simple debug ship player (TEMPORARY FOR DEBUGGING)
+    console.log(
+      '🔧 Creating SIMPLE DEBUG SHIP for player instead of complex modular ship'
+    );
+    this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+      {
+        x: centerX,
+        y: centerY,
+      },
+      this.debrisManager
+    );
+
+    // Set up respawn callback
+    if (this.modularShip && 'setRespawnCallback' in this.modularShip) {
+      (this.modularShip as any).setRespawnCallback(() => {
+        console.log('🔄 Respawn requested from ship');
+        this.handleRespawnRequest();
+      });
+    }
 
     this.player = null; // We use modular ship instead of traditional player
     console.log('🚀 Modular player ship created at center:', centerX, centerY);
@@ -84,6 +100,10 @@ export class PlayerManager {
 
   public setThrust(thrust: boolean): void {
     this.thrust = thrust;
+  }
+
+  public setDebrisManager(debrisManager: DebrisManager): void {
+    this.debrisManager = debrisManager;
   }
 
   public update(deltaTime: number): void {
@@ -166,16 +186,62 @@ export class PlayerManager {
     // Destroy old ship
     this.modularShip.destroy();
 
-    // Create new ship
-    this.modularShip = this.modularShipFactory.createPlayerFlagship({
-      x: centerX,
-      y: centerY,
-    });
+    // Create new simple debug ship
+    console.log('🔧 Respawning with SIMPLE DEBUG SHIP');
+    this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+      {
+        x: centerX,
+        y: centerY,
+      },
+      this.debrisManager
+    );
 
     this.rotation = 0;
     this.thrust = false;
 
     console.log('🔄 Player respawned at center');
+  }
+
+  private handleRespawnRequest(): void {
+    console.log('🔄 Handling respawn request');
+
+    // Force respawn even if ship is still "alive" (just broken apart)
+    if (this.modularShip) {
+      const dimensions = this.gameEngine.getWorldDimensions();
+      const centerX = dimensions.width / 2;
+      const centerY = dimensions.height / 2;
+
+      // Detach debris (keep broken pieces in physics world) instead of destroying everything
+      if ('detachDebris' in this.modularShip) {
+        (this.modularShip as any).detachDebris();
+      } else {
+        // Fallback to full destroy if detachDebris not available
+        this.modularShip.destroy();
+      }
+
+      // Create new simple debug ship
+      console.log('🔧 Respawning with new SIMPLE DEBUG SHIP');
+      this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+        {
+          x: centerX,
+          y: centerY,
+        },
+        this.debrisManager
+      );
+
+      // Set up respawn callback for the new ship
+      if (this.modularShip && 'setRespawnCallback' in this.modularShip) {
+        (this.modularShip as any).setRespawnCallback(() => {
+          console.log('🔄 Respawn requested from new ship');
+          this.handleRespawnRequest();
+        });
+      }
+
+      this.rotation = 0;
+      this.thrust = false;
+
+      console.log('🔄 Player respawned at center, old debris left floating');
+    }
   }
 
   public destroy(): void {

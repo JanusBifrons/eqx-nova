@@ -219,7 +219,7 @@ export class Engine {
     if (Math.abs(average - this.TARGET_FRAME_TIME) > 5) {
       return (average + this.TARGET_FRAME_TIME) / 2;
     }
-return average;
+    return average;
   }
 
   public destroy(): void {

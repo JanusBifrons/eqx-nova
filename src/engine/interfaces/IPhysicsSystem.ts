@@ -159,5 +159,9 @@ export interface IPhysicsSystem {
   removeMouseConstraint(mouseConstraint: IMouseConstraint): void;
   onCollisionStart(callback: CollisionCallback): void;
   onCollisionEnd(callback: CollisionCallback): void;
+  // Debug functionality
+  setDebugMode(enabled: boolean): void;
+  getDebugMode(): boolean;
+  renderDebugBodies(canvas: HTMLCanvasElement): void;
   destroy(): void;
 }

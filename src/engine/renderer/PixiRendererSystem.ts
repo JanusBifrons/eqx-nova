@@ -567,4 +567,11 @@ export class PixiRendererSystem implements IRendererSystem {
     this.gameContainer.y = -cameraPos.y * zoom + viewport.height / 2;
     this.gameContainer.scale.set(zoom);
   }
+
+  public getCanvas(): HTMLCanvasElement | null {
+    if (!this.app) return null;
+
+    const canvas = this.app.canvas;
+    return canvas instanceof HTMLCanvasElement ? canvas : null;
+  }
 }

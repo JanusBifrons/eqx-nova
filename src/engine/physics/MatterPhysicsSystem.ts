@@ -8,6 +8,7 @@ import {
   Constraint,
   MouseConstraint,
   Mouse,
+  Render,
 } from 'matter-js';
 import type {
   IPhysicsSystem,
@@ -127,6 +128,81 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   private collisionEndCallbacks: CollisionCallback[] = [];
 
   private defaultBodyProperties: any = {};
+
+  // Debug functionality
+  private debugMode: boolean = true; // Default to debug mode ON
+  private debugRenderer: any = null;
+  private debugCanvas: HTMLCanvasElement | null = null;
+  public setDebugMode(enabled: boolean): void {
+    console.log(`🔧 MatterPhysicsSystem.setDebugMode called with: ${enabled}`);
+    this.debugMode = enabled;
+
+    if (enabled && this.engine && this.debugCanvas) {
+      console.log('🔧 Initializing debug renderer');
+      this.initializeDebugRenderer();
+    } else if (!enabled && this.debugRenderer) {
+      console.log('🔧 Destroying debug renderer');
+      this.destroyDebugRenderer();
+    } else {
+      console.log('🔧 Debug mode set but conditions not met:', {
+        enabled,
+        hasEngine: !!this.engine,
+        hasDebugCanvas: !!this.debugCanvas,
+        hasDebugRenderer: !!this.debugRenderer,
+      });
+    }
+  }
+
+  public getDebugMode(): boolean {
+    return this.debugMode;
+  }
+
+  public renderDebugBodies(canvas: HTMLCanvasElement): void {
+    if (!this.engine) return;
+
+    this.debugCanvas = canvas;
+
+    if (this.debugMode && !this.debugRenderer) {
+      this.initializeDebugRenderer();
+    }
+  }
+
+  private initializeDebugRenderer(): void {
+    if (!this.engine || !this.debugCanvas) return;
+
+    // Create debug renderer with MatterJS built-in renderer
+    this.debugRenderer = Render.create({
+      canvas: this.debugCanvas,
+      engine: this.engine,
+      options: {
+        width: this.debugCanvas.width,
+        height: this.debugCanvas.height,
+        background: '#000000', // Dark background to see white wireframes
+        wireframes: true,
+        showAngleIndicator: true,
+        showVelocity: true,
+        showCollisions: true,
+        showSeparations: false,
+        showAxes: false,
+        showPositions: false,
+        showBroadphase: false,
+        showBounds: false,
+        showVertexNumbers: false,
+        showConvexHulls: false,
+        showInternalEdges: false,
+      },
+    });
+
+    // Start the debug renderer
+    Render.run(this.debugRenderer);
+  }
+
+  private destroyDebugRenderer(): void {
+    if (this.debugRenderer) {
+      Render.stop(this.debugRenderer);
+      this.debugRenderer = null;
+    }
+  }
 
   public initialize(
     width: number,
@@ -800,13 +876,15 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
     if (matterMouseConstraint) {
       const mouse = matterMouseConstraint.matterMouseConstraint.mouse;
 
-      // Calculate offset: camera position minus half viewport (to center the camera)
+      // The offset should transform screen coordinates to world coordinates
+      // following the same logic as CameraSystem.screenToWorld()
+      // We need to offset by -viewport center, then scale by 1/zoom, then add camera position
       const offset = {
-        x: cameraPosition.x - viewportSize.x / 2,
-        y: cameraPosition.y - viewportSize.y / 2,
+        x: cameraPosition.x - viewportSize.x / (2 * cameraZoom),
+        y: cameraPosition.y - viewportSize.y / (2 * cameraZoom),
       };
 
-      // Scale factor is 1/zoom (if zoom is 2, mouse moves should be halved)
+      // Scale factor is 1/zoom to convert screen pixels to world units
       const scale = {
         x: 1 / cameraZoom,
         y: 1 / cameraZoom,
@@ -1012,6 +1090,9 @@ export class MatterPhysicsSystem implements IPhysicsSystem {
   }
 
   public destroy(): void {
+    // Clean up debug renderer first
+    this.destroyDebugRenderer();
+
     if (this.engine) {
       Engine.clear(this.engine);
       this.engine = null;

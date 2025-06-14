@@ -260,4 +260,12 @@ export class GameEngineAdapter implements IGameEngine {
 
     return inputSystem.getMousePosition();
   }
+
+  public getPhysicsSystem(): any {
+    return this.engine.getPhysicsSystem();
+  }
+
+  public getRendererSystem(): any {
+    return this.engine.getRendererSystem();
+  }
 }

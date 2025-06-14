@@ -51,7 +51,7 @@ export class ShapeUtils {
         y: Math.sin(finalAngle) * finalRadius,
       });
     }
-return points;
+    return points;
   }
 
   /**

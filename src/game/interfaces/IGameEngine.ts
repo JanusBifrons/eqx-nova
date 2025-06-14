@@ -56,6 +56,10 @@ export interface IGameEngine {
 
   // Input operations
   getMousePosition(): Vector2D | null;
+
+  // System access for debugging
+  getPhysicsSystem(): any; // Returns the physics system for debug purposes
+  getRendererSystem(): any; // Returns the renderer system for debug purposes
 }
 
 export interface PhysicsConfig {

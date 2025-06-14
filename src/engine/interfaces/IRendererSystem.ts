@@ -34,4 +34,7 @@ export interface IRendererSystem {
   showHoverIndicator(entity: Entity): void;
   hideHoverIndicator(): void;
   updateHoverIndicator(entity: Entity): void;
+
+  // Debug support
+  getCanvas(): HTMLCanvasElement | null;
 }

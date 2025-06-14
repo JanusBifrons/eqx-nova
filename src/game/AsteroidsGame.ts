@@ -9,6 +9,7 @@ import {
   CollisionManager,
   InputManager,
   AIManager,
+  DebrisManager,
 } from './managers';
 
 /**
@@ -41,6 +42,8 @@ export class AsteroidsGame {
   private inputManager: InputManager | null = null;
 
   private aiManager: AIManager | null = null;
+
+  private debrisManager: DebrisManager | null = null;
 
   // Singleton pattern
   public static getInstance(): AsteroidsGame {
@@ -76,6 +79,19 @@ export class AsteroidsGame {
     this.isInitialized = true;
 
     console.log('Asteroids game initialized with SOLID architecture!');
+    console.log('🔧 Debug mode is DISABLED by default due to Matter.js issues');
+    console.log('🔧 Debug controls available:');
+    console.log('   P - Toggle physics debug mode (may cause stack overflow)');
+    console.log('   X - Damage player ship');
+    console.log('   Z - Damage AI ship');
+    console.log('   T - Test ship connectivity');
+    console.log('   B - Break AI ship');
+    console.log('   F - Flash random block on player ship');
+    console.log('   G - Flash all blocks on player ship');
+    console.log('   C - Test manual connectivity');
+
+    // Debug mode disabled by default due to Matter.js stack overflow issue
+    // this.initializeDebugMode();
   }
 
   private setupManagers(engine: Engine): void {
@@ -86,6 +102,15 @@ export class AsteroidsGame {
     this.asteroidManager = new AsteroidManager(this.gameEngine);
     this.inputManager = new InputManager();
     this.aiManager = new AIManager(this.gameEngine);
+
+    // Initialize debris manager
+    this.debrisManager = new DebrisManager(
+      this.gameEngine.getPhysicsSystem(),
+      this.gameEngine.getRendererSystem()
+    );
+
+    // Connect debris manager to player manager
+    this.playerManager.setDebrisManager(this.debrisManager);
 
     // Set up AI manager's laser firing callback
     this.aiManager.setFireLaserCallback(
@@ -182,6 +207,9 @@ export class AsteroidsGame {
     // Setup collision handling
     this.gameEngine.onCollision(event => {
       this.collisionManager!.handleCollision(event);
+
+      // Handle flash effects for individual ship components and debris
+      this.handleFlashEffects(event);
     }); // Setup mouse click handling for asteroid spawning
     // Use right-click for asteroid spawning to avoid conflicts with left-click dragging
     const engine = (this.gameEngine as any).engine; // Access underlying engine
@@ -305,6 +333,26 @@ export class AsteroidsGame {
       console.log('🔧 C key pressed - testing manual connectivity');
       this.debugTestManualConnectivity();
     }
+
+    // Debug controls for flash effects
+    if (this.inputManager.isKeyPressed('f')) {
+      console.log('🔧 F key pressed - triggering random block flash');
+      this.debugTriggerRandomFlash();
+    }
+
+    if (this.inputManager.isKeyPressed('g')) {
+      console.log('🔧 G key pressed - triggering all blocks flash');
+      this.debugTriggerAllBlocksFlash();
+    }
+
+    // Debug controls for physics visualization
+    if (
+      this.inputManager.isKeyPressed('p') ||
+      this.inputManager.isKeyPressed('P')
+    ) {
+      console.log('🔧 P key detected - toggling physics debug mode');
+      this.togglePhysicsDebugMode();
+    }
   }
 
   private updateManagers(deltaTime: number): void {
@@ -424,6 +472,10 @@ export class AsteroidsGame {
     return 1; // Player always has 1 life (no death)
   }
 
+  public getDebrisManager(): DebrisManager | null {
+    return this.debrisManager;
+  }
+
   public isGameOver(): boolean {
     return false; // No game over
   }
@@ -456,6 +508,7 @@ export class AsteroidsGame {
     this.asteroidManager?.destroy();
     this.inputManager?.destroy();
     this.aiManager?.destroy();
+    this.debrisManager?.destroy();
 
     // Clear references
     this.gameEngine = null;
@@ -465,6 +518,7 @@ export class AsteroidsGame {
     this.collisionManager = null;
     this.inputManager = null;
     this.aiManager = null;
+    this.debrisManager = null;
 
     this.isInitialized = false;
     this.isDestroyed = true;
@@ -710,5 +764,320 @@ export class AsteroidsGame {
     console.log(
       '🔧 Manual connectivity test disabled - old CompositeShip system removed'
     );
+  }
+
+  // DISABLED - Debug mode causes stack overflow in Matter.js
+  /*
+  private initializeDebugMode(): void {
+    console.log('🔧 Initializing debug mode by default...');
+
+    // Wait a bit for the renderer to be fully initialized
+    setTimeout(() => {
+      if (!this.gameEngine) {
+        console.log('❌ gameEngine not available for debug initialization');
+        return;
+      }
+
+      const physicsSystem = this.gameEngine.getPhysicsSystem();
+      const rendererSystem = this.gameEngine.getRendererSystem();
+
+      if (!physicsSystem || !rendererSystem) {
+        console.log(
+          '❌ Physics or renderer system not available for debug initialization'
+        );
+        return;
+      }
+
+      // Enable debug mode
+      this.setPixiVisibility(false);
+
+      const mainCanvas = rendererSystem.getCanvas();
+      if (mainCanvas) {
+        this.createDebugCanvasOverlay(mainCanvas, physicsSystem);
+        console.log('🔧 Physics debug visualization enabled by default');
+        console.log('🔧 GREEN BORDER indicates debug mode is active');
+        console.log('🔧 Press P to toggle debug mode on/off');
+      }
+    }, 500); // Give the renderer time to initialize
+  }
+  */
+
+  private togglePhysicsDebugMode(): void {
+    console.log('🔧 togglePhysicsDebugMode called');
+    console.log(
+      '⚠️ Debug mode temporarily disabled due to Matter.js stack overflow issue'
+    );
+    console.log('🔧 Skipping debug mode toggle to prevent crash');
+    return;
+
+    // DISABLED CODE BELOW - CAUSES STACK OVERFLOW
+    /*
+    if (!this.gameEngine) {
+      console.log('❌ gameEngine is null');
+      return;
+    }
+
+    const physicsSystem = this.gameEngine.getPhysicsSystem();
+    const rendererSystem = this.gameEngine.getRendererSystem();
+
+    console.log('🔧 physicsSystem:', physicsSystem ? 'found' : 'null');
+    console.log('🔧 rendererSystem:', rendererSystem ? 'found' : 'null');
+
+    if (!physicsSystem || !rendererSystem) {
+      console.log('❌ Physics or renderer system not available');
+      return;
+    }
+
+    const currentDebugMode = physicsSystem.getDebugMode();
+    const newDebugMode = !currentDebugMode;
+
+    console.log(
+      `🔧 Current debug mode: ${currentDebugMode}, switching to: ${newDebugMode}`
+    );
+
+    physicsSystem.setDebugMode(newDebugMode);
+    */
+
+    // ALL DEBUG FUNCTIONALITY DISABLED TO PREVENT STACK OVERFLOW
+    /*
+    if (newDebugMode) {
+      // Hide or make PixiJS rendering semi-transparent to see debug overlay
+      this.setPixiVisibility(false);
+
+      // Get the main canvas and create a debug overlay
+      const mainCanvas = rendererSystem.getCanvas();
+      if (mainCanvas) {
+        this.createDebugCanvasOverlay(mainCanvas, physicsSystem);
+        console.log(
+          '🔧 Physics debug visualization enabled - MatterJS bodies are now visible'
+        );
+        console.log(
+          '🔧 PixiJS rendering dimmed to show physics wireframes clearly'
+        );
+        console.log('🔧 GREEN BORDER indicates debug mode is active');
+        console.log('🔧 White wireframes = actual collision boundaries');
+        console.log('🔧 Green lines = velocity vectors');
+        console.log('🔧 Red dots = collision points');
+        console.log('🔧 Press P again to disable debug mode');
+      }
+    } else {
+      // Restore PixiJS rendering
+      this.setPixiVisibility(true);
+      this.removeDebugCanvasOverlay();
+      console.log('🔧 Physics debug visualization disabled');
+      console.log('🔧 PixiJS rendering restored');
+    }
+    */
+  }
+
+  // DISABLED - Debug functionality not working
+  // private debugCanvasOverlay: HTMLCanvasElement | null = null;
+
+  // DISABLED - Debug functionality not working
+  /*
+  private createDebugCanvasOverlay(
+    mainCanvas: HTMLCanvasElement,
+    physicsSystem: any
+  ): void {
+    // Remove existing overlay if any
+    this.removeDebugCanvasOverlay();
+
+    // Create a new canvas for debug rendering
+    this.debugCanvasOverlay = document.createElement('canvas');
+    this.debugCanvasOverlay.width = mainCanvas.width;
+    this.debugCanvasOverlay.height = mainCanvas.height;
+
+    // Copy all positioning styles from the main canvas
+    const mainCanvasStyle = window.getComputedStyle(mainCanvas);
+    this.debugCanvasOverlay.style.position = 'absolute';
+    this.debugCanvasOverlay.style.top = mainCanvas.offsetTop + 'px';
+    this.debugCanvasOverlay.style.left = mainCanvas.offsetLeft + 'px';
+    this.debugCanvasOverlay.style.width = mainCanvasStyle.width;
+    this.debugCanvasOverlay.style.height = mainCanvasStyle.height;
+
+    this.debugCanvasOverlay.style.pointerEvents = 'none'; // Don't intercept mouse events
+    this.debugCanvasOverlay.style.zIndex = '1000'; // Above main canvas
+    this.debugCanvasOverlay.style.border = '3px solid #00ff00'; // Green border to indicate debug mode
+    this.debugCanvasOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'; // Dark background for contrast
+    this.debugCanvasOverlay.id = 'physics-debug-overlay'; // For easy identification
+
+    console.log(
+      '🔧 Main canvas position:',
+      mainCanvas.offsetTop,
+      mainCanvas.offsetLeft
+    );
+    console.log(
+      '🔧 Main canvas size:',
+      mainCanvas.width,
+      'x',
+      mainCanvas.height
+    );
+    console.log(
+      '🔧 Main canvas computed style:',
+      mainCanvasStyle.position,
+      mainCanvasStyle.top,
+      mainCanvasStyle.left
+    );
+
+    // Add to the same parent as the main canvas for better positioning
+    if (mainCanvas.parentElement) {
+      mainCanvas.parentElement.appendChild(this.debugCanvasOverlay);
+      console.log('🔧 Debug canvas added to main canvas parent');
+    } else {
+      // Fallback to document body
+      document.body.appendChild(this.debugCanvasOverlay);
+      console.log('🔧 Debug canvas added to document body (fallback)');
+    }
+
+    // Initialize debug rendering on the overlay canvas
+    physicsSystem.renderDebugBodies(this.debugCanvasOverlay);
+  }
+
+  private removeDebugCanvasOverlay(): void {
+    if (this.debugCanvasOverlay && this.debugCanvasOverlay.parentElement) {
+      this.debugCanvasOverlay.parentElement.removeChild(
+        this.debugCanvasOverlay
+      );
+      this.debugCanvasOverlay = null;
+    }
+  }
+
+  private setPixiVisibility(visible: boolean): void {
+    if (!this.gameEngine) return;
+
+    const rendererSystem = this.gameEngine.getRendererSystem();
+    if (!rendererSystem) return;
+
+    const canvas = rendererSystem.getCanvas();
+    if (!canvas) return;
+
+    if (visible) {
+      // Restore normal PixiJS rendering
+      canvas.style.opacity = '1';
+      canvas.style.display = 'block';
+    } else {
+      // Hide PixiJS rendering to show debug overlay clearly
+      canvas.style.opacity = '0.1'; // Very faint so we can still see the layout
+      // Alternatively, completely hide: canvas.style.display = 'none';
+    }
+  }
+  */
+
+  /**
+   * Handle flash effects when objects collide
+   */
+  private handleFlashEffects(event: any): void {
+    // Check if the collision involves the player ship
+    if (this.playerManager && this.playerManager.getModularShip()) {
+      const playerShip = this.playerManager.getModularShip();
+
+      // Check if either body in the collision belongs to the player ship
+      const playerBodyId = playerShip?.physicsBodyId;
+
+      let hitPartIndex = -1;
+      let isPlayerShipHit = false;
+
+      if (playerBodyId && event.bodyA?.id === playerBodyId) {
+        // Player ship is bodyA
+        isPlayerShipHit = true;
+        hitPartIndex = event.partInfoA?.partIndex ?? -1;
+        const componentId = event.partInfoA?.componentId;
+        console.log(
+          `⚡ Player ship (bodyA) collision - part index: ${hitPartIndex}, componentId: ${componentId}`
+        );
+      } else if (playerBodyId && event.bodyB?.id === playerBodyId) {
+        // Player ship is bodyB
+        isPlayerShipHit = true;
+        hitPartIndex = event.partInfoB?.partIndex ?? -1;
+        const componentId = event.partInfoB?.componentId;
+        console.log(
+          `⚡ Player ship (bodyB) collision - part index: ${hitPartIndex}, componentId: ${componentId}`
+        );
+      }
+
+      if (isPlayerShipHit) {
+        // Cast to SimpleDebugShip to access flash methods
+        const simpleShip = playerShip as any;
+
+        if (hitPartIndex >= 0 && simpleShip.triggerBlockFlash) {
+          // Matter.js compound bodies have the main body as parts[0], so actual parts start at index 1
+          // We need to subtract 1 to get the correct visual block index
+          const visualBlockIndex = hitPartIndex - 1;
+
+          if (visualBlockIndex >= 0) {
+            console.log(
+              `⚡ Physics part ${hitPartIndex} -> Visual block ${visualBlockIndex} - Flashing correct block!`
+            );
+            simpleShip.triggerBlockFlash(visualBlockIndex);
+          } else {
+            console.log(
+              `⚡ Hit main compound body (partIndex: ${hitPartIndex}), flashing random block`
+            );
+            simpleShip.triggerRandomBlockFlash();
+          }
+        } else if (simpleShip.triggerRandomBlockFlash) {
+          // Fallback to random block if we can't determine the specific part
+          console.log('⚡ Could not determine hit part, flashing random block');
+          simpleShip.triggerRandomBlockFlash();
+        }
+      }
+    }
+
+    // Check if the debris manager has any debris that should flash
+    if (this.debrisManager) {
+      // For debris pieces, we could implement flash effects here
+      // This would require extending the debris system to support individual piece flashing
+      console.log(
+        '💥 Collision detected - debris flash effects could be implemented here'
+      );
+    }
+  }
+
+  private debugTriggerRandomFlash(): void {
+    console.log('🔧 Triggering random block flash on player ship');
+
+    if (!this.playerManager) {
+      console.log('❌ No player manager found');
+      return;
+    }
+
+    const playerShip = this.playerManager.getModularShip();
+    if (!playerShip) {
+      console.log('❌ No player ship found');
+      return;
+    }
+
+    // Cast to SimpleDebugShip to access flash methods
+    const simpleShip = playerShip as any;
+    if (simpleShip.triggerRandomBlockFlash) {
+      simpleShip.triggerRandomBlockFlash();
+      console.log('⚡ Random block flash triggered!');
+    } else {
+      console.log('❌ Flash method not available on this ship type');
+    }
+  }
+
+  private debugTriggerAllBlocksFlash(): void {
+    console.log('🔧 Triggering flash on all blocks of player ship');
+
+    if (!this.playerManager) {
+      console.log('❌ No player manager found');
+      return;
+    }
+
+    const playerShip = this.playerManager.getModularShip();
+    if (!playerShip) {
+      console.log('❌ No player ship found');
+      return;
+    }
+
+    // Cast to SimpleDebugShip to access flash methods
+    const simpleShip = playerShip as any;
+    if (simpleShip.triggerAllBlocksFlash) {
+      simpleShip.triggerAllBlocksFlash();
+      console.log('⚡ All blocks flash triggered!');
+    } else {
+      console.log('❌ Flash method not available on this ship type');
+    }
   }
 }
