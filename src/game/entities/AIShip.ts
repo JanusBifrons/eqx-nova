@@ -87,7 +87,6 @@ export class AIShip implements IAIShip {
     }
     return success;
   }
-
   public takeDamage(): boolean {
     if (!this.isActive) return false;
 
@@ -97,9 +96,9 @@ export class AIShip implements IAIShip {
     if (this._ship.takeDamage) {
       // Old ship format
       wasDestroyed = this._ship.takeDamage();
-    } else if (this._ship.takeDamageAtComponentId) {
-      // New modular ship format - damage a random component
-      wasDestroyed = this._ship.takeDamageAtComponentId('block_0', 25);
+    } else if (this._ship.takeDamageAtPartIndex) {
+      // New modular ship format - damage the first part (index 0)
+      wasDestroyed = this._ship.takeDamageAtPartIndex(0, 25);
     }
 
     if (wasDestroyed || !this._ship.isAlive) {

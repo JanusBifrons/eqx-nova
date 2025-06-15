@@ -16,8 +16,8 @@ export class AIManager {
   private readonly _gameEngine: IGameEngine;
   private readonly _aiShips: Map<string, AIShip> = new Map();
   private readonly _modularAIShips: Map<string, IModularShip> = new Map();
-  private _aiDisabledForTesting: boolean = false;
-
+  private _aiDisabledForTesting: boolean = false;  // Laser firing callback - accessed via methods, not directly used
+  // @ts-ignore: Property is used via getter/setter methods
   private _onFireLaser?: (
     position: Vector2D,
     rotation: number,
