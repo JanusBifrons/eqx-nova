@@ -548,21 +548,16 @@ export class ComplexModularShip implements IModularShip {
   public destroy(): void {
     console.log('🚀 Destroying complex modular ship');
 
-    if (this._physicsBody) {
-      this._physicsSystem.removeBody(this._physicsBody);
-      this._physicsBody = null;
-    }
+    // Clean up physics and render objects
+    this.cleanupPhysicsAndRender();
 
+    // Clean up individual bodies if they exist
     for (const body of this._individualBodies) {
       this._physicsSystem.removeBody(body);
     }
     this._individualBodies = [];
 
-    for (const renderObjectId of this._renderObjectIds) {
-      this._rendererSystem.removeRenderObject(renderObjectId);
-    }
-    this._renderObjectIds = [];
-
+    // Mark as destroyed
     this._isDestroyed = true;
   }
 
@@ -608,7 +603,7 @@ export class ComplexModularShip implements IModularShip {
 
       const distance = Math.sqrt(
         Math.pow(blockWorldPos.x - position.x, 2) +
-          Math.pow(blockWorldPos.y - position.y, 2)
+        Math.pow(blockWorldPos.y - position.y, 2)
       );
 
       console.log(
@@ -785,7 +780,7 @@ export class ComplexModularShip implements IModularShip {
     const currentPosition = this.position;
     const currentRotation = this.rotation;
 
-    return ComplexModularShipSplitIntegration.checkAndHandleShipSplitting(
+    const wasSplit = ComplexModularShipSplitIntegration.checkAndHandleShipSplitting(
       this._blockConfigs,
       currentPosition,
       currentRotation,
@@ -814,6 +809,18 @@ export class ComplexModularShip implements IModularShip {
         }
       }
     );
+
+    // CRITICAL FIX: If ship was split, mark this instance as destroyed to prevent orphaned objects
+    if (wasSplit) {
+      console.log('🔧 Ship was split - marking original instance as destroyed');
+      this._isDestroyed = true;
+      // Clear any remaining references to prevent orphaned objects
+      this._blockConfigs = [];
+      this._renderObjectIds = [];
+      this._physicsBody = null;
+    }
+
+    return wasSplit;
   }
 
   /**

@@ -53,7 +53,8 @@ export class SimpleDebugShip implements IModularShip {
     rendererSystem: IRendererSystem,
     position: Vector2D,
     debrisManager: DebrisManager | null = null,
-    id?: string
+    id?: string,
+    customBlockOffsets?: Vector2D[] // NEW: Allow custom block layouts
   ) {
     this._id = id || uuidv4();
     this._physicsSystem = physicsSystem;
@@ -67,71 +68,37 @@ export class SimpleDebugShip implements IModularShip {
     this._blockSize = 20; // All blocks are 20x20
     const halfBlock = this._blockSize / 2;
 
-    // Store block offsets for later use when breaking apart
-    // Keep the original vertical layout since that looks correct visually
-    // We'll align the physics with an initial rotation instead
-    this._blockOffsets = [
-      { x: -this._blockSize, y: -halfBlock }, // Top left (weapon)
-      { x: 0, y: -halfBlock }, // Top center (weapon)
-      { x: this._blockSize, y: -halfBlock }, // Top right (weapon)
-      { x: -this._blockSize, y: halfBlock }, // Bottom left
-      { x: 0, y: halfBlock }, // Bottom center
-      { x: this._blockSize, y: halfBlock }, // Bottom right
-    ];
+    if (customBlockOffsets && customBlockOffsets.length > 0) {
+      // Use custom block layout (these are already relative offsets from AIManager)
+      this._blockOffsets = customBlockOffsets.map(pos => ({
+        x: pos.x,
+        y: pos.y,
+      }));
+      console.log(`🔧 Using CUSTOM block layout with ${this._blockOffsets.length} blocks`);
+      console.log(`🔧 Custom block offsets:`, this._blockOffsets);
+    } else {
+      // Store block offsets for later use when breaking apart
+      // Keep the original vertical layout since that looks correct visually
+      // We'll align the physics with an initial rotation instead
+      this._blockOffsets = [
+        { x: -this._blockSize, y: -halfBlock }, // Top left (weapon)
+        { x: 0, y: -halfBlock }, // Top center (weapon)
+        { x: this._blockSize, y: -halfBlock }, // Top right (weapon)
+        { x: -this._blockSize, y: halfBlock }, // Bottom left
+        { x: 0, y: halfBlock }, // Bottom center
+        { x: this._blockSize, y: halfBlock }, // Bottom right
+      ];
+    }
 
-    // Create compound body with 6 equal-sized rectangle blocks in a 3x2 pattern
-    const parts: CompoundBodyPart[] = [
-      // Top row (3 blocks)
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[0].x,
-        y: this._blockOffsets[0].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_0',
-      },
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[1].x,
-        y: this._blockOffsets[1].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_1',
-      },
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[2].x,
-        y: this._blockOffsets[2].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_2',
-      },
-      // Bottom row (3 blocks)
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[3].x,
-        y: this._blockOffsets[3].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_3',
-      },
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[4].x,
-        y: this._blockOffsets[4].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_4',
-      },
-      {
-        type: 'rectangle',
-        x: this._blockOffsets[5].x,
-        y: this._blockOffsets[5].y,
-        width: this._blockSize,
-        height: this._blockSize,
-        componentId: 'block_5',
-      },
-    ];
+    // Create compound body with dynamic number of blocks based on _blockOffsets
+    const parts: CompoundBodyPart[] = this._blockOffsets.map((offset, index) => ({
+      type: 'rectangle' as const,
+      x: offset.x,
+      y: offset.y,
+      width: this._blockSize,
+      height: this._blockSize,
+      componentId: `block_${index}`,
+    }));
 
     this._physicsBody = this._physicsSystem.createCompoundBody(
       position.x,
@@ -161,7 +128,7 @@ export class SimpleDebugShip implements IModularShip {
 
     // Create render objects for each block with different colors
     // Front row (weapons) will be red/orange colors, rear row will be blue/green
-    const colors = [
+    const baseColors = [
       0xff0000, // Red (Front left weapon)
       0xff4500, // Orange Red (Front center weapon)
       0xff8c00, // Dark Orange (Front right weapon)
@@ -170,31 +137,34 @@ export class SimpleDebugShip implements IModularShip {
       0x00bfff, // Deep Sky Blue (Rear right)
     ];
 
+    // Create colors array for the actual number of blocks
+    const colors = Array.from({ length: this._blockOffsets.length }, (_, i) =>
+      baseColors[i % baseColors.length]
+    );
+
     // Initialize flash effect arrays
     this._originalColors = [...colors];
-    this._blockFlashStates = new Array(colors.length).fill(false);
-    this._blockFlashTimers = new Array(colors.length).fill(0);
+    this._blockFlashStates = new Array(this._blockOffsets.length).fill(false);
+    this._blockFlashTimers = new Array(this._blockOffsets.length).fill(0);
 
-    const blockPositions = [
-      { x: position.x - this._blockSize, y: position.y - this._blockSize / 2 }, // Top left (weapon)
-      { x: position.x, y: position.y - this._blockSize / 2 }, // Top center (weapon)
-      { x: position.x + this._blockSize, y: position.y - this._blockSize / 2 }, // Top right (weapon)
-      { x: position.x - this._blockSize, y: position.y + this._blockSize / 2 }, // Bottom left
-      { x: position.x, y: position.y + this._blockSize / 2 }, // Bottom center
-      { x: position.x + this._blockSize, y: position.y + this._blockSize / 2 }, // Bottom right
-    ];
-
-    for (let i = 0; i < parts.length; i++) {
+    // Create render objects for each block dynamically
+    for (let i = 0; i < this._blockOffsets.length; i++) {
       const renderObjectId = `ship_${this._id}_block_${i}`;
       this._renderObjectIds.push(renderObjectId);
 
+      // Calculate world position from block offset
+      const blockWorldX = position.x + this._blockOffsets[i].x;
+      const blockWorldY = position.y + this._blockOffsets[i].y;
+
+      console.log(`🎨 Creating render object ${i}: ID=${renderObjectId}, pos=(${blockWorldX}, ${blockWorldY}), color=0x${colors[i % colors.length].toString(16)}`);
+
       this._rendererSystem.createRenderObject({
         id: renderObjectId,
-        position: blockPositions[i],
+        position: { x: blockWorldX, y: blockWorldY },
         angle: 0,
         width: this._blockSize,
         height: this._blockSize,
-        color: colors[i],
+        color: colors[i % colors.length], // Cycle through colors if we have more blocks
         type: 'rectangle',
       });
     }
@@ -384,13 +354,14 @@ export class SimpleDebugShip implements IModularShip {
   // Weapon system methods
   private initializeWeaponSystem(): void {
     // Designate specific blocks as weapon blocks
-    // For our 3x2 grid: top row blocks (indices 0, 1, 2) are weapon blocks
-    // These are the visually front-facing blocks
-    this._weaponBlocks = [0, 1, 2]; // Top left, top center, top right blocks (weapons)
+    // For custom layouts: Use the first few blocks as weapons (up to 3)
+    // For default layout: Use top row blocks (indices 0, 1, 2) as weapon blocks
+    const maxWeapons = Math.min(3, this._blockOffsets.length);
+    this._weaponBlocks = Array.from({ length: maxWeapons }, (_, i) => i);
     this._weaponCooldowns = new Array(this._blockOffsets.length).fill(0);
 
     console.log(
-      `🔫 Weapon system initialized: ${this._weaponBlocks.length} weapon blocks at front of ship`
+      `🔫 Weapon system initialized: ${this._weaponBlocks.length} weapon blocks (indices: ${this._weaponBlocks.join(', ')}) out of ${this._blockOffsets.length} total blocks`
     );
   }
 

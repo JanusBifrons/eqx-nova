@@ -4,7 +4,7 @@ import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
 import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
 import { AIShip } from '../entities/AIShip';
 import { AIBehavior } from '../entities/AIBehavior';
-import { ComplexModularShip } from '../entities/v2/ComplexModularShip';
+import { SimpleDebugShip } from '../entities/v2/SimpleDebugShip';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -56,8 +56,7 @@ export class AIManager {
 
     // Create a modular ship using the faction-specific design
     const modularShip = this.createModularShipForFaction(
-      config.faction,
-      config.position,
+      config,
       shipId
     );
 
@@ -153,133 +152,141 @@ export class AIManager {
       }
       return visited.size === gridSet.size;
     };
-    // RED DREADNOUGHT - Heavy battleship in arrow formation
+    // RED DREADNOUGHT - Long linear battleship (thin horizontal configuration)
     const redDreadnoughtGrid = [
-      // Main spine (horizontal line)
-      gridToWorld(0, 0), // Center
-      gridToWorld(-1, 0), // Rear 1
+      // Extended main spine (very long horizontal line)
+      gridToWorld(-4, 0), // Rear engines
+      gridToWorld(-3, 0), // Rear 3
       gridToWorld(-2, 0), // Rear 2
-      gridToWorld(-3, 0), // Rear 3 (engines)
-      gridToWorld(1, 0), // Front 1
-      gridToWorld(2, 0), // Front 2 (nose)
-
-      // Upper wing (connected to center)
-      gridToWorld(0, -1), // Upper center
-      gridToWorld(-1, -1), // Upper rear
-      gridToWorld(1, -1), // Upper front
-      gridToWorld(0, -2), // Upper tip
-
-      // Lower wing (connected to center)
-      gridToWorld(0, 1), // Lower center
-      gridToWorld(-1, 1), // Lower rear
-      gridToWorld(1, 1), // Lower front
-      gridToWorld(0, 2), // Lower tip
-
-      // Diagonal corner smoothing (optional "leaves")
-      gridToWorld(-2, -1), // Upper rear diagonal
-      gridToWorld(-2, 1), // Lower rear diagonal
-    ];
-
-    // BLUE FORTRESS - Defensive square formation
-    const blueFortressGrid = [
-      // Central core (3x3 square)
-      gridToWorld(0, 0), // Center
-      gridToWorld(-1, 0),
-      gridToWorld(1, 0), // Horizontal line
-      gridToWorld(0, -1),
-      gridToWorld(0, 1), // Vertical line
-      gridToWorld(-1, -1),
-      gridToWorld(1, -1), // Upper corners
-      gridToWorld(-1, 1),
-      gridToWorld(1, 1), // Lower corners
-
-      // Extensions (connected to edges)
-      gridToWorld(2, 0), // Right extension
-      gridToWorld(-2, 0), // Left extension
-      gridToWorld(0, 2), // Bottom extension
-      gridToWorld(0, -2), // Top extension
-
-      // Outer corners for reinforcement
-      gridToWorld(2, -1), // Right-top diagonal
-      gridToWorld(2, 1), // Right-bottom diagonal
-    ];
-
-    // PURPLE DESTROYER - Sleek linear design
-    const purpleDestroyerGrid = [
-      // Main body (horizontal line)
-      gridToWorld(0, 0), // Center
       gridToWorld(-1, 0), // Rear 1
-      gridToWorld(-2, 0), // Rear 2 (engines)
+      gridToWorld(0, 0), // Center/Bridge
       gridToWorld(1, 0), // Front 1
       gridToWorld(2, 0), // Front 2
-      gridToWorld(3, 0), // Nose
+      gridToWorld(3, 0), // Front 3
+      gridToWorld(4, 0), // Nose/Weapons
 
-      // Side wings (minimal, connected to main body)
-      gridToWorld(0, -1), // Upper wing
-      gridToWorld(0, 1), // Lower wing
-
-      // Engine pods (connected to rear)
-      gridToWorld(-2, -1), // Upper engine
-      gridToWorld(-2, 1), // Lower engine
+      // Minimal side extensions (keep it thin)
+      gridToWorld(0, -1), // Bridge upper
+      gridToWorld(0, 1), // Bridge lower
     ];
 
-    // ORANGE CARRIER - Wide T-formation
+    // BLUE FORTRESS - Long vertical thin ship (vertical linear configuration)
+    const blueFortressGrid = [
+      // Extended vertical spine (very long vertical line)
+      gridToWorld(0, -4), // Top weapons
+      gridToWorld(0, -3), // Top 3
+      gridToWorld(0, -2), // Top 2
+      gridToWorld(0, -1), // Top 1
+      gridToWorld(0, 0), // Center/Bridge
+      gridToWorld(0, 1), // Bottom 1
+      gridToWorld(0, 2), // Bottom 2
+      gridToWorld(0, 3), // Bottom 3
+      gridToWorld(0, 4), // Bottom engines
+
+      // Minimal horizontal extensions (keep it thin)
+      gridToWorld(-1, 0), // Bridge left
+      gridToWorld(1, 0), // Bridge right
+    ];
+
+    // PURPLE DESTROYER - Ultra-thin horizontal needle (extreme linear design)
+    const purpleDestroyerGrid = [
+      // Ultra-extended main body (extremely long horizontal line)
+      gridToWorld(-5, 0), // Far rear engines
+      gridToWorld(-4, 0), // Rear 4
+      gridToWorld(-3, 0), // Rear 3
+      gridToWorld(-2, 0), // Rear 2
+      gridToWorld(-1, 0), // Rear 1
+      gridToWorld(0, 0), // Center/Bridge
+      gridToWorld(1, 0), // Front 1
+      gridToWorld(2, 0), // Front 2
+      gridToWorld(3, 0), // Front 3
+      gridToWorld(4, 0), // Front 4
+      gridToWorld(5, 0), // Far nose
+
+      // No side extensions - pure thin line for maximum speed profile
+    ];
+
+    // ORANGE CARRIER - Thin L-shaped configuration (angular thin design)
     const orangeCarrierGrid = [
-      // Central spine
-      gridToWorld(0, 0), // Command center
-      gridToWorld(-1, 0), // Rear command
-      gridToWorld(-2, 0), // Engine core
-      gridToWorld(1, 0), // Front command
+      // Main horizontal spine
+      gridToWorld(-3, 0), // Rear
+      gridToWorld(-2, 0), // Rear 2
+      gridToWorld(-1, 0), // Rear 1
+      gridToWorld(0, 0), // Center/Junction
+      gridToWorld(1, 0), // Front 1
+      gridToWorld(2, 0), // Front 2
 
-      // Wide flight deck (horizontal)
-      gridToWorld(0, -1),
-      gridToWorld(0, -2),
-      gridToWorld(0, -3), // Port deck
-      gridToWorld(0, 1),
-      gridToWorld(0, 2),
-      gridToWorld(0, 3), // Starboard deck
+      // Vertical extension (L-shape)
+      gridToWorld(0, 1), // Down 1
+      gridToWorld(0, 2), // Down 2
+      gridToWorld(0, 3), // Down 3
+      gridToWorld(0, 4), // Down 4
 
-      // Support structure
-      gridToWorld(-1, -1),
-      gridToWorld(-1, 1), // Rear supports
-      gridToWorld(1, -1),
-      gridToWorld(1, 1), // Front supports
-
-      // Landing bay extensions
-      gridToWorld(-1, -2),
-      gridToWorld(-1, 2), // Extended bays
-      gridToWorld(1, -2),
-      gridToWorld(1, 2), // Extended bays
+      // Minimal connection reinforcement
+      gridToWorld(1, 1), // Corner support
     ];
 
-    // YELLOW INTERCEPTOR - Compact V-shape
+    // YELLOW INTERCEPTOR - Short thin horizontal line (compact linear)
     const yellowInterceptorGrid = [
-      // SIMPLIFIED FOR TESTING - Just a 3-part horizontal line
-      gridToWorld(-1, 0), // Left
-      gridToWorld(0, 0), // Center
-      gridToWorld(1, 0), // Right
-    ];
-
-    // CYAN CRUISER - Diamond formation
-    const cyanCruiserGrid = [
-      // Diamond core
+      // Simple short horizontal line (minimal but connected)
+      gridToWorld(-1, 0), // Rear
       gridToWorld(0, 0), // Center
       gridToWorld(1, 0), // Front
-      gridToWorld(-1, 0), // Rear
-      gridToWorld(0, -1), // Top
-      gridToWorld(0, 1), // Bottom
-
-      // Secondary ring
-      gridToWorld(1, -1), // Front-top
-      gridToWorld(1, 1), // Front-bottom
-      gridToWorld(-1, -1), // Rear-top
-      gridToWorld(-1, 1), // Rear-bottom
-
-      // Extensions
       gridToWorld(2, 0), // Extended nose
-      gridToWorld(-2, 0), // Extended tail
-      gridToWorld(0, -2), // Extended top
-      gridToWorld(0, 2), // Extended bottom
+    ];
+
+    // CYAN CRUISER - Medium diagonal line (thin diagonal configuration)
+    const cyanCruiserGrid = [
+      // Diagonal spine (diagonal thin line)
+      gridToWorld(-2, -2), // Far rear-upper
+      gridToWorld(-1, -1), // Rear-upper
+      gridToWorld(0, 0), // Center
+      gridToWorld(1, 1), // Front-lower
+      gridToWorld(2, 2), // Far front-lower
+
+      // Minimal perpendicular support
+      gridToWorld(0, -1), // Center support up
+      gridToWorld(0, 1), // Center support down
+    ];
+
+    // ADDITIONAL THIN SHIPS FOR VARIETY
+
+    // GREEN LANCE - Ultra-long vertical spear
+    const greenLanceGrid = [
+      // Very long vertical line
+      gridToWorld(0, -5), // Top
+      gridToWorld(0, -4),
+      gridToWorld(0, -3),
+      gridToWorld(0, -2),
+      gridToWorld(0, -1),
+      gridToWorld(0, 0), // Center
+      gridToWorld(0, 1),
+      gridToWorld(0, 2),
+      gridToWorld(0, 3),
+      gridToWorld(0, 4),
+      gridToWorld(0, 5), // Bottom
+    ];
+
+    // WHITE DAGGER - Medium horizontal with single side extension
+    const whiteDaggerGrid = [
+      // Main horizontal line
+      gridToWorld(-2, 0), // Rear
+      gridToWorld(-1, 0),
+      gridToWorld(0, 0), // Center
+      gridToWorld(1, 0),
+      gridToWorld(2, 0),
+      gridToWorld(3, 0), // Front
+
+      // Single side wing for asymmetry
+      gridToWorld(1, 1), // Side extension
+    ];
+
+    // PINK NEEDLE - Short horizontal line
+    const pinkNeedleGrid = [
+      // Simple thin horizontal line
+      gridToWorld(-1, 0), // Rear
+      gridToWorld(0, 0), // Center
+      gridToWorld(1, 0), // Front
     ];
 
     // Validate all ship designs
@@ -290,6 +297,9 @@ export class AIManager {
       { name: 'Orange Carrier', grid: orangeCarrierGrid },
       { name: 'Yellow Interceptor', grid: yellowInterceptorGrid },
       { name: 'Cyan Cruiser', grid: cyanCruiserGrid },
+      { name: 'Green Lance', grid: greenLanceGrid },
+      { name: 'White Dagger', grid: whiteDaggerGrid },
+      { name: 'Pink Needle', grid: pinkNeedleGrid },
     ];
 
     shipGrids.forEach(ship => {
@@ -365,11 +375,59 @@ export class AIManager {
         position: { x: centerX + 50, y: centerY - 250 },
         partPositions: yellowInterceptorGrid,
         partSize: 20, // Changed from 18 to match grid size
-        faction: 'cyan_cruiser',
+        faction: 'yellow_interceptor',
         behaviorType: 'patrol',
         fireRate: 500,
         detectionRange: 350,
         lives: 13,
+      },
+
+      // CYAN CRUISER - Diagonal strike craft (bottom-left of center)
+      {
+        position: { x: centerX - 150, y: centerY + 150 },
+        partPositions: cyanCruiserGrid,
+        partSize: 20,
+        faction: 'cyan_cruiser',
+        behaviorType: 'hunter',
+        fireRate: 400,
+        detectionRange: 375,
+        lives: 8,
+      },
+
+      // GREEN LANCE - Ultra-long vertical spear (right of center)
+      {
+        position: { x: centerX + 350, y: centerY + 50 },
+        partPositions: greenLanceGrid,
+        partSize: 20,
+        faction: 'green_lance',
+        behaviorType: 'aggressive',
+        fireRate: 350,
+        detectionRange: 500,
+        lives: 14,
+      },
+
+      // WHITE DAGGER - Asymmetric hunter (far left of center)
+      {
+        position: { x: centerX - 400, y: centerY - 50 },
+        partPositions: whiteDaggerGrid,
+        partSize: 20,
+        faction: 'white_dagger',
+        behaviorType: 'hunter',
+        fireRate: 450,
+        detectionRange: 400,
+        lives: 9,
+      },
+
+      // PINK NEEDLE - Small fast interceptor (bottom of center)
+      {
+        position: { x: centerX - 50, y: centerY + 280 },
+        partPositions: pinkNeedleGrid,
+        partSize: 20,
+        faction: 'pink_needle',
+        behaviorType: 'aggressive',
+        fireRate: 250,
+        detectionRange: 300,
+        lives: 6,
       },
     ];
   }
@@ -379,11 +437,13 @@ export class AIManager {
    */
   public spawnAIFleet(): void {
     const worldDims = this._gameEngine.getWorldDimensions();
+    console.log(`🌍 World dimensions: ${worldDims.width} x ${worldDims.height}`);
 
     const shipConfigs = this.createGridBasedShipConfigurations(worldDims);
 
     // Create all AI ships
     shipConfigs.forEach(config => {
+      console.log(`🚀 Creating AI ship at position (${config.position.x}, ${config.position.y})`);
       this.createAIShip(config);
     });
 
@@ -683,26 +743,29 @@ export class AIManager {
    * Create a modular ship with different geometric patterns based on faction
    */
   private createModularShipForFaction(
-    faction: string,
-    position: Vector2D,
+    config: AIShipConfig,
     shipId: string
   ): IModularShip {
     const engineAdapter = this._gameEngine as any;
     const engine = engineAdapter.engine;
 
-    // For now, all AI ships use the same ComplexModularShip design
-    // In the future, we could create different ship designs based on faction
-    const modularShip = new ComplexModularShip(
+    console.log(
+      `🏭 Creating ${config.faction} ship with ${config.partPositions.length} parts in custom thin configuration`
+    );
+
+    // Use SimpleDebugShip with custom block positions
+    const modularShip = new SimpleDebugShip(
       engine.getEntityManager(),
       engine.getPhysicsSystem(),
       engine.getRendererSystem(),
-      position,
+      config.position,
       null, // No debris manager for AI ships
-      shipId
+      shipId,
+      [...config.partPositions] // Convert readonly array to mutable array
     );
 
     console.log(
-      `🏭 Created ${faction} modular ship with complex design at (${position.x}, ${position.y})`
+      `🏭 Created ${config.faction} modular ship with ${config.partPositions.length} blocks in thin design at (${config.position.x}, ${config.position.y})`
     );
     return modularShip;
   }

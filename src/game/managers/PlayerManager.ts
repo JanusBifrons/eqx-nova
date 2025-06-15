@@ -35,6 +35,21 @@ export class PlayerManager {
       engine.getRendererSystem(),
       engine.getEntityManager()
     );
+
+    // Set up registration callbacks for split ships/debris
+    // Note: These will be properly connected when the game managers are available
+    this.modularShipFactory.setRegistrationCallbacks(
+      (ship: any) => {
+        console.log(`🚀 New ship created from splitting (ID: ${ship.id}) - needs proper registration`);
+        // TODO: This should be connected to the actual game managers when available
+        // For now, just log that a new ship was created
+      },
+      (debrisData: any) => {
+        console.log(`🗑️ New debris created from splitting (${debrisData.blocks?.length || 0} blocks) - needs proper registration`);
+        // TODO: This should be connected to the debris manager when available
+        // For now, just log that debris was created
+      }
+    );
   }
 
   public createPlayer(): void {
@@ -104,6 +119,21 @@ export class PlayerManager {
 
   public setDebrisManager(debrisManager: DebrisManager): void {
     this.debrisManager = debrisManager;
+  }
+
+  /**
+   * Set up proper registration callbacks for ship splitting
+   * This should be called after all game managers are initialized
+   */
+  public setupSplitCallbacks(
+    shipRegistrationCallback: (ship: any) => void,
+    debrisRegistrationCallback?: (debrisData: any) => void
+  ): void {
+    this.modularShipFactory.setRegistrationCallbacks(
+      shipRegistrationCallback,
+      debrisRegistrationCallback
+    );
+    console.log('🔧 Split callbacks configured for PlayerManager');
   }
 
   public update(deltaTime: number): void {

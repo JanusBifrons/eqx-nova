@@ -25,8 +25,8 @@ export class CollisionManager {
 
   private aiManager: AIManager | null = null;
 
-  // Player immunity toggle - ENABLED for coordinate system testing
-  private playerImmune: boolean = true; // ENABLED for asteroid damage, but laser damage will work
+  // Player immunity toggle - DISABLED for testing ship splitting
+  private playerImmune: boolean = false; // DISABLED to allow testing ship damage and splitting
 
   constructor(
     playerManager: PlayerManager,

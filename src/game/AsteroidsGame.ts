@@ -134,6 +134,46 @@ export class AsteroidsGame {
 
     // Connect AI manager to collision manager
     this.collisionManager.setAIManager(this.aiManager);
+
+    // Set up ship splitting callbacks for proper registration
+    this.setupShipSplittingCallbacks();
+  }
+
+  /**
+   * Set up callbacks for ship splitting to ensure new ships and debris are properly registered
+   */
+  private setupShipSplittingCallbacks(): void {
+    if (!this.playerManager || !this.debrisManager) return;
+
+    // Set up callbacks for player ship splitting
+    this.playerManager.setupSplitCallbacks(
+      (newShip: any) => {
+        console.log(`🚀 Registering new ship from split: ${newShip.id}`);
+        // TODO: Register new ship with collision system and other managers as needed
+        // For now, the ship is created and will be visible/physics-enabled automatically
+        // Future enhancement: Add to collision manager, AI fleet management, etc.
+      },
+      (debrisData: any) => {
+        console.log(
+          `🗑️ Registering debris from split: ${debrisData.blocks?.length || 0
+          } blocks`
+        );
+
+        // Register debris with the debris manager for proper autonomous management
+        if (this.debrisManager && debrisData.body && debrisData.renderIds) {
+          // The splitter creates one physics body per debris group, but multiple render objects
+          // We need to add each render object individually to the debris manager
+          for (const renderObjectId of debrisData.renderIds) {
+            this.debrisManager.addDebris(debrisData.body, renderObjectId);
+          }
+          console.log(`🗑️ Added ${debrisData.renderIds.length} debris pieces to manager`);
+        } else {
+          console.warn('⚠️ Could not register debris - missing debris manager or invalid debris data');
+        }
+      }
+    );
+
+    console.log('🔧 Ship splitting callbacks configured');
   }
 
   private setupGame(): void {
