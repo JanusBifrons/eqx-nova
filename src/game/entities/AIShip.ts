@@ -91,7 +91,16 @@ export class AIShip implements IAIShip {
   public takeDamage(): boolean {
     if (!this.isActive) return false;
 
-    const wasDestroyed = this._ship.takeDamage();
+    let wasDestroyed = false;
+
+    // Handle different ship types
+    if (this._ship.takeDamage) {
+      // Old ship format
+      wasDestroyed = this._ship.takeDamage();
+    } else if (this._ship.takeDamageAtComponentId) {
+      // New modular ship format - damage a random component
+      wasDestroyed = this._ship.takeDamageAtComponentId('block_0', 25);
+    }
 
     if (wasDestroyed || !this._ship.isAlive) {
       this.destroy();

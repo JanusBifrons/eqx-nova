@@ -459,11 +459,23 @@ export class AIManager {
   }
 
   /**
+   * Get all modular AI ships
+   */
+  public getAllModularAIShips(): IModularShip[] {
+    return Array.from(this._modularAIShips.values());
+  }
+
+  /**
    * Find AI ship by entity
    */
   public findAIShipByEntity(entity: any): AIShip | null {
     for (const aiShip of this._aiShips.values()) {
       if (aiShip.isActive) {
+        // Handle virtual entities created for modular ships
+        if (entity?.isModularShip && entity.modularShip === aiShip.ship) {
+          return aiShip;
+        }
+
         // Handle both old ship format (parts) and new modular ship format (structure.components)
         let foundPart = null;
 
@@ -481,6 +493,13 @@ export class AIManager {
 
         if (foundPart) {
           return aiShip;
+        }
+
+        // For modular ships with compound physics bodies, check by physics body ID
+        if (aiShip.ship.physicsBodyId && entity?.physicsBodyId) {
+          if (aiShip.ship.physicsBodyId === entity.physicsBodyId) {
+            return aiShip;
+          }
         }
       }
     }

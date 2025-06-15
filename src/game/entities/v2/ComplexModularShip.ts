@@ -25,6 +25,7 @@ const BlockType = {
 } as const;
 
 interface BlockConfig {
+  id: string;
   offset: Vector2D;
   type: keyof typeof BlockType;
   size: Vector2D;
@@ -99,61 +100,65 @@ export class ComplexModularShip implements IModularShip {
     //   [A][H][A]       <- Armor-Shield-Armor (bottom row)
     //     [E]           <- Rear engine (bottom)
 
-    this._blockConfigs = [
-      // Row 1: Sensor array
+    this._blockConfigs = [      // Row 1: Sensor array
       {
+        id: uuidv4(),
         offset: { x: 0, y: -b * 2 },
         type: BlockType.SENSOR,
         size: { x: b, y: b },
         health: 50,
-      },
-
-      // Row 2: Main weapons and cockpit
+      },      // Row 2: Main weapons and cockpit
       {
+        id: uuidv4(),
         offset: { x: -b, y: -b },
         type: BlockType.WEAPON,
         size: { x: b, y: b },
         health: 75,
       },
       {
+        id: uuidv4(),
         offset: { x: 0, y: -b },
         type: BlockType.COCKPIT,
         size: { x: b, y: b },
         health: 100,
       },
       {
+        id: uuidv4(),
         offset: { x: b, y: -b },
         type: BlockType.WEAPON,
         size: { x: b, y: b },
         health: 75,
-      },
-
-      // Row 3: Wide engine and armor section
+      },      // Row 3: Wide engine and armor section
       {
+        id: uuidv4(),
         offset: { x: -b * 2, y: 0 },
         type: BlockType.ENGINE,
         size: { x: b, y: b },
         health: 60,
       },
       {
+        id: uuidv4(),
         offset: { x: -b, y: 0 },
         type: BlockType.ARMOR,
         size: { x: b, y: b },
         health: 120,
       },
       {
+        id: uuidv4(),
         offset: { x: 0, y: 0 },
         type: BlockType.ARMOR,
         size: { x: b, y: b },
         health: 120,
       },
       {
+        id: uuidv4(),
         offset: { x: b, y: 0 },
         type: BlockType.ARMOR,
         size: { x: b, y: b },
         health: 120,
       },
       {
+        id: uuidv4(),
         offset: { x: b * 2, y: 0 },
         type: BlockType.ENGINE,
         size: { x: b, y: b },
@@ -162,18 +167,21 @@ export class ComplexModularShip implements IModularShip {
 
       // Row 4: Lower defensive section
       {
+        id: uuidv4(),
         offset: { x: -b, y: b },
         type: BlockType.ARMOR,
         size: { x: b, y: b },
         health: 120,
       },
       {
+        id: uuidv4(),
         offset: { x: 0, y: b },
         type: BlockType.SHIELD,
         size: { x: b, y: b },
         health: 80,
       },
       {
+        id: uuidv4(),
         offset: { x: b, y: b },
         type: BlockType.ARMOR,
         size: { x: b, y: b },
@@ -182,6 +190,7 @@ export class ComplexModularShip implements IModularShip {
 
       // Row 5: Rear engine
       {
+        id: uuidv4(),
         offset: { x: 0, y: b * 2 },
         type: BlockType.ENGINE,
         size: { x: b, y: b },
@@ -195,15 +204,14 @@ export class ComplexModularShip implements IModularShip {
   /**
    * Create the compound physics body
    */
-  private createPhysicsBody(position: Vector2D): void {
-    const parts: CompoundBodyPart[] = this._blockConfigs.map(
-      (config, index) => ({
+  private createPhysicsBody(position: Vector2D): void {    const parts: CompoundBodyPart[] = this._blockConfigs.map(
+      (config) => ({
         type: 'rectangle' as const,
         x: config.offset.x,
         y: config.offset.y,
         width: config.size.x,
         height: config.size.y,
-        componentId: `${config.type}_${index}`,
+        componentId: config.id, // Use the GUID from block config
       })
     );
     this._physicsBody = this._physicsSystem.createCompoundBody(
@@ -565,8 +573,7 @@ export class ComplexModularShip implements IModularShip {
     }
 
     return this.damageBlock(closestBlockIndex, damage);
-  }
-  public takeDamageAtComponentId(
+  }  public takeDamageAtComponentId(
     componentId: string,
     damage: number = 25
   ): boolean {
@@ -574,14 +581,10 @@ export class ComplexModularShip implements IModularShip {
       `💥 Complex ship taking ${damage} damage at component ${componentId}`
     );
 
-    // Extract block index from component ID (format: "block_X")
-    const blockIndex = parseInt(componentId.replace('block_', ''));
-    if (
-      isNaN(blockIndex) ||
-      blockIndex < 0 ||
-      blockIndex >= this._blockConfigs.length
-    ) {
-      console.warn(`⚠️ Invalid component ID: ${componentId}`);
+    // Find block by GUID
+    const blockIndex = this._blockConfigs.findIndex(block => block.id === componentId);
+    if (blockIndex === -1) {
+      console.warn(`⚠️ Component not found with ID: ${componentId}`);
       return false;
     }
 

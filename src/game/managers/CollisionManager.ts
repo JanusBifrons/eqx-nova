@@ -267,18 +267,40 @@ export class CollisionManager {
       const aiShips = this.aiManager.getAllAIShips();
 
       for (const aiShip of aiShips) {
-        // Check AI ship compound body
-        const compoundBody = (aiShip.ship as any)._compoundBody;
+        // Check AI ship compound body - handle both old and new formats
+        let shipPhysicsBodyId = null;
 
-        if (compoundBody && compoundBody.id === physicsBodyId) {
+        // Try new modular ship format first
+        if (aiShip.ship.physicsBodyId) {
+          shipPhysicsBodyId = aiShip.ship.physicsBodyId;
+        } else {
+          // Try old format compound body
+          const compoundBody = (aiShip.ship as any)._compoundBody;
+          if (compoundBody) {
+            shipPhysicsBodyId = compoundBody.id;
+          }
+        }
+
+        if (shipPhysicsBodyId === physicsBodyId) {
           console.log(
             `🎯 Found AI ship compound body: ${physicsBodyId} -> ${aiShip.ship.id}`
           );
-          // Return the first part's entity as a representative
-          const activeParts = aiShip.ship.getActiveParts();
-
-          if (activeParts.length > 0) {
-            return activeParts[0].entity;
+          // For modular ships, create a virtual entity to represent the ship
+          if (aiShip.ship.physicsBodyId) {
+            // Return a virtual entity for modular ships
+            return {
+              id: aiShip.ship.id,
+              physicsBodyId: shipPhysicsBodyId,
+              position: aiShip.ship.position,
+              isModularShip: true,
+              modularShip: aiShip.ship,
+            } as any;
+          } else {
+            // For old ships, return the first part's entity as a representative
+            const activeParts = aiShip.ship.getActiveParts?.();
+            if (activeParts && activeParts.length > 0) {
+              return activeParts[0].entity;
+            }
           }
         }
         // Check individual parts
@@ -354,32 +376,78 @@ export class CollisionManager {
         `🎯 Looking for ship part with physics body ID: ${shipBodyId}`
       );
 
-      // Find the specific part that was hit - handle both ship formats
-      let parts = null;
-      if (compositeShip.parts) {
-        // Old ship format
-        parts = compositeShip.parts;
-      } else if (compositeShip.structure?.components) {
-        // New modular ship format
-        parts = compositeShip.structure.components;
+      // For modular ships, get the component ID from the physics body label
+      // The physics system already extracted this for us
+      if (
+        collisionEvent.partInfoA &&
+        collisionEvent.partInfoA.componentId &&
+        collisionEvent.partInfoA.partBody?.id === shipBodyId
+      ) {
+        targetPartId = collisionEvent.partInfoA.componentId;
+        console.log(
+          `🎯 Found hit component from collision event: ${targetPartId}`
+        );
+      } else if (
+        collisionEvent.partInfoB &&
+        collisionEvent.partInfoB.componentId &&
+        collisionEvent.partInfoB.partBody?.id === shipBodyId
+      ) {
+        targetPartId = collisionEvent.partInfoB.componentId;
+        console.log(
+          `🎯 Found hit component from collision event: ${targetPartId}`
+        );
       }
 
-      if (parts) {
-        for (const part of parts) {
-          if (part.entity.physicsBodyId === shipBodyId) {
-            targetPartId = part.partId || part.id; // Use partId or id depending on format
-            console.log(`🎯 Found hit part: ${targetPartId}`);
-            break;
+      // Fallback: search through ship components (for older ship formats)
+      if (!targetPartId) {
+        let parts = null;
+        if (compositeShip.parts) {
+          // Old ship format
+          parts = compositeShip.parts;
+        } else if (compositeShip.structure?.components) {
+          // New modular ship format
+          parts = compositeShip.structure.components;
+        }
+
+        if (parts) {
+          for (const part of parts) {
+            if (part.entity.physicsBodyId === shipBodyId) {
+              targetPartId = part.partId || part.id; // Use partId or id depending on format
+              console.log(`🎯 Found hit part: ${targetPartId}`);
+              break;
+            }
           }
         }
       }
       // If we found the specific part, damage it
-      if (targetPartId && compositeShip.takeDamageAtPart) {
+      if (targetPartId) {
         const damageAmount = 15; // Laser damage (reduced from 30)
-        const wasDestroyed = compositeShip.takeDamageAtPart(
-          targetPartId,
-          damageAmount
-        );
+        let wasDestroyed = false;
+
+        // Try different damage methods based on ship type
+        if (compositeShip.takeDamageAtComponentId) {
+          // New modular ship format
+          wasDestroyed = compositeShip.takeDamageAtComponentId(
+            targetPartId,
+            damageAmount
+          );
+        } else if (compositeShip.takeDamageAtPart) {
+          // Old ship format
+          wasDestroyed = compositeShip.takeDamageAtPart(
+            targetPartId,
+            damageAmount
+          );
+        } else {
+          // Try by part index if targetPartId is numeric
+          const partIndex = parseInt(targetPartId.replace('block_', ''));
+          if (!isNaN(partIndex) && compositeShip.takeDamageAtPartIndex) {
+            wasDestroyed = compositeShip.takeDamageAtPartIndex(
+              partIndex,
+              damageAmount
+            );
+          }
+        }
+
         console.log(
           `🎯 AI ship part ${targetPartId} hit:`,
           wasDestroyed ? 'destroyed' : 'damaged'

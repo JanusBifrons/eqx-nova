@@ -676,13 +676,36 @@ export class AsteroidsGame {
     const aiShips = this.aiManager.getAllAIShips();
 
     if (aiShips.length > 0) {
-      // Find the first active AI ship and damage it
+      // Try to damage modular AI ships first
+      const modularShips = this.aiManager.getAllModularAIShips();
+      if (modularShips.length > 0) {
+        const modularShip = modularShips[0];
+        const damageAmount = 30;
+
+        console.log(
+          '🔧 DEBUG: Manually damaging modular AI ship'
+        );
+
+        // Try damaging by part index (first block)
+        const wasDestroyed = modularShip.takeDamageAtPartIndex(
+          0,
+          damageAmount
+        );
+
+        console.log(
+          '🔧 DEBUG: Modular AI ship first component damaged:',
+          wasDestroyed ? 'destroyed' : 'damaged'
+        );
+        return;
+      }
+
+      // Fallback to old ship format
       const targetShip = aiShips.find(ship => ship.isActive);
 
       if (targetShip) {
-        const activeParts = targetShip.ship.getActiveParts();
+        const activeParts = targetShip.ship.getActiveParts?.();
 
-        if (activeParts.length > 0) {
+        if (activeParts && activeParts.length > 0) {
           const targetPart = activeParts[0];
           const damageAmount = 20; // Test damage amount (reduced from 30)
           console.log(
@@ -691,7 +714,7 @@ export class AsteroidsGame {
             'from ship:',
             targetShip.id
           );
-          const wasDestroyed = targetShip.ship.takeDamageAtPart(
+          const wasDestroyed = targetShip.ship.takeDamageAtPart?.(
             targetPart.partId,
             damageAmount
           );
