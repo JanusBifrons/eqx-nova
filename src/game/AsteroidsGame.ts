@@ -682,15 +682,10 @@ export class AsteroidsGame {
         const modularShip = modularShips[0];
         const damageAmount = 30;
 
-        console.log(
-          '🔧 DEBUG: Manually damaging modular AI ship'
-        );
+        console.log('🔧 DEBUG: Manually damaging modular AI ship');
 
         // Try damaging by part index (first block)
-        const wasDestroyed = modularShip.takeDamageAtPartIndex(
-          0,
-          damageAmount
-        );
+        const wasDestroyed = modularShip.takeDamageAtPartIndex(0, damageAmount);
 
         console.log(
           '🔧 DEBUG: Modular AI ship first component damaged:',

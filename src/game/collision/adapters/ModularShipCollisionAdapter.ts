@@ -7,67 +7,77 @@ import type { IModularShip } from '../../entities/v2/interfaces/IModularShip';
  * Follows Adapter Pattern and Single Responsibility Principle
  */
 export class ModularShipCollisionAdapter implements ICollisionTarget {
-    private readonly ship: IModularShip;
+  private readonly ship: IModularShip;
 
-    constructor(ship: IModularShip) {
-        this.ship = ship;
+  constructor(ship: IModularShip) {
+    this.ship = ship;
+  }
+
+  get id(): string {
+    return this.ship.id;
+  }
+  get physicsBodyId(): string {
+    return this.ship.physicsBodyId || '';
+  }
+
+  get position(): Vector2D {
+    return this.ship.position;
+  }
+
+  takeDamage(
+    componentId: string | null,
+    partIndex: number | null,
+    damage: number,
+    damageSource: string
+  ): boolean {
+    console.log(
+      `🎯 ModularShip ${this.id} taking ${damage} damage from ${damageSource}`
+    );
+
+    // Use component ID if available (preferred)
+    if (componentId && this.ship.takeDamageAtComponentId) {
+      return this.ship.takeDamageAtComponentId(componentId, damage);
     }
 
-    get id(): string {
-        return this.ship.id;
-    }
-    get physicsBodyId(): string {
-        return this.ship.physicsBodyId || '';
+    // Fallback to part index
+    if (partIndex !== null && this.ship.takeDamageAtPartIndex) {
+      return this.ship.takeDamageAtPartIndex(partIndex, damage);
     }
 
-    get position(): Vector2D {
-        return this.ship.position;
+    // Final fallback to general damage
+    console.warn(
+      `⚠️ No specific damage method available, using general damage`
+    );
+    return false; // ModularShip doesn't have a general damage method yet
+  }
+
+  takeDamageAtPosition(
+    position: Vector2D,
+    damage: number,
+    damageSource: string
+  ): boolean {
+    console.log(
+      `🎯 ModularShip ${this.id} taking ${damage} positional damage from ${damageSource}`
+    );
+
+    if (this.ship.takeDamageAtPosition) {
+      return this.ship.takeDamageAtPosition(position, damage);
     }
 
-    takeDamage(
-        componentId: string | null,
-        partIndex: number | null,
-        damage: number,
-        damageSource: string
-    ): boolean {
-        console.log(`🎯 ModularShip ${this.id} taking ${damage} damage from ${damageSource}`);
+    return false;
+  }
 
-        // Use component ID if available (preferred)
-        if (componentId && this.ship.takeDamageAtComponentId) {
-            return this.ship.takeDamageAtComponentId(componentId, damage);
-        }
-
-        // Fallback to part index
-        if (partIndex !== null && this.ship.takeDamageAtPartIndex) {
-            return this.ship.takeDamageAtPartIndex(partIndex, damage);
-        }
-
-        // Final fallback to general damage
-        console.warn(`⚠️ No specific damage method available, using general damage`);
-        return false; // ModularShip doesn't have a general damage method yet
+  shouldTakeDamageFrom(sourceId: string, _sourceType: string): boolean {
+    // Prevent friendly fire - ships don't damage themselves
+    if (sourceId === this.id) {
+      return false;
     }
 
-    takeDamageAtPosition(position: Vector2D, damage: number, damageSource: string): boolean {
-        console.log(`🎯 ModularShip ${this.id} taking ${damage} positional damage from ${damageSource}`);
+    // Add other friendly fire logic here (same faction, etc.)
+    return true;
+  }
 
-        if (this.ship.takeDamageAtPosition) {
-            return this.ship.takeDamageAtPosition(position, damage);
-        }
-
-        return false;
-    }
-
-    shouldTakeDamageFrom(sourceId: string, _sourceType: string): boolean {
-        // Prevent friendly fire - ships don't damage themselves
-        if (sourceId === this.id) {
-            return false;
-        }
-
-        // Add other friendly fire logic here (same faction, etc.)
-        return true;
-    }
-
-    isDestroyed(): boolean {
-        return this.ship.isDestroyed;
-    }
+  isDestroyed(): boolean {
+    return this.ship.isDestroyed;
+  }
 }

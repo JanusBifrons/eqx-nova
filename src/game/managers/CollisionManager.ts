@@ -157,7 +157,7 @@ export class CollisionManager {
       );
 
       return;
-    }    // Check AI ship-asteroid collisions
+    } // Check AI ship-asteroid collisions
     if (aiShip && asteroidData) {
       console.log(`💥 AI SHIP-ASTEROID COLLISION DETECTED!`);
       this.handleAIShipAsteroidCollision(aiShip, asteroidData, event);
@@ -359,7 +359,9 @@ export class CollisionManager {
     const compositeShip = aiShip.ship;
 
     if (!compositeShip || !collisionEvent) {
-      console.log('⚠️ Missing compositeShip or collisionEvent - using fallback');
+      console.log(
+        '⚠️ Missing compositeShip or collisionEvent - using fallback'
+      );
       if (this.aiManager) {
         const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
         if (wasDestroyed) {
@@ -374,20 +376,21 @@ export class CollisionManager {
     const laserEntity = laserData.entity;
 
     // Find which collision part belongs to the AI ship
-    let aiShipPartInfo: { partIndex: number; componentId?: string } | null = null;
+    let aiShipPartInfo: { partIndex: number; componentId?: string } | null =
+      null;
 
     if (laserEntity.physicsBodyId === bodyA.id && partInfoB) {
       // Laser is bodyA, AI ship is bodyB
       aiShipPartInfo = {
         partIndex: partInfoB.partIndex,
-        componentId: partInfoB.componentId
+        componentId: partInfoB.componentId,
       };
       console.log(`🎯 AI ship is bodyB, part info extracted`);
     } else if (laserEntity.physicsBodyId === bodyB.id && partInfoA) {
-      // Laser is bodyB, AI ship is bodyA  
+      // Laser is bodyB, AI ship is bodyA
       aiShipPartInfo = {
         partIndex: partInfoA.partIndex,
-        componentId: partInfoA.componentId
+        componentId: partInfoA.componentId,
       };
       console.log(`🎯 AI ship is bodyA, part info extracted`);
     }
@@ -400,7 +403,7 @@ export class CollisionManager {
       console.log(`🔍 DEBUG AI SHIP partInfo:`, {
         partIndex: aiShipPartInfo.partIndex,
         componentId: aiShipPartInfo.componentId,
-        hasComponentId: !!aiShipPartInfo.componentId
+        hasComponentId: !!aiShipPartInfo.componentId,
       });
 
       // Try different damage methods based on ship type
@@ -437,7 +440,9 @@ export class CollisionManager {
     }
 
     // Final fallback: If we couldn't identify the specific part, use general damage
-    console.log('⚠️ Could not extract part info - using general damage fallback');
+    console.log(
+      '⚠️ Could not extract part info - using general damage fallback'
+    );
     if (this.aiManager) {
       const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
       if (wasDestroyed) {
@@ -473,7 +478,8 @@ export class CollisionManager {
     if (
       modularShip &&
       playerPartInfo &&
-      typeof playerPartInfo.partIndex === 'number') {
+      typeof playerPartInfo.partIndex === 'number'
+    ) {
       // Use precise component ID for damage if available (preferred method)
       const damageAmount = 15; // Laser damage
       let wasDestroyed = false;
@@ -481,7 +487,7 @@ export class CollisionManager {
       console.log(`🔍 DEBUG LASER playerPartInfo:`, {
         partIndex: playerPartInfo.partIndex,
         componentId: playerPartInfo.componentId,
-        hasComponentId: !!playerPartInfo.componentId
+        hasComponentId: !!playerPartInfo.componentId,
       });
 
       if (playerPartInfo.componentId) {
@@ -493,7 +499,9 @@ export class CollisionManager {
           damageAmount
         );
       } else {
-        console.log(`⚠️ Falling back to part index method - component ID is missing/null`);
+        console.log(
+          `⚠️ Falling back to part index method - component ID is missing/null`
+        );
         wasDestroyed = modularShip.takeDamageAtPartIndex(
           playerPartInfo.partIndex,
           damageAmount
@@ -511,13 +519,20 @@ export class CollisionManager {
       // Traditional player damage
       console.log(`💥 Laser hit traditional player`);
     }
-  } private handleAIShipAsteroidCollision(aiShip: any, asteroidData: any, collisionEvent?: CollisionEvent): void {
+  }
+  private handleAIShipAsteroidCollision(
+    aiShip: any,
+    asteroidData: any,
+    collisionEvent?: CollisionEvent
+  ): void {
     console.log('🎯 AI SHIP-ASTEROID collision detected!');
 
     const compositeShip = aiShip.ship;
 
     if (!compositeShip || !collisionEvent) {
-      console.log('⚠️ Missing compositeShip or collisionEvent for asteroid - using fallback');
+      console.log(
+        '⚠️ Missing compositeShip or collisionEvent for asteroid - using fallback'
+      );
       if (this.aiManager) {
         const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
         if (wasDestroyed) {
@@ -534,22 +549,27 @@ export class CollisionManager {
     const asteroidEntity = asteroidData.entity;
 
     // Find which collision part belongs to the AI ship
-    let aiShipPartInfo: { partIndex: number; componentId?: string } | null = null;
+    let aiShipPartInfo: { partIndex: number; componentId?: string } | null =
+      null;
 
     if (asteroidEntity.physicsBodyId === bodyA.id && partInfoB) {
       // Asteroid is bodyA, AI ship is bodyB
       aiShipPartInfo = {
         partIndex: partInfoB.partIndex,
-        componentId: partInfoB.componentId
+        componentId: partInfoB.componentId,
       };
-      console.log(`🎯 AI ship is bodyB in asteroid collision, part info extracted`);
+      console.log(
+        `🎯 AI ship is bodyB in asteroid collision, part info extracted`
+      );
     } else if (asteroidEntity.physicsBodyId === bodyB.id && partInfoA) {
-      // Asteroid is bodyB, AI ship is bodyA  
+      // Asteroid is bodyB, AI ship is bodyA
       aiShipPartInfo = {
         partIndex: partInfoA.partIndex,
-        componentId: partInfoA.componentId
+        componentId: partInfoA.componentId,
       };
-      console.log(`🎯 AI ship is bodyA in asteroid collision, part info extracted`);
+      console.log(
+        `🎯 AI ship is bodyA in asteroid collision, part info extracted`
+      );
     }
 
     // Now use the SAME logic as laser collision handling
@@ -560,7 +580,7 @@ export class CollisionManager {
       console.log(`🔍 DEBUG AI SHIP ASTEROID partInfo:`, {
         partIndex: aiShipPartInfo.partIndex,
         componentId: aiShipPartInfo.componentId,
-        hasComponentId: !!aiShipPartInfo.componentId
+        hasComponentId: !!aiShipPartInfo.componentId,
       });
 
       // Try component ID first (precise damage)
@@ -573,13 +593,17 @@ export class CollisionManager {
           damageAmount
         );
       } else if (compositeShip.takeDamageAtPartIndex) {
-        console.log(`⚠️ Falling back to part index method for AI ship asteroid collision`);
+        console.log(
+          `⚠️ Falling back to part index method for AI ship asteroid collision`
+        );
         wasDestroyed = compositeShip.takeDamageAtPartIndex(
           aiShipPartInfo.partIndex,
           damageAmount
         );
       } else {
-        console.log(`⚠️ No compatible damage method found for AI ship asteroid collision`);
+        console.log(
+          `⚠️ No compatible damage method found for AI ship asteroid collision`
+        );
       }
 
       console.log(
@@ -589,18 +613,24 @@ export class CollisionManager {
 
       // Only destroy the AI ship entity if the entire ship was destroyed
       if (wasDestroyed && this.aiManager) {
-        console.log(`💀 AI ship completely destroyed by asteroid: ${aiShip.id}`);
+        console.log(
+          `💀 AI ship completely destroyed by asteroid: ${aiShip.id}`
+        );
         this.aiManager.handleAIShipDamage(aiShip);
       }
     } else {
       // Final fallback: If we couldn't identify the specific part, use general damage
-      console.log('⚠️ Could not extract part info from asteroid collision - using general damage fallback');
+      console.log(
+        '⚠️ Could not extract part info from asteroid collision - using general damage fallback'
+      );
       if (this.aiManager) {
         const wasDestroyed = this.aiManager.handleAIShipDamage(aiShip);
         if (wasDestroyed) {
           console.log(`AI ship destroyed by asteroid (fallback): ${aiShip.id}`);
         }
-        console.log("⚠️ Used fallback damage method for asteroid collision - couldn't identify specific part");
+        console.log(
+          "⚠️ Used fallback damage method for asteroid collision - couldn't identify specific part"
+        );
       }
     }
 
@@ -762,7 +792,7 @@ export class CollisionManager {
     const modularShip = this.playerManager.getModularShip();
 
     if (modularShip && modularShip.isAlive) {
-      let damageSuccess = false;      // If we have part info (compound body collision), use that to find the component
+      let damageSuccess = false; // If we have part info (compound body collision), use that to find the component
       if (playerPartInfo && playerPartInfo.partIndex !== undefined) {
         console.log(
           `🎯 Hit component at part index ${playerPartInfo.partIndex}`
@@ -770,7 +800,7 @@ export class CollisionManager {
         console.log(`🔍 DEBUG playerPartInfo:`, {
           partIndex: playerPartInfo.partIndex,
           componentId: playerPartInfo.componentId,
-          hasComponentId: !!playerPartInfo.componentId
+          hasComponentId: !!playerPartInfo.componentId,
         });
         const damageAmount = 35; // Asteroids do heavy damage
 
@@ -784,7 +814,9 @@ export class CollisionManager {
             damageAmount
           );
         } else {
-          console.log(`⚠️ Falling back to part index method - component ID is missing/null`);
+          console.log(
+            `⚠️ Falling back to part index method - component ID is missing/null`
+          );
           damageSuccess = modularShip.takeDamageAtPartIndex(
             playerPartInfo.partIndex,
             damageAmount

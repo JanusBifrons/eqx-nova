@@ -37,8 +37,16 @@ interface BlockConfig {
  * Callback interface for ship splitting events
  */
 interface ShipSplitCallbacks {
-  onNewShipCreated?: (shipData: { blocks: BlockConfig[]; position: Vector2D; rotation: number }) => void;
-  onDebrisCreated?: (debrisData: { blocks: BlockConfig[]; position: Vector2D; rotation: number }) => void;
+  onNewShipCreated?: (shipData: {
+    blocks: BlockConfig[];
+    position: Vector2D;
+    rotation: number;
+  }) => void;
+  onDebrisCreated?: (debrisData: {
+    blocks: BlockConfig[];
+    position: Vector2D;
+    rotation: number;
+  }) => void;
 }
 
 /**
@@ -82,7 +90,8 @@ export class ComplexModularShip implements IModularShip {
     position: Vector2D,
     _debrisManager: DebrisManager | null = null,
     id?: string,
-    splitCallbacks?: ShipSplitCallbacks) {
+    splitCallbacks?: ShipSplitCallbacks
+  ) {
     this._id = id || uuidv4();
     this._physicsSystem = physicsSystem;
     this._rendererSystem = rendererSystem;
@@ -114,14 +123,15 @@ export class ComplexModularShip implements IModularShip {
     //   [A][H][A]       <- Armor-Shield-Armor (bottom row)
     //     [E]           <- Rear engine (bottom)
 
-    this._blockConfigs = [      // Row 1: Sensor array
+    this._blockConfigs = [
+      // Row 1: Sensor array
       {
         id: uuidv4(),
         offset: { x: 0, y: -b * 2 },
         type: BlockType.SENSOR,
         size: { x: b, y: b },
         health: 50,
-      },      // Row 2: Main weapons and cockpit
+      }, // Row 2: Main weapons and cockpit
       {
         id: uuidv4(),
         offset: { x: -b, y: -b },
@@ -142,7 +152,7 @@ export class ComplexModularShip implements IModularShip {
         type: BlockType.WEAPON,
         size: { x: b, y: b },
         health: 75,
-      },      // Row 3: Wide engine and armor section
+      }, // Row 3: Wide engine and armor section
       {
         id: uuidv4(),
         offset: { x: -b * 2, y: 0 },
@@ -219,16 +229,14 @@ export class ComplexModularShip implements IModularShip {
    * Create the compound physics body
    */
   private createPhysicsBody(position: Vector2D): void {
-    const parts: CompoundBodyPart[] = this._blockConfigs.map(
-      (config) => ({
-        type: 'rectangle' as const,
-        x: config.offset.x,
-        y: config.offset.y,
-        width: config.size.x,
-        height: config.size.y,
-        componentId: config.id, // Use the GUID from block config
-      })
-    );
+    const parts: CompoundBodyPart[] = this._blockConfigs.map(config => ({
+      type: 'rectangle' as const,
+      x: config.offset.x,
+      y: config.offset.y,
+      width: config.size.x,
+      height: config.size.y,
+      componentId: config.id, // Use the GUID from block config
+    }));
     this._physicsBody = this._physicsSystem.createCompoundBody(
       position.x,
       position.y,
@@ -566,7 +574,9 @@ export class ComplexModularShip implements IModularShip {
     console.log(
       `💥 Complex ship taking ${damage} damage at position (${position.x.toFixed(1)}, ${position.y.toFixed(1)})`
     );
-    console.log(`🚢 Ship position: (${this.position.x.toFixed(1)}, ${this.position.y.toFixed(1)}), rotation: ${this.rotation.toFixed(3)} rad (${(this.rotation * 180 / Math.PI).toFixed(1)}°)`);
+    console.log(
+      `🚢 Ship position: (${this.position.x.toFixed(1)}, ${this.position.y.toFixed(1)}), rotation: ${this.rotation.toFixed(3)} rad (${((this.rotation * 180) / Math.PI).toFixed(1)}°)`
+    );
 
     // Find the closest block to the damage position
     let closestBlockIndex = 0;
@@ -575,7 +585,9 @@ export class ComplexModularShip implements IModularShip {
     const shipPosition = this.position;
     const shipRotation = this.rotation;
 
-    console.log(`🔍 Checking ${this._blockConfigs.length} blocks for closest to damage:`);
+    console.log(
+      `🔍 Checking ${this._blockConfigs.length} blocks for closest to damage:`
+    );
 
     for (let i = 0; i < this._blockConfigs.length; i++) {
       const blockOffset = this._blockConfigs[i].offset;
@@ -585,7 +597,7 @@ export class ComplexModularShip implements IModularShip {
       const sin = Math.sin(shipRotation);
       const rotatedOffset = {
         x: blockOffset.x * cos - blockOffset.y * sin,
-        y: blockOffset.x * sin + blockOffset.y * cos
+        y: blockOffset.x * sin + blockOffset.y * cos,
       };
 
       // Calculate the block's world position
@@ -596,10 +608,12 @@ export class ComplexModularShip implements IModularShip {
 
       const distance = Math.sqrt(
         Math.pow(blockWorldPos.x - position.x, 2) +
-        Math.pow(blockWorldPos.y - position.y, 2)
+          Math.pow(blockWorldPos.y - position.y, 2)
       );
 
-      console.log(`  Block ${i}: ${this._blockConfigs[i].type} at offset (${blockOffset.x}, ${blockOffset.y}) -> world (${blockWorldPos.x.toFixed(1)}, ${blockWorldPos.y.toFixed(1)}) -> distance ${distance.toFixed(1)}`);
+      console.log(
+        `  Block ${i}: ${this._blockConfigs[i].type} at offset (${blockOffset.x}, ${blockOffset.y}) -> world (${blockWorldPos.x.toFixed(1)}, ${blockWorldPos.y.toFixed(1)}) -> distance ${distance.toFixed(1)}`
+      );
 
       if (distance < closestDistance) {
         closestDistance = distance;
@@ -608,7 +622,8 @@ export class ComplexModularShip implements IModularShip {
     }
 
     console.log(
-      `🎯 Closest block to damage position: index ${closestBlockIndex}, type ${this._blockConfigs[closestBlockIndex].type}, distance ${closestDistance.toFixed(1)}`);
+      `🎯 Closest block to damage position: index ${closestBlockIndex}, type ${this._blockConfigs[closestBlockIndex].type}, distance ${closestDistance.toFixed(1)}`
+    );
 
     return this.damageBlock(closestBlockIndex, damage);
   }
@@ -621,10 +636,15 @@ export class ComplexModularShip implements IModularShip {
     );
 
     // Find block by GUID
-    const blockIndex = this._blockConfigs.findIndex(block => block.id === componentId);
+    const blockIndex = this._blockConfigs.findIndex(
+      block => block.id === componentId
+    );
     if (blockIndex === -1) {
       console.warn(`⚠️ Component not found with ID: ${componentId}`);
-      console.warn(`🔍 Available component IDs:`, this._blockConfigs.map(b => b.id));
+      console.warn(
+        `🔍 Available component IDs:`,
+        this._blockConfigs.map(b => b.id)
+      );
       return false;
     }
 
@@ -652,12 +672,14 @@ export class ComplexModularShip implements IModularShip {
     }
 
     return this.damageBlock(partIndex, damage);
-  }  /**
+  } /**
    * Apply damage to a specific block and trigger flash effect
    */
   private damageBlock(blockIndex: number, damage: number): boolean {
     if (blockIndex < 0 || blockIndex >= this._blockConfigs.length) {
-      console.warn(`⚠️ Invalid block index ${blockIndex}, valid range: 0-${this._blockConfigs.length - 1}`);
+      console.warn(
+        `⚠️ Invalid block index ${blockIndex}, valid range: 0-${this._blockConfigs.length - 1}`
+      );
       return false;
     }
 
@@ -665,9 +687,13 @@ export class ComplexModularShip implements IModularShip {
     console.log(
       `🎯 Damaging ${block.type} block "${block.id}" at index ${blockIndex} for ${damage} damage (health: ${block.health}/${block.health + damage})`
     );
-    console.log(`📋 Current block layout (${this._blockConfigs.length} blocks):`);
+    console.log(
+      `📋 Current block layout (${this._blockConfigs.length} blocks):`
+    );
     this._blockConfigs.forEach((b, i) => {
-      console.log(`  [${i}] ${b.type} at (${b.offset.x}, ${b.offset.y}) health: ${b.health}`);
+      console.log(
+        `  [${i}] ${b.type} at (${b.offset.x}, ${b.offset.y}) health: ${b.health}`
+      );
     });
 
     // Reduce block health
@@ -678,12 +704,18 @@ export class ComplexModularShip implements IModularShip {
 
     // Check if block is destroyed
     if (block.health <= 0) {
-      console.log(`💀 ${block.type} block "${block.id}" at index ${blockIndex} destroyed!`);
-      console.log(`🗑️ Removing block from arrays (current length: ${this._blockConfigs.length})`);
+      console.log(
+        `💀 ${block.type} block "${block.id}" at index ${blockIndex} destroyed!`
+      );
+      console.log(
+        `🗑️ Removing block from arrays (current length: ${this._blockConfigs.length})`
+      );
 
       // Remove the destroyed block from configuration
       this._blockConfigs.splice(blockIndex, 1);
-      console.log(`📦 Block configs after removal: ${this._blockConfigs.length} blocks`);
+      console.log(
+        `📦 Block configs after removal: ${this._blockConfigs.length} blocks`
+      );
 
       // Remove corresponding render object
       if (blockIndex < this._renderObjectIds.length) {
@@ -697,7 +729,7 @@ export class ComplexModularShip implements IModularShip {
         this._blockFlashStates.splice(blockIndex, 1);
         this._blockFlashTimers.splice(blockIndex, 1);
         this._originalColors.splice(blockIndex, 1);
-      }      // Update weapon block indices after removal
+      } // Update weapon block indices after removal
       this.updateWeaponIndicesAfterRemoval(blockIndex);
 
       // CRITICAL: Rebuild physics body to remove the destroyed part
@@ -760,23 +792,24 @@ export class ComplexModularShip implements IModularShip {
       this._physicsSystem,
       this._rendererSystem,
       this._physicsBody.id,
-      this._renderObjectIds, (shipData) => {
+      this._renderObjectIds,
+      shipData => {
         // Handle new ship creation
         if (this._splitCallbacks.onNewShipCreated) {
           this._splitCallbacks.onNewShipCreated({
             blocks: shipData.blocks as BlockConfig[],
             position: currentPosition,
-            rotation: currentRotation
+            rotation: currentRotation,
           });
         }
       },
-      (debrisData) => {
+      debrisData => {
         // Handle debris creation
         if (this._splitCallbacks.onDebrisCreated) {
           this._splitCallbacks.onDebrisCreated({
             blocks: debrisData.blocks as BlockConfig[],
             position: currentPosition,
-            rotation: currentRotation
+            rotation: currentRotation,
           });
         }
       }
@@ -848,15 +881,18 @@ export class ComplexModularShip implements IModularShip {
     // Recreate physics body from current block configuration
     this.createPhysicsBodyFromBlocks(position, rotation);
 
-    // Recreate render objects from current block configuration  
+    // Recreate render objects from current block configuration
     this.createRenderObjectsFromBlocks(position);
 
     // Reinitialize weapon system based on current blocks
     this.reinitializeWeaponSystem();
-  }  /**
+  } /**
    * Create physics body from current block configuration
    */
-  private createPhysicsBodyFromBlocks(position: Vector2D, rotation: number): void {
+  private createPhysicsBodyFromBlocks(
+    position: Vector2D,
+    rotation: number
+  ): void {
     const parts: CompoundBodyPart[] = [];
 
     for (const blockConfig of this._blockConfigs) {
@@ -965,7 +1001,12 @@ export class ComplexModularShip implements IModularShip {
   /**
    * Debug helper: Get current block world positions for debugging
    */
-  public getBlockWorldPositions(): Array<{ index: number; type: string; worldPos: Vector2D; offset: Vector2D }> {
+  public getBlockWorldPositions(): Array<{
+    index: number;
+    type: string;
+    worldPos: Vector2D;
+    offset: Vector2D;
+  }> {
     const shipPosition = this.position;
     const shipRotation = this.rotation;
     const cos = Math.cos(shipRotation);
@@ -974,17 +1015,17 @@ export class ComplexModularShip implements IModularShip {
     return this._blockConfigs.map((block, index) => {
       const rotatedOffset = {
         x: block.offset.x * cos - block.offset.y * sin,
-        y: block.offset.x * sin + block.offset.y * cos
+        y: block.offset.x * sin + block.offset.y * cos,
       };
       const worldPos = {
         x: shipPosition.x + rotatedOffset.x,
-        y: shipPosition.y + rotatedOffset.y
+        y: shipPosition.y + rotatedOffset.y,
       };
       return {
         index,
         type: block.type,
         worldPos,
-        offset: block.offset
+        offset: block.offset,
       };
     });
   }
@@ -1005,22 +1046,22 @@ export class ComplexModularShip implements IModularShip {
     const currentVelocity = this._physicsBody.velocity;
     const currentAngularVelocity = this._physicsBody.angularVelocity;
 
-    console.log(`🔧 Rebuilding physics body with ${this._blockConfigs.length} remaining blocks`);
+    console.log(
+      `🔧 Rebuilding physics body with ${this._blockConfigs.length} remaining blocks`
+    );
 
     // Remove the old physics body
     this._physicsSystem.removeBody(this._physicsBody);
 
     // Create new parts array from current block configs
-    const parts: CompoundBodyPart[] = this._blockConfigs.map(
-      (config) => ({
-        type: 'rectangle' as const,
-        x: config.offset.x,
-        y: config.offset.y,
-        width: config.size.x,
-        height: config.size.y,
-        componentId: config.id, // Use the GUID from block config
-      })
-    );
+    const parts: CompoundBodyPart[] = this._blockConfigs.map(config => ({
+      type: 'rectangle' as const,
+      x: config.offset.x,
+      y: config.offset.y,
+      width: config.size.x,
+      height: config.size.y,
+      componentId: config.id, // Use the GUID from block config
+    }));
 
     // Create new compound body
     this._physicsBody = this._physicsSystem.createCompoundBody(
@@ -1039,8 +1080,13 @@ export class ComplexModularShip implements IModularShip {
     // Restore physics state
     this._physicsSystem.setRotation(this._physicsBody, currentAngle);
     this._physicsSystem.setVelocity(this._physicsBody, currentVelocity);
-    this._physicsSystem.setAngularVelocity(this._physicsBody, currentAngularVelocity);
+    this._physicsSystem.setAngularVelocity(
+      this._physicsBody,
+      currentAngularVelocity
+    );
 
-    console.log(`✅ Physics body rebuilt successfully with ${parts.length} parts`);
+    console.log(
+      `✅ Physics body rebuilt successfully with ${parts.length} parts`
+    );
   }
 }
