@@ -127,7 +127,8 @@ export class AIShip implements IAIShip {
    * Get the forward firing position for this ship
    */
   public getFiringPosition(): Vector2D {
-    const position = this._ship.centerPosition;
+    // Use centerPosition if available (old ships), otherwise use position (modular ships)
+    const position = (this._ship as any).centerPosition || this._ship.position;
     const rotation = this._ship.rotation;
     const offset = 25; // Distance in front of ship
     // Apply coordinate system correction: ship front points up, physics assumes right

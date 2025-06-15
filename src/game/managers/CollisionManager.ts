@@ -169,8 +169,15 @@ export class CollisionManager {
     if (laserData && aiShip) {
       console.log(`💥 LASER-AI SHIP COLLISION DETECTED!`);
 
-      // Check for friendly fire
-      const targetEntity = aiShip.ship.parts[0]?.entity; // Get representative entity
+      // Check for friendly fire - get representative entity from ship
+      let targetEntity = null;
+      if (aiShip.ship.parts?.[0]?.entity) {
+        // Old ship format
+        targetEntity = aiShip.ship.parts[0].entity;
+      } else if (aiShip.ship.structure?.components?.[0]?.entity) {
+        // New modular ship format
+        targetEntity = aiShip.ship.structure.components[0].entity;
+      }
 
       if (targetEntity && this.isLaserFriendlyFire(laserData, targetEntity)) {
         return; // Ignore friendly fire
@@ -275,10 +282,18 @@ export class CollisionManager {
           }
         }
         // Check individual parts
-        const parts = aiShip.ship.parts;
-        const part = parts.find(
-          (p: any) => p.entity.physicsBodyId === physicsBodyId
-        );
+        let part = null;
+        if (aiShip.ship.parts) {
+          // Old ship format
+          part = aiShip.ship.parts.find(
+            (p: any) => p.entity.physicsBodyId === physicsBodyId
+          );
+        } else if (aiShip.ship.structure?.components) {
+          // New modular ship format
+          part = aiShip.ship.structure.components.find(
+            (c: any) => c.entity.physicsBodyId === physicsBodyId
+          );
+        }
 
         if (part) return part.entity;
       }
@@ -339,14 +354,23 @@ export class CollisionManager {
         `🎯 Looking for ship part with physics body ID: ${shipBodyId}`
       );
 
-      // Find the specific part that was hit
-      const parts = compositeShip.parts;
+      // Find the specific part that was hit - handle both ship formats
+      let parts = null;
+      if (compositeShip.parts) {
+        // Old ship format
+        parts = compositeShip.parts;
+      } else if (compositeShip.structure?.components) {
+        // New modular ship format
+        parts = compositeShip.structure.components;
+      }
 
-      for (const part of parts) {
-        if (part.entity.physicsBodyId === shipBodyId) {
-          targetPartId = part.partId;
-          console.log(`🎯 Found hit part: ${targetPartId}`);
-          break;
+      if (parts) {
+        for (const part of parts) {
+          if (part.entity.physicsBodyId === shipBodyId) {
+            targetPartId = part.partId || part.id; // Use partId or id depending on format
+            console.log(`🎯 Found hit part: ${targetPartId}`);
+            break;
+          }
         }
       }
       // If we found the specific part, damage it

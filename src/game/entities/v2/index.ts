@@ -1,6 +1,7 @@
 // Modular Ship System V2 - Redesigned following SOLID principles
 // export { ModularShip } from './ModularShip'; // TEMPORARILY DISABLED - file corrupted
 export { SimpleDebugShip } from './SimpleDebugShip';
+export { ComplexModularShip } from './ComplexModularShip';
 export { ModularShipFactory } from './ModularShipFactory';
 export { ShipComponent } from './ShipComponent';
 export { ShipComponentPiece } from './ShipComponentPiece';

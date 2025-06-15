@@ -1,11 +1,11 @@
 import type { IGameEngine } from '../interfaces/IGameEngine';
 import type { AIShipConfig } from '../interfaces/IAI';
 import type { Vector2D } from '../../engine/interfaces/IPhysicsSystem';
-// import type { IModularShip } from '../entities/v2/interfaces/IModularShip'; // TODO: Enable when AI migration complete
+import type { IModularShip } from '../entities/v2/interfaces/IModularShip';
 import { AIShip } from '../entities/AIShip';
-// import { AIBehavior } from '../entities/AIBehavior'; // TODO: Enable when AI migration complete
-// import { ModularShipFactory } from '../entities/v2/ModularShipFactory'; // TODO: Enable when AI migration complete
-// import { v4 as uuidv4 } from 'uuid'; // TODO: Enable when AI migration complete
+import { AIBehavior } from '../entities/AIBehavior';
+import { ComplexModularShip } from '../entities/v2/ComplexModularShip';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * AIManager - Manages all AI ships in the game
@@ -14,59 +14,75 @@ import { AIShip } from '../entities/AIShip';
  */
 export class AIManager {
   private readonly _gameEngine: IGameEngine;
-  // private readonly _modularShipFactory: ModularShipFactory; // TODO: Enable when AI migration complete
   private readonly _aiShips: Map<string, AIShip> = new Map();
+  private readonly _modularAIShips: Map<string, IModularShip> = new Map();
+  private _aiDisabledForTesting: boolean = false;
 
-  // TODO: Enable when AI migration complete
-  // private _onFireLaser?: (
-  //   position: Vector2D,
-  //   rotation: number,
-  //   velocity?: Vector2D,
-  //   sourceId?: string
-  // ) => boolean;
+  private _onFireLaser?: (
+    position: Vector2D,
+    rotation: number,
+    velocity?: Vector2D,
+    sourceId?: string
+  ) => boolean;
 
   constructor(gameEngine: IGameEngine) {
     this._gameEngine = gameEngine;
-
-    // Access underlying engine systems for ModularShipFactory
-    // const engineAdapter = gameEngine as any; // TODO: Enable when AI migration complete
-    // const engine = engineAdapter.engine; // TODO: Enable when AI migration complete
-
-    // this._modularShipFactory = new ModularShipFactory( // TODO: Enable when AI migration complete
-    //   engine.getPhysicsSystem(),
-    //   engine.getRendererSystem(),
-    //   engine.getEntityManager()
-    // );
   }
 
   /**
    * Set the laser firing callback
    */
   public setFireLaserCallback(
-    _callback: (
-      // Prefixed with _ to avoid unused parameter warning
+    callback: (
       position: Vector2D,
       rotation: number,
       velocity?: Vector2D,
       sourceId?: string
     ) => boolean
   ): void {
-    // this._onFireLaser = callback; // TODO: Enable when AI migration complete
+    this._onFireLaser = callback;
   }
 
   /**
-   * Create an AI ship with the given configuration
+   * Create an AI ship with the given configuration using modular ships
    */
   public createAIShip(config: AIShipConfig): AIShip {
-    // TEMPORARY: Disable AI ship creation for now to focus on core ModularShip system
-    // TODO: Update AI system to work with ModularShip instead of CompositeShip
-
     console.log(
-      `🚫 AI ship creation temporarily disabled - config for ${config.faction} ignored`
+      `🔨 Creating AI ship: ${config.faction} at (${config.position.x}, ${config.position.y})`
     );
 
-    // Return a null stub that won't interfere with the game
-    return null as any;
+    // Create a unique ID for this AI ship
+    const shipId = uuidv4();
+
+    // Create a modular ship using the faction-specific design
+    const modularShip = this.createModularShipForFaction(
+      config.faction,
+      config.position,
+      shipId
+    );
+
+    // Store the modular ship
+    this._modularAIShips.set(shipId, modularShip);
+
+    // Create an AI behavior controller for this ship (but disabled)
+    const aiBehavior = new AIBehavior(shipId, modularShip, {
+      behaviorType: 'patrol',
+      fireRate: 0, // Disabled for testing
+      detectionRange: 0, // Disabled for testing
+      rotationSpeed: 0, // Disabled for testing
+      thrustForce: 0, // Disabled for testing
+      maxSpeed: 0, // Disabled for testing
+    });
+    aiBehavior.disable(); // Disable movement and shooting for testing
+
+    // Create the AIShip wrapper
+    const aiShip = new AIShip(shipId, modularShip, aiBehavior, config.faction);
+
+    // Store the AI ship
+    this._aiShips.set(shipId, aiShip);
+
+    console.log(`✅ Created modular AI ship: ${config.faction} (${shipId})`);
+    return aiShip;
   }
 
   /**
@@ -395,9 +411,21 @@ export class AIManager {
         inactiveShipIds.push(shipId);
       }
     }
+
+    // Update modular AI ships
+    for (const [shipId, modularShip] of this._modularAIShips) {
+      if (modularShip.isAlive) {
+        modularShip.update(deltaTime);
+      } else {
+        // Mark destroyed ships for removal
+        inactiveShipIds.push(shipId);
+      }
+    }
+
     // Remove inactive ships after iteration to avoid modifying map during iteration
     inactiveShipIds.forEach(shipId => {
       this._aiShips.delete(shipId);
+      this._modularAIShips.delete(shipId);
     });
 
     // Make AI ships target each other and the player
@@ -436,8 +464,20 @@ export class AIManager {
   public findAIShipByEntity(entity: any): AIShip | null {
     for (const aiShip of this._aiShips.values()) {
       if (aiShip.isActive) {
-        const parts = aiShip.ship.parts;
-        const foundPart = parts.find((part: any) => part.entity === entity);
+        // Handle both old ship format (parts) and new modular ship format (structure.components)
+        let foundPart = null;
+
+        if (aiShip.ship.parts) {
+          // Old ship format
+          foundPart = aiShip.ship.parts.find(
+            (part: any) => part.entity === entity
+          );
+        } else if (aiShip.ship.structure?.components) {
+          // New modular ship format
+          foundPart = aiShip.ship.structure.components.find(
+            (component: any) => component.entity === entity
+          );
+        }
 
         if (foundPart) {
           return aiShip;
@@ -536,6 +576,11 @@ export class AIManager {
    * Update AI targeting logic
    */
   private updateAITargeting(): void {
+    // Skip targeting updates if AI is disabled for testing
+    if (this._aiDisabledForTesting) {
+      return;
+    }
+
     const activeShips = this.getAllAIShips();
 
     for (const aiShip of activeShips) {
@@ -545,10 +590,15 @@ export class AIManager {
 
       for (const otherShip of activeShips) {
         if (otherShip.faction !== aiShip.faction && otherShip.isActive) {
-          const distance = this.getDistance(
-            aiShip.ship.centerPosition,
-            otherShip.ship.centerPosition
-          );
+          // Get position for AI ship - try centerPosition first, then position
+          const aiShipPos =
+            (aiShip.ship as any).centerPosition || aiShip.ship.position;
+
+          // Get position for other ship - try centerPosition first, then position
+          const otherShipPos =
+            (otherShip.ship as any).centerPosition || otherShip.ship.position;
+
+          const distance = this.getDistance(aiShipPos, otherShipPos);
 
           if (distance < closestDistance) {
             closestDistance = distance;
@@ -567,7 +617,14 @@ export class AIManager {
   /**
    * Calculate distance between two points
    */
-  private getDistance(pos1: Vector2D, pos2: Vector2D): number {
+  private getDistance(
+    pos1: Vector2D | undefined,
+    pos2: Vector2D | undefined
+  ): number {
+    // Handle undefined positions - return a large distance to avoid targeting
+    if (!pos1 || !pos2) {
+      return Number.MAX_SAFE_INTEGER;
+    }
     return Math.sqrt((pos1.x - pos2.x) ** 2 + (pos1.y - pos2.y) ** 2);
   }
 
@@ -582,6 +639,7 @@ export class AIManager {
         disabledCount++;
       }
     }
+    this._aiDisabledForTesting = true;
     console.log(
       `🚫 Disabled ${disabledCount} AI ships for testing - ships remain visible but won't move or shoot`
     );
@@ -598,6 +656,35 @@ export class AIManager {
         enabledCount++;
       }
     }
+    this._aiDisabledForTesting = false;
     console.log(`✅ Enabled ${enabledCount} AI ships`);
+  }
+
+  /**
+   * Create a modular ship with different geometric patterns based on faction
+   */
+  private createModularShipForFaction(
+    faction: string,
+    position: Vector2D,
+    shipId: string
+  ): IModularShip {
+    const engineAdapter = this._gameEngine as any;
+    const engine = engineAdapter.engine;
+
+    // For now, all AI ships use the same ComplexModularShip design
+    // In the future, we could create different ship designs based on faction
+    const modularShip = new ComplexModularShip(
+      engine.getEntityManager(),
+      engine.getPhysicsSystem(),
+      engine.getRendererSystem(),
+      position,
+      null, // No debris manager for AI ships
+      shipId
+    );
+
+    console.log(
+      `🏭 Created ${faction} modular ship with complex design at (${position.x}, ${position.y})`
+    );
+    return modularShip;
   }
 }

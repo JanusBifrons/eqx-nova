@@ -37,6 +37,11 @@ export class SimpleDebugShip implements IModularShip {
   private _flashDuration: number = 200; // milliseconds
   private _flashColor: number = 0xffffff; // white
 
+  // Weapon system
+  private _weaponBlocks: number[] = []; // Array of block indices that are weapon blocks
+  private _weaponCooldowns: number[] = []; // Cooldown timers for each weapon block
+  private _weaponCooldownTime: number = 100; // milliseconds between weapon shots
+
   // Callback for respawn requests
   private _onRespawnRequest: (() => void) | null = null;
 
@@ -63,10 +68,12 @@ export class SimpleDebugShip implements IModularShip {
     const halfBlock = this._blockSize / 2;
 
     // Store block offsets for later use when breaking apart
+    // Keep the original vertical layout since that looks correct visually
+    // We'll align the physics with an initial rotation instead
     this._blockOffsets = [
-      { x: -this._blockSize, y: -halfBlock }, // Top left
-      { x: 0, y: -halfBlock }, // Top center
-      { x: this._blockSize, y: -halfBlock }, // Top right
+      { x: -this._blockSize, y: -halfBlock }, // Top left (weapon)
+      { x: 0, y: -halfBlock }, // Top center (weapon)
+      { x: this._blockSize, y: -halfBlock }, // Top right (weapon)
       { x: -this._blockSize, y: halfBlock }, // Bottom left
       { x: 0, y: halfBlock }, // Bottom center
       { x: this._blockSize, y: halfBlock }, // Bottom right
@@ -139,14 +146,28 @@ export class SimpleDebugShip implements IModularShip {
       }
     );
 
+    // DO NOT rotate the physics body - keep it at default orientation
+    // Let the rendering system handle visual rotation
+    // this._physicsSystem.setRotation(this._physicsBody, -Math.PI / 2);
+
+    console.log(
+      `🚀 Ship ${this._id} created at position (${position.x}, ${position.y})`
+    );
+    console.log(
+      `🚀 Physics body at default orientation (0° = right, ship visually points up)`
+    );
+    console.log(`🚀 Block offsets:`, this._blockOffsets);
+    console.log(`🚀 Weapon blocks: [${this._weaponBlocks.join(', ')}]`);
+
     // Create render objects for each block with different colors
+    // Front row (weapons) will be red/orange colors, rear row will be blue/green
     const colors = [
-      0xff0000, // Red
-      0x00ff00, // Green
-      0x0000ff, // Blue
-      0xffff00, // Yellow
-      0xff00ff, // Magenta
-      0x00ffff, // Cyan
+      0xff0000, // Red (Front left weapon)
+      0xff4500, // Orange Red (Front center weapon)
+      0xff8c00, // Dark Orange (Front right weapon)
+      0x0000ff, // Blue (Rear left)
+      0x4169e1, // Royal Blue (Rear center)
+      0x00bfff, // Deep Sky Blue (Rear right)
     ];
 
     // Initialize flash effect arrays
@@ -155,9 +176,9 @@ export class SimpleDebugShip implements IModularShip {
     this._blockFlashTimers = new Array(colors.length).fill(0);
 
     const blockPositions = [
-      { x: position.x - this._blockSize, y: position.y - this._blockSize / 2 }, // Top left
-      { x: position.x, y: position.y - this._blockSize / 2 }, // Top center
-      { x: position.x + this._blockSize, y: position.y - this._blockSize / 2 }, // Top right
+      { x: position.x - this._blockSize, y: position.y - this._blockSize / 2 }, // Top left (weapon)
+      { x: position.x, y: position.y - this._blockSize / 2 }, // Top center (weapon)
+      { x: position.x + this._blockSize, y: position.y - this._blockSize / 2 }, // Top right (weapon)
       { x: position.x - this._blockSize, y: position.y + this._blockSize / 2 }, // Bottom left
       { x: position.x, y: position.y + this._blockSize / 2 }, // Bottom center
       { x: position.x + this._blockSize, y: position.y + this._blockSize / 2 }, // Bottom right
@@ -177,6 +198,9 @@ export class SimpleDebugShip implements IModularShip {
         type: 'rectangle',
       });
     }
+
+    // Initialize weapon system
+    this.initializeWeaponSystem();
 
     console.log(
       `🔧 Simple debug ship created as compound body with ${parts.length} blocks at (${position.x}, ${position.y})`
@@ -262,6 +286,9 @@ export class SimpleDebugShip implements IModularShip {
     // Only apply force to the compound body when intact
     // When broken apart, the pieces should just float as debris
     if (this._physicsBody && !this._isBrokenApart) {
+      console.log(
+        `🚀 Applying force (${force.x.toFixed(2)}, ${force.y.toFixed(2)}) to ship at angle ${this._physicsBody.angle.toFixed(3)} radians (${((this._physicsBody.angle * 180) / Math.PI).toFixed(1)}°)`
+      );
       this._physicsSystem.applyForce(this._physicsBody, force);
     }
     // Note: When broken apart, we don't apply input forces to individual pieces
@@ -272,6 +299,9 @@ export class SimpleDebugShip implements IModularShip {
 
     // Update flash effects
     this.updateFlashEffects(deltaTime);
+
+    // Update weapon cooldowns
+    this.updateWeaponCooldowns(deltaTime);
 
     // Check for key presses (X to break apart, R to respawn)
     if (typeof window !== 'undefined' && window.addEventListener) {
@@ -350,6 +380,145 @@ export class SimpleDebugShip implements IModularShip {
 
     this._isDestroyed = true;
   }
+
+  // Weapon system methods
+  private initializeWeaponSystem(): void {
+    // Designate specific blocks as weapon blocks
+    // For our 3x2 grid: top row blocks (indices 0, 1, 2) are weapon blocks
+    // These are the visually front-facing blocks
+    this._weaponBlocks = [0, 1, 2]; // Top left, top center, top right blocks (weapons)
+    this._weaponCooldowns = new Array(this._blockOffsets.length).fill(0);
+
+    console.log(
+      `🔫 Weapon system initialized: ${this._weaponBlocks.length} weapon blocks at front of ship`
+    );
+  }
+
+  /**
+   * Get firing positions for all weapon blocks
+   */
+  public getWeaponFiringPositions(): Array<{
+    position: Vector2D;
+    rotation: number;
+  }> {
+    if (this._isBrokenApart || !this._physicsBody) {
+      console.log(
+        `🔫 Cannot fire: broken apart (${this._isBrokenApart}) or no physics body (${!this._physicsBody})`
+      );
+      return []; // No weapons when broken apart or no physics body
+    }
+
+    const firingPositions: Array<{ position: Vector2D; rotation: number }> = [];
+    const shipAngle = this._physicsBody.angle;
+    const shipPosition = this._physicsBody.position;
+    const cos = Math.cos(shipAngle);
+    const sin = Math.sin(shipAngle);
+    const now = performance.now();
+
+    console.log(
+      `🔫 Ship angle: ${shipAngle.toFixed(3)} radians (${((shipAngle * 180) / Math.PI).toFixed(1)}°)`
+    );
+    console.log(
+      `🔫 Ship position: (${shipPosition.x.toFixed(1)}, ${shipPosition.y.toFixed(1)})`
+    );
+    console.log(
+      `🔫 Checking ${this._weaponBlocks.length} weapon blocks: [${this._weaponBlocks.join(', ')}]`
+    );
+
+    // Calculate firing position for each weapon block that can fire
+    for (const weaponBlockIndex of this._weaponBlocks) {
+      const cooldownTime = this._weaponCooldowns[weaponBlockIndex] || 0;
+      const canFire = cooldownTime < now;
+
+      console.log(
+        `🔫 Weapon ${weaponBlockIndex}: cooldown expires at ${cooldownTime}, now is ${now}, can fire: ${canFire}`
+      );
+
+      // Only include weapons that are not on cooldown
+      if (canFire && weaponBlockIndex < this._blockOffsets.length) {
+        const offset = this._blockOffsets[weaponBlockIndex];
+
+        // Calculate world position of the weapon block
+        const blockWorldX = shipPosition.x + (offset.x * cos - offset.y * sin);
+        const blockWorldY = shipPosition.y + (offset.x * sin + offset.y * cos);
+
+        // Calculate firing position (slightly ahead of the block)
+        const firingOffset = this._blockSize / 2 + 5; // Fire from front edge of block
+        // Physics body is at default orientation, but ship visually points "up"
+        // To fire "forward" (up from ship's perspective), we need to fire at -90° from physics angle
+        const firingAngle = shipAngle - Math.PI / 2; // Ship forward direction (up)
+        const firingX = blockWorldX + Math.cos(firingAngle) * firingOffset;
+        const firingY = blockWorldY + Math.sin(firingAngle) * firingOffset;
+
+        console.log(
+          `🔫 Block ${weaponBlockIndex}: offset (${offset.x}, ${offset.y}) -> world (${blockWorldX.toFixed(1)}, ${blockWorldY.toFixed(1)}) -> firing (${firingX.toFixed(1)}, ${firingY.toFixed(1)})`
+        );
+
+        firingPositions.push({
+          position: { x: firingX, y: firingY },
+          rotation: firingAngle, // Use corrected firing angle for laser direction
+        });
+      }
+    }
+
+    console.log(
+      `🔫 Final result: ${firingPositions.length} firing positions generated`
+    );
+    return firingPositions;
+  }
+
+  /**
+   * Check if any weapon can fire (not on cooldown)
+   */
+  public canFireWeapons(): boolean {
+    if (this._isBrokenApart || !this._physicsBody) {
+      return false;
+    }
+
+    const now = performance.now();
+    const canFire = this._weaponBlocks.some(
+      weaponIndex => (this._weaponCooldowns[weaponIndex] || 0) < now
+    );
+
+    // Debug logging for weapon cooldowns
+    if (Math.random() < 0.1) {
+      // 10% chance to log
+      console.log(
+        `🔫 Weapon cooldown check: ${this._weaponBlocks.length} weapons, can fire: ${canFire}`
+      );
+    }
+
+    return canFire;
+  }
+
+  /**
+   * Update weapon cooldowns
+   */
+  public updateWeaponCooldowns(_deltaTime: number): void {
+    // Weapon cooldowns are managed using absolute timestamps, so no delta time update needed
+    // This method exists for consistency with other update patterns
+  }
+
+  /**
+   * Record that weapons have fired (sets cooldown)
+   */
+  public recordWeaponsFired(): void {
+    const now = performance.now();
+    // Only set cooldown for weapons that can actually fire (not already on cooldown)
+    let firedCount = 0;
+    for (const weaponIndex of this._weaponBlocks) {
+      if ((this._weaponCooldowns[weaponIndex] || 0) < now) {
+        this._weaponCooldowns[weaponIndex] = now + this._weaponCooldownTime;
+        firedCount++;
+      }
+    }
+
+    if (firedCount > 0 && Math.random() < 0.2) {
+      // 20% chance to log
+      console.log(`🔫 ${firedCount} weapons fired and put on cooldown`);
+    }
+  }
+
   // Stub methods for IModularShip interface
   public addComponent(): boolean {
     return false;

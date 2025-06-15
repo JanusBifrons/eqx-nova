@@ -28,9 +28,9 @@ export class LaserManager {
 
   private readonly LASER_COOLDOWN = 50; // milliseconds - reduced for multiple weapon parts
 
-  private readonly LASER_WIDTH = 3;
+  private readonly LASER_WIDTH = 8; // Rotated: width becomes the length
 
-  private readonly LASER_HEIGHT = 8;
+  private readonly LASER_HEIGHT = 3; // Rotated: height becomes the thickness
 
   constructor(gameEngine: IGameEngine) {
     this.gameEngine = gameEngine;
@@ -45,11 +45,18 @@ export class LaserManager {
   ): boolean {
     const now = performance.now();
 
-    if (now - this.lastFireTime < this.LASER_COOLDOWN) {
+    // Only apply global cooldown for traditional player firing (single weapon)
+    // For modular ships with multiple weapons, let the ship's weapon system handle cooldowns
+    if (
+      source === 'player' &&
+      !sourceId &&
+      now - this.lastFireTime < this.LASER_COOLDOWN
+    ) {
       return false;
     }
-    // Calculate laser spawn position
-    const laserAngle = rotation - Math.PI / 2; // Align ship coordinate system (up) with physics (right)
+    // For modular ships, the rotation is already the correct firing direction
+    // For traditional ships, we need to convert from ship coordinate system
+    const laserAngle = rotation; // Use rotation directly now that ship provides correct firing angle
     const laserX = position.x + Math.cos(laserAngle) * 25;
     const laserY = position.y + Math.sin(laserAngle) * 25;
 
@@ -82,7 +89,10 @@ export class LaserManager {
       sourceId,
     });
 
-    this.lastFireTime = now;
+    // Only update global fire time for traditional single-weapon firing
+    if (source === 'player' && !sourceId) {
+      this.lastFireTime = now;
+    }
 
     return true;
   }

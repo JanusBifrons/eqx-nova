@@ -91,10 +91,13 @@ export class AIBehavior implements IAIBehavior {
     if (target && Math.random() < 0.01) {
       // 1% chance to log
       if ('centerPosition' in target) {
-        console.log(
-          `AI ${this._id}: set ship target at (${target.centerPosition.x.toFixed(1)}, ${target.centerPosition.y.toFixed(1)})`
-        );
-      } else {
+        const pos = target.centerPosition;
+        if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+          console.log(
+            `AI ${this._id}: set ship target at (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`
+          );
+        }
+      } else if (target.x !== undefined && target.y !== undefined) {
         console.log(
           `AI ${this._id}: set position target at (${target.x.toFixed(1)}, ${target.y.toFixed(1)})`
         );
@@ -321,7 +324,15 @@ export class AIBehavior implements IAIBehavior {
   }
 
   private initializePatrolPoints(): void {
-    const shipPos = this._ship.centerPosition;
+    // Handle both old and new ship systems
+    const shipPos = this._ship.centerPosition || this._ship.position;
+    if (!shipPos) {
+      console.warn(
+        'AIBehavior: Ship has no position property, skipping patrol initialization'
+      );
+      return;
+    }
+
     const radius = 200;
 
     // Create 4 patrol points in a square pattern
@@ -337,9 +348,11 @@ export class AIBehavior implements IAIBehavior {
     if (this._patrolPoints.length === 0) return;
 
     const currentTarget = this._patrolPoints[this._currentPatrolIndex];
+    // Use centerPosition for old ships, position for modular ships
+    const shipPos =
+      (this._ship as any).centerPosition || (this._ship as any).position;
     const distance = Math.sqrt(
-      (currentTarget.x - this._ship.centerPosition.x) ** 2 +
-        (currentTarget.y - this._ship.centerPosition.y) ** 2
+      (currentTarget.x - shipPos.x) ** 2 + (currentTarget.y - shipPos.y) ** 2
     );
 
     if (distance < 50) {
@@ -357,7 +370,9 @@ export class AIBehavior implements IAIBehavior {
       // 1% chance per update to change direction
       const randomAngle = Math.random() * 2 * Math.PI;
       const randomDistance = 100 + Math.random() * 200;
-      const shipPos = this._ship.centerPosition;
+      // Use centerPosition if available (old ships), otherwise use position (modular ships)
+      const shipPos =
+        (this._ship as any).centerPosition || (this._ship as any).position;
 
       this.setTarget({
         x: shipPos.x + Math.cos(randomAngle) * randomDistance,
@@ -373,7 +388,9 @@ export class AIBehavior implements IAIBehavior {
     const searchSpeed = 0.001; // radians per millisecond
 
     const angle = (now * searchSpeed) % (2 * Math.PI);
-    const shipPos = this._ship.centerPosition;
+    // Use centerPosition if available (old ships), otherwise use position (modular ships)
+    const shipPos =
+      (this._ship as any).centerPosition || (this._ship as any).position;
 
     this.setTarget({
       x: shipPos.x + Math.cos(angle) * searchRadius,

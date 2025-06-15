@@ -42,11 +42,11 @@ export class PlayerManager {
     const centerX = dimensions.width / 2;
     const centerY = dimensions.height / 2;
 
-    // Create simple debug ship player (TEMPORARY FOR DEBUGGING)
+    // Create complex modular ship player with advanced weapon systems
     console.log(
-      '🔧 Creating SIMPLE DEBUG SHIP for player instead of complex modular ship'
+      '� Creating COMPLEX MODULAR SHIP for player with advanced weapon systems'
     );
-    this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+    this.modularShip = this.modularShipFactory.createPlayerFlagship(
       {
         x: centerX,
         y: centerY,
@@ -186,9 +186,9 @@ export class PlayerManager {
     // Destroy old ship
     this.modularShip.destroy();
 
-    // Create new simple debug ship
-    console.log('🔧 Respawning with SIMPLE DEBUG SHIP');
-    this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+    // Create new complex modular ship
+    console.log('� Respawning with COMPLEX MODULAR SHIP');
+    this.modularShip = this.modularShipFactory.createPlayerFlagship(
       {
         x: centerX,
         y: centerY,
@@ -219,9 +219,9 @@ export class PlayerManager {
         this.modularShip.destroy();
       }
 
-      // Create new simple debug ship
-      console.log('🔧 Respawning with new SIMPLE DEBUG SHIP');
-      this.modularShip = this.modularShipFactory.createSimpleDebugShip(
+      // Create new complex modular ship
+      console.log('� Respawning with new COMPLEX MODULAR SHIP');
+      this.modularShip = this.modularShipFactory.createPlayerFlagship(
         {
           x: centerX,
           y: centerY,

@@ -239,23 +239,52 @@ export class AsteroidsGame {
     const player = this.playerManager.getPlayer();
 
     if (modularShip) {
-      // Handle modular ship firing - simplified for now
-      // TODO: Implement weapon component system for ModularShip
-      const shipPosition = modularShip.position;
-      const shipRotation = this.playerManager.getRotation();
+      // Handle modular ship firing using weapon system
       const shipVelocity = modularShip.velocity;
 
-      // Fire from ship center for now
-      const success = this.laserManager!.fireLaser(
-        shipPosition,
-        shipRotation,
-        shipVelocity,
-        'player'
-      );
+      // Check if ship can fire weapons (not broken apart and cooldown ready)
+      if (modularShip.canFireWeapons && modularShip.canFireWeapons()) {
+        // Get firing positions for all weapon blocks
+        const firingPositions = modularShip.getWeaponFiringPositions
+          ? modularShip.getWeaponFiringPositions()
+          : [];
 
-      if (success && Math.random() < 0.1) {
-        // 10% chance to log
-        console.log('🔫 Fired laser from modular ship');
+        let firedCount = 0;
+        // Fire from each weapon block
+        console.log(
+          `🔫 Attempting to fire from ${firingPositions.length} weapon positions`
+        );
+        for (const weaponData of firingPositions) {
+          console.log(
+            `🔫 Firing laser at position (${weaponData.position.x.toFixed(1)}, ${weaponData.position.y.toFixed(1)}) with rotation ${weaponData.rotation.toFixed(3)}`
+          );
+          const success = this.laserManager!.fireLaser(
+            weaponData.position,
+            weaponData.rotation,
+            shipVelocity,
+            'player',
+            `modular_ship_${modularShip.id}` // Provide sourceId to bypass global cooldown
+          );
+          console.log(
+            `🔫 Laser fire result: ${success ? 'SUCCESS' : 'FAILED'}`
+          );
+          if (success) {
+            firedCount++;
+          }
+        }
+        console.log(
+          `🔫 Total successful fires: ${firedCount} out of ${firingPositions.length} attempts`
+        );
+
+        // Record that weapons have fired (set cooldown)
+        if (firedCount > 0 && modularShip.recordWeaponsFired) {
+          modularShip.recordWeaponsFired();
+
+          if (Math.random() < 0.2) {
+            // 20% chance to log
+            console.log(`🔫 Fired ${firedCount} lasers from weapon blocks`);
+          }
+        }
       }
     } else if (player) {
       // Handle traditional player firing
@@ -439,10 +468,18 @@ export class AsteroidsGame {
     // Wrap AI ships
     this.aiManager!.getAllAIShips().forEach(aiShip => {
       if (aiShip.isActive) {
-        const parts = aiShip.ship.parts;
-        parts.forEach((part: any) => {
-          this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
-        });
+        // Handle both old ship format (parts) and new modular ship format (structure.components)
+        if (aiShip.ship.parts) {
+          // Old ship format
+          aiShip.ship.parts.forEach((part: any) => {
+            this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
+          });
+        } else if (aiShip.ship.structure?.components) {
+          // New modular ship format
+          aiShip.ship.structure.components.forEach((component: any) => {
+            this.gameEngine!.wrapEntityPosition(component.entity, dimensions);
+          });
+        }
       }
     });
 

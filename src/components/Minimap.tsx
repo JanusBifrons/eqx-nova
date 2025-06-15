@@ -164,8 +164,9 @@ export const Minimap: React.FC<MinimapProps> = ({
           const aiShips = aiManager.getAllAIShips();
           aiShips.forEach((aiShip: any) => {
             if (aiShip.isActive) {
-              const pos = aiShip.ship.centerPosition;
-              if (isInBounds(pos)) {
+              // Use centerPosition for old ships, position for modular ships
+              const pos = aiShip.ship.centerPosition || aiShip.ship.position;
+              if (pos && isInBounds(pos)) {
                 const minimapPos = worldToMinimap(pos);
                 entities.push({
                   x: minimapPos.x,

@@ -28,6 +28,11 @@ export interface IModularShip {
   // State management
   update(deltaTime: number): void;
   destroy(): void;
+
+  // Weapon system (optional - not all ships may have weapons)
+  getWeaponFiringPositions?(): Array<{ position: Vector2D; rotation: number }>;
+  canFireWeapons?(): boolean;
+  recordWeaponsFired?(): void;
 }
 
 /**
