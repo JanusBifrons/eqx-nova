@@ -70,8 +70,8 @@ export class RefactoredCollisionManager {
    */
   private registerPlayerShips(): void {
     const modularShip = this.playerManager.getModularShip();
-    if (modularShip) {
-      const adapter = new ModularShipCollisionAdapter(modularShip);
+    if (modularShip && modularShip.structure) {
+      const adapter = new ModularShipCollisionAdapter(modularShip as any);
       this.collisionSystem.registerTarget(adapter);
       this.entityAdapters.set(modularShip.id, adapter);
       console.log(

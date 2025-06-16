@@ -6,8 +6,7 @@ import type {
   CompoundBodyPart,
 } from '../../../engine/interfaces/IPhysicsSystem';
 import type { IRendererSystem } from '../../../engine/interfaces/IRendererSystem';
-import type { IModularShip } from './interfaces/IModularShip';
-import type { IShipStructure } from './interfaces/IShipStructure';
+import type { IShip } from './interfaces/IShip';
 import type { DebrisManager } from '../../managers/DebrisManager';
 import { ComplexModularShipSplitIntegration } from '../../utils/ComplexModularShipSplitIntegration';
 import { v4 as uuidv4 } from 'uuid';
@@ -53,7 +52,7 @@ interface ShipSplitCallbacks {
  * COMPLEX MODULAR SHIP - A sophisticated multi-block ship design
  * Features different block types, asymmetric design, and specialized weapon systems
  */
-export class ComplexModularShip implements IModularShip {
+export class ComplexModularShip implements IShip {
   private readonly _id: string;
   private readonly _physicsSystem: IPhysicsSystem;
   private readonly _rendererSystem: IRendererSystem;
@@ -350,12 +349,43 @@ export class ComplexModularShip implements IModularShip {
     return { x: 0, y: 0 };
   }
 
-  public get structure(): IShipStructure {
+  public get structure(): any {
     return {
-      components: [],
-      cockpitComponent: null,
+      components: this._blockConfigs.map((block, index) => ({
+        id: block.id,
+        type: block.type,
+        gridPosition: block.offset,
+        size: block.size,
+        health: 100,
+        maxHealth: 100,
+        isDestroyed: this._isDestroyed,
+        entity: this._individualBodies[index] || this._physicsBody,
+        flashDamage: () => {
+          const blockIndex = this._blockConfigs.findIndex(
+            b => b.id === block.id
+          );
+          if (blockIndex >= 0) {
+            this._blockFlashStates[blockIndex] = true;
+            this._blockFlashTimers[blockIndex] = 200;
+          }
+        },
+      })),
+      cockpitComponent: this._blockConfigs.find(b => b.type === 'COCKPIT')
+        ? {
+            id: this._blockConfigs.find(b => b.type === 'COCKPIT')!.id,
+            type: 'COCKPIT',
+            gridPosition: this._blockConfigs.find(b => b.type === 'COCKPIT')!
+              .offset,
+            size: this._blockConfigs.find(b => b.type === 'COCKPIT')!.size,
+            health: 100,
+            maxHealth: 100,
+            isDestroyed: this._isDestroyed,
+            entity: this._physicsBody,
+            flashDamage: () => {},
+          }
+        : null,
       gridSize: this._baseBlockSize,
-    } as unknown as IShipStructure;
+    };
   }
 
   public get isDestroyed(): boolean {
@@ -368,6 +398,27 @@ export class ComplexModularShip implements IModularShip {
 
   public get physicsBodyId(): string | null {
     return this._physicsBody?.id || null;
+  }
+
+  // Compatibility aliases and properties
+  public get isActive(): boolean {
+    return this.isAlive;
+  }
+
+  public get faction(): string {
+    return 'player'; // Default faction, can be overridden
+  }
+
+  public get ship(): any {
+    return this; // Return self for legacy compatibility
+  }
+
+  public get parts(): any[] {
+    return this._blockConfigs;
+  }
+
+  public getActiveParts(): any[] {
+    return this._isDestroyed ? [] : this._blockConfigs;
   }
 
   public setPosition(position: Vector2D): void {
@@ -390,6 +441,19 @@ export class ComplexModularShip implements IModularShip {
 
   public applyForce(force: Vector2D): void {
     if (this._physicsBody && !this._isBrokenApart) {
+      this._physicsSystem.applyForce(this._physicsBody, force);
+    }
+  }
+
+  public setThrust(enabled: boolean): void {
+    if (enabled && this._physicsBody && !this._isBrokenApart) {
+      // Apply thrust force in the direction the ship is facing
+      const thrustForce = 0.5; // Adjust as needed
+      const angle = this.rotation;
+      const force = {
+        x: Math.cos(angle) * thrustForce,
+        y: Math.sin(angle) * thrustForce,
+      };
       this._physicsSystem.applyForce(this._physicsBody, force);
     }
   }
@@ -603,7 +667,7 @@ export class ComplexModularShip implements IModularShip {
 
       const distance = Math.sqrt(
         Math.pow(blockWorldPos.x - position.x, 2) +
-        Math.pow(blockWorldPos.y - position.y, 2)
+          Math.pow(blockWorldPos.y - position.y, 2)
       );
 
       console.log(
@@ -780,35 +844,36 @@ export class ComplexModularShip implements IModularShip {
     const currentPosition = this.position;
     const currentRotation = this.rotation;
 
-    const wasSplit = ComplexModularShipSplitIntegration.checkAndHandleShipSplitting(
-      this._blockConfigs,
-      currentPosition,
-      currentRotation,
-      this._physicsSystem,
-      this._rendererSystem,
-      this._physicsBody.id,
-      this._renderObjectIds,
-      shipData => {
-        // Handle new ship creation
-        if (this._splitCallbacks.onNewShipCreated) {
-          this._splitCallbacks.onNewShipCreated({
-            blocks: shipData.blocks as BlockConfig[],
-            position: currentPosition,
-            rotation: currentRotation,
-          });
+    const wasSplit =
+      ComplexModularShipSplitIntegration.checkAndHandleShipSplitting(
+        this._blockConfigs,
+        currentPosition,
+        currentRotation,
+        this._physicsSystem,
+        this._rendererSystem,
+        this._physicsBody.id,
+        this._renderObjectIds,
+        shipData => {
+          // Handle new ship creation
+          if (this._splitCallbacks.onNewShipCreated) {
+            this._splitCallbacks.onNewShipCreated({
+              blocks: shipData.blocks as BlockConfig[],
+              position: currentPosition,
+              rotation: currentRotation,
+            });
+          }
+        },
+        debrisData => {
+          // Handle debris creation
+          if (this._splitCallbacks.onDebrisCreated) {
+            this._splitCallbacks.onDebrisCreated({
+              blocks: debrisData.blocks as BlockConfig[],
+              position: currentPosition,
+              rotation: currentRotation,
+            });
+          }
         }
-      },
-      debrisData => {
-        // Handle debris creation
-        if (this._splitCallbacks.onDebrisCreated) {
-          this._splitCallbacks.onDebrisCreated({
-            blocks: debrisData.blocks as BlockConfig[],
-            position: currentPosition,
-            rotation: currentRotation,
-          });
-        }
-      }
-    );
+      );
 
     // CRITICAL FIX: If ship was split, mark this instance as destroyed to prevent orphaned objects
     if (wasSplit) {

@@ -53,7 +53,9 @@ export class ModularShipFactory {
     // Set up split callbacks to properly register new ships and debris
     const splitCallbacks = {
       onNewShipCreated: (shipData: any) => {
-        console.log(`🚀 Split created new ship with ${shipData.blocks.length} blocks`);
+        console.log(
+          `🚀 Split created new ship with ${shipData.blocks.length} blocks`
+        );
 
         // Create the new ship instance
         const newShip = ComplexModularShip.createFromSplitData(
@@ -69,20 +71,26 @@ export class ModularShipFactory {
         if (this.shipRegistrationCallback) {
           this.shipRegistrationCallback(newShip);
         } else {
-          console.warn('⚠️ No ship registration callback set - new ship may not be properly registered');
+          console.warn(
+            '⚠️ No ship registration callback set - new ship may not be properly registered'
+          );
         }
       },
 
       onDebrisCreated: (debrisData: any) => {
-        console.log(`🗑️ Split created debris with ${debrisData.blocks.length} blocks`);
+        console.log(
+          `🗑️ Split created debris with ${debrisData.blocks.length} blocks`
+        );
 
         // Register debris with game system if callback is available
         if (this.debrisRegistrationCallback) {
           this.debrisRegistrationCallback(debrisData);
         } else {
-          console.warn('⚠️ No debris registration callback set - debris may not be properly managed');
+          console.warn(
+            '⚠️ No debris registration callback set - debris may not be properly managed'
+          );
         }
-      }
+      },
     };
 
     return new ComplexModularShip(

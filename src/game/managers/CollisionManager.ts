@@ -257,7 +257,7 @@ export class CollisionManager {
       // Also check individual component entities (for detailed collision handling)
       const components = modularShip.structure.components;
       const component = components.find(
-        c => c.entity.physicsBodyId === physicsBodyId
+        (c: any) => c && c.entity && c.entity.physicsBodyId === physicsBodyId
       );
       if (component) return component.entity;
     }
@@ -307,12 +307,14 @@ export class CollisionManager {
         if (aiShip.ship.parts) {
           // Old ship format
           part = aiShip.ship.parts.find(
-            (p: any) => p.entity.physicsBodyId === physicsBodyId
+            (p: any) =>
+              p && p.entity && p.entity.physicsBodyId === physicsBodyId
           );
         } else if (aiShip.ship.structure?.components) {
           // New modular ship format
           part = aiShip.ship.structure.components.find(
-            (c: any) => c.entity.physicsBodyId === physicsBodyId
+            (c: any) =>
+              c && c.entity && c.entity.physicsBodyId === physicsBodyId
           );
         }
 
@@ -322,14 +324,14 @@ export class CollisionManager {
     // Check lasers
     const laser = this.laserManager
       .getAllLasers()
-      .find(l => l.entity.physicsBodyId === physicsBodyId);
+      .find(l => l && l.entity && l.entity.physicsBodyId === physicsBodyId);
 
     if (laser) return laser.entity;
 
     // Check asteroids
     const asteroid = this.asteroidManager
       .getAllAsteroids()
-      .find(a => a.entity.physicsBodyId === physicsBodyId);
+      .find(a => a && a.entity && a.entity.physicsBodyId === physicsBodyId);
 
     if (asteroid) return asteroid.entity;
 
@@ -494,10 +496,11 @@ export class CollisionManager {
         console.log(
           `🎯 Using component ID for precise damage: ${playerPartInfo.componentId}`
         );
-        wasDestroyed = modularShip.takeDamageAtComponentId(
-          playerPartInfo.componentId,
-          damageAmount
-        );
+        wasDestroyed =
+          modularShip.takeDamageAtComponentId?.(
+            playerPartInfo.componentId,
+            damageAmount
+          ) || false;
       } else {
         console.log(
           `⚠️ Falling back to part index method - component ID is missing/null`
@@ -678,16 +681,16 @@ export class CollisionManager {
     if (modularShip && playerEntity) {
       const components = modularShip.structure.components;
       const hitComponent = components.find(
-        component => component.entity === playerEntity
+        (component: any) => component.entity === playerEntity
       );
 
       if (hitComponent && modularShip.isAlive) {
         // Damage the specific component that was hit with a large amount
         const damageAmount = 25; // Collisions do more damage than lasers
-        modularShip.takeDamageAtComponent(hitComponent.id, damageAmount);
+        modularShip.takeDamageAtComponent?.(hitComponent.id, damageAmount);
         console.log(
           'Player damaged in AI ship collision! Components remaining:',
-          components.filter(c => !c.isDestroyed).length
+          components.filter((c: any) => !c.isDestroyed).length
         );
       }
     }
@@ -715,7 +718,7 @@ export class CollisionManager {
         if (playerPartInfo.componentId) {
           // Direct component ID method - get component directly
           const hitComponent = modularShip.structure.components.find(
-            c => c.id === playerPartInfo.componentId
+            (c: any) => c.id === playerPartInfo.componentId
           );
           if (hitComponent) {
             const { x, y } = hitComponent.gridPosition;
@@ -746,7 +749,7 @@ export class CollisionManager {
         } else {
           // Fallback: Part index method
           const components = modularShip.structure.components.filter(
-            c => !c.isDestroyed
+            (c: any) => !c.isDestroyed
           );
           if (playerPartInfo.partIndex < components.length) {
             const hitComponent = components[playerPartInfo.partIndex];
@@ -809,10 +812,11 @@ export class CollisionManager {
           console.log(
             `🎯 Using component ID for precise damage: ${playerPartInfo.componentId}`
           );
-          damageSuccess = modularShip.takeDamageAtComponentId(
-            playerPartInfo.componentId,
-            damageAmount
-          );
+          damageSuccess =
+            modularShip.takeDamageAtComponentId?.(
+              playerPartInfo.componentId,
+              damageAmount
+            ) || false;
         } else {
           console.log(
             `⚠️ Falling back to part index method - component ID is missing/null`
@@ -826,7 +830,8 @@ export class CollisionManager {
         if (damageSuccess) {
           console.log(
             `🔥 Component at part ${playerPartInfo.partIndex} damaged by asteroid! Components remaining:`,
-            modularShip.structure.components.filter(c => !c.isDestroyed).length
+            modularShip.structure.components.filter((c: any) => !c.isDestroyed)
+              .length
           );
         }
       }
@@ -839,7 +844,8 @@ export class CollisionManager {
         if (damageSuccess) {
           console.log(
             'Modular ship hit by asteroid at contact point! Components remaining:',
-            modularShip.structure.components.filter(c => !c.isDestroyed).length
+            modularShip.structure.components.filter((c: any) => !c.isDestroyed)
+              .length
           );
         }
       }
@@ -862,7 +868,7 @@ export class CollisionManager {
 
     if (modularShip) {
       const components = modularShip.structure.components;
-      return components.some(component => component.entity === entity);
+      return components.some((component: any) => component.entity === entity);
     }
 
     return false;

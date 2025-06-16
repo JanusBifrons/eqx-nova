@@ -155,7 +155,8 @@ export class AsteroidsGame {
       },
       (debrisData: any) => {
         console.log(
-          `🗑️ Registering debris from split: ${debrisData.blocks?.length || 0
+          `🗑️ Registering debris from split: ${
+            debrisData.blocks?.length || 0
           } blocks`
         );
 
@@ -166,9 +167,13 @@ export class AsteroidsGame {
           for (const renderObjectId of debrisData.renderIds) {
             this.debrisManager.addDebris(debrisData.body, renderObjectId);
           }
-          console.log(`🗑️ Added ${debrisData.renderIds.length} debris pieces to manager`);
+          console.log(
+            `🗑️ Added ${debrisData.renderIds.length} debris pieces to manager`
+          );
         } else {
-          console.warn('⚠️ Could not register debris - missing debris manager or invalid debris data');
+          console.warn(
+            '⚠️ Could not register debris - missing debris manager or invalid debris data'
+          );
         }
       }
     );
@@ -275,18 +280,18 @@ export class AsteroidsGame {
   private handleFireLaser(): void {
     if (!this.playerManager || !this.laserManager) return;
 
-    const modularShip = this.playerManager.getModularShip();
+    const playerShip = this.playerManager.getPlayerShip();
     const player = this.playerManager.getPlayer();
 
-    if (modularShip) {
+    if (playerShip) {
       // Handle modular ship firing using weapon system
-      const shipVelocity = modularShip.velocity;
+      const shipVelocity = playerShip.velocity;
 
       // Check if ship can fire weapons (not broken apart and cooldown ready)
-      if (modularShip.canFireWeapons && modularShip.canFireWeapons()) {
+      if (playerShip.canFireWeapons && playerShip.canFireWeapons()) {
         // Get firing positions for all weapon blocks
-        const firingPositions = modularShip.getWeaponFiringPositions
-          ? modularShip.getWeaponFiringPositions()
+        const firingPositions = playerShip.getWeaponFiringPositions
+          ? playerShip.getWeaponFiringPositions()
           : [];
 
         let firedCount = 0;
@@ -303,7 +308,7 @@ export class AsteroidsGame {
             weaponData.rotation,
             shipVelocity,
             'player',
-            `modular_ship_${modularShip.id}` // Provide sourceId to bypass global cooldown
+            `modular_ship_${playerShip.id}` // Provide sourceId to bypass global cooldown
           );
           console.log(
             `🔫 Laser fire result: ${success ? 'SUCCESS' : 'FAILED'}`
@@ -317,8 +322,8 @@ export class AsteroidsGame {
         );
 
         // Record that weapons have fired (set cooldown)
-        if (firedCount > 0 && modularShip.recordWeaponsFired) {
-          modularShip.recordWeaponsFired();
+        if (firedCount > 0 && playerShip.recordWeaponsFired) {
+          playerShip.recordWeaponsFired();
 
           if (Math.random() < 0.2) {
             // 20% chance to log
@@ -491,7 +496,7 @@ export class AsteroidsGame {
     // Wrap player (traditional or modular)
     const modularShip = this.playerManager!.getModularShip();
 
-    if (modularShip) {
+    if (modularShip && modularShip.structure) {
       // For modular ships, wrap all components
       const components = modularShip.structure.components;
       components.forEach((component: any) => {
@@ -507,16 +512,16 @@ export class AsteroidsGame {
     }
     // Wrap AI ships
     this.aiManager!.getAllAIShips().forEach(aiShip => {
-      if (aiShip.isActive) {
+      if (aiShip.isAlive) {
         // Handle both old ship format (parts) and new modular ship format (structure.components)
-        if (aiShip.ship.parts) {
+        if (aiShip.parts) {
           // Old ship format
-          aiShip.ship.parts.forEach((part: any) => {
+          aiShip.parts.forEach((part: any) => {
             this.gameEngine!.wrapEntityPosition(part.entity, dimensions);
           });
-        } else if (aiShip.ship.structure?.components) {
+        } else if (aiShip.structure?.components) {
           // New modular ship format
-          aiShip.ship.structure.components.forEach((component: any) => {
+          aiShip.structure.components.forEach((component: any) => {
             this.gameEngine!.wrapEntityPosition(component.entity, dimensions);
           });
         }
@@ -679,10 +684,10 @@ export class AsteroidsGame {
 
     const modularShip = this.playerManager.getModularShip();
 
-    if (modularShip) {
+    if (modularShip && modularShip.structure) {
       // Find the first active component and damage it
       const activeComponents = modularShip.structure.components.filter(
-        c => !c.isDestroyed
+        (c: any) => !c.isDestroyed
       );
 
       if (activeComponents.length > 0) {
@@ -692,7 +697,7 @@ export class AsteroidsGame {
           '🔧 DEBUG: Manually damaging player ship component:',
           targetComponent.id
         );
-        const wasDestroyed = modularShip.takeDamageAtComponent(
+        const wasDestroyed = modularShip.takeDamageAtComponent?.(
           targetComponent.id,
           damageAmount
         );
@@ -735,10 +740,10 @@ export class AsteroidsGame {
       }
 
       // Fallback to old ship format
-      const targetShip = aiShips.find(ship => ship.isActive);
+      const targetShip = aiShips.find(ship => ship.isAlive);
 
       if (targetShip) {
-        const activeParts = targetShip.ship.getActiveParts?.();
+        const activeParts = targetShip.getActiveParts?.();
 
         if (activeParts && activeParts.length > 0) {
           const targetPart = activeParts[0];
@@ -749,8 +754,8 @@ export class AsteroidsGame {
             'from ship:',
             targetShip.id
           );
-          const wasDestroyed = targetShip.ship.takeDamageAtPart?.(
-            targetPart.partId,
+          const wasDestroyed = targetShip.takeDamageAtPartIndex?.(
+            0, // Use part index instead
             damageAmount
           );
           console.log(
@@ -780,10 +785,9 @@ export class AsteroidsGame {
     console.log(`🔧 Testing connectivity for ${aiShips.length} AI ships:`);
 
     aiShips.forEach((aiShip, index) => {
-      const ship = aiShip.ship;
-      const activeParts = ship.getActiveParts();
+      const activeParts = aiShip.getActiveParts?.() || [];
 
-      console.log(`\n🛸 Ship ${index + 1} (${aiShip.faction}):`);
+      console.log(`\n🛸 Ship ${index + 1} (${aiShip.faction || 'unknown'}):`);
       console.log(`  📊 Parts: ${activeParts.length} active`);
 
       // Test connectivity by checking each part's connections
@@ -836,8 +840,7 @@ export class AsteroidsGame {
       return;
     }
     const firstShip = aiShips[0];
-    const compositeShip = firstShip.ship;
-    const activeParts = compositeShip.getActiveParts();
+    const activeParts = firstShip.getActiveParts?.() || [];
 
     if (activeParts.length === 0) {
       console.log('❌ No active parts found in first AI ship');
@@ -851,7 +854,8 @@ export class AsteroidsGame {
     console.log(
       `🔧 Manually destroying part ${partToDestroy.partId} from ship with ${activeParts.length} parts`
     );
-    compositeShip.destroyPart(partToDestroy.partId);
+    // Use the ship's damage method instead
+    firstShip.takeDamageAtPartIndex?.(middleIndex, 999); // High damage to destroy
   }
 
   // Debug function removed - was using old CompositeShipFactory

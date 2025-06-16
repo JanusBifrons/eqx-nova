@@ -142,13 +142,6 @@ export class AIManager {
   }
 
   /**
-   * Alias for createAIFleet() for compatibility with existing code
-   */
-  public spawnAIFleet(): void {
-    this.createAIFleet();
-  }
-
-  /**
    * Update all AI ships
    */
   public update(deltaTime: number): void {
@@ -201,34 +194,6 @@ export class AIManager {
     }
     this._aiShipControllers.clear();
     console.log('🗑️ All AI ships destroyed');
-  }
-
-  /**
-   * Destroy all AI ships - alias for destroyAll() for compatibility
-   */
-  public destroy(): void {
-    this.destroyAll();
-  }
-
-  /**
-   * Set player target for all AI ships - compatibility method
-   */
-  public setPlayerTarget(target: any): void {
-    this.setTargetForAllAI(target);
-  }
-
-  /**
-   * Get all AI ships - alias for getAIShips() for compatibility
-   */
-  public getAllAIShips(): IShip[] {
-    return this.getAIShips();
-  }
-
-  /**
-   * Get all modular AI ships - compatibility method
-   */
-  public getAllModularAIShips(): IShip[] {
-    return this.getAIShips(); // All ships are now modular in the unified system
   }
 
   /**
@@ -382,55 +347,5 @@ export class AIManager {
       }
     }
     return false;
-  }
-
-  /**
-   * Find AI ship by entity - compatibility method for collision manager
-   */
-  public findAIShipByEntity(entity: any): IShip | null {
-    for (const controller of this._aiShipControllers.values()) {
-      const ship = controller.getShip();
-      if (ship && ship.physicsBodyId === entity?.physicsBodyId) {
-        return ship;
-      }
-      // Also check structure components for modular ships
-      if (ship?.structure?.components) {
-        const component = ship.structure.components.find(
-          (c: any) => c.entity === entity
-        );
-        if (component) {
-          return ship;
-        }
-      }
-    }
-    return null;
-  }
-
-  /**
-   * Handle AI ship damage - compatibility method for collision manager
-   */
-  public handleAIShipDamage(aiShip: IShip): boolean {
-    if (!aiShip || !aiShip.isAlive) {
-      return true; // Already destroyed
-    }
-
-    // For modular ships, check if all components are destroyed
-    if (aiShip.structure?.components) {
-      const activeComponents = aiShip.structure.components.filter(
-        (c: any) => !c.isDestroyed
-      );
-      if (activeComponents.length === 0) {
-        // Ship is completely destroyed
-        const controller = this._aiShipControllers.get(aiShip.id);
-        if (controller) {
-          controller.destroy();
-          this._aiShipControllers.delete(aiShip.id);
-          console.log(`💥 AI ship ${aiShip.id} completely destroyed`);
-        }
-        return true;
-      }
-    }
-
-    return false; // Ship still has active parts
   }
 }

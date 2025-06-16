@@ -90,7 +90,14 @@ export class AIBehavior implements IAIBehavior {
     // Debug logging for target setting
     if (target && Math.random() < 0.01) {
       // 1% chance to log
-      if ('centerPosition' in target) {
+      if ('position' in target) {
+        const pos = target.position;
+        if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
+          console.log(
+            `AI ${this._id}: set ship target at (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`
+          );
+        }
+      } else if ('centerPosition' in target) {
         const pos = target.centerPosition;
         if (pos && typeof pos.x === 'number' && typeof pos.y === 'number') {
           console.log(
@@ -286,7 +293,9 @@ export class AIBehavior implements IAIBehavior {
   private getTargetPosition(): Vector2D | null {
     if (!this._target) return null;
 
-    if ('centerPosition' in this._target) {
+    if ('position' in this._target) {
+      return this._target.position;
+    } else if ('centerPosition' in this._target) {
       return this._target.centerPosition;
     } else {
       return this._target as Vector2D;
@@ -298,7 +307,7 @@ export class AIBehavior implements IAIBehavior {
 
     if (!targetPos) return Infinity;
 
-    const shipPos = this._ship.centerPosition;
+    const shipPos = this._ship.position;
 
     return Math.sqrt(
       (targetPos.x - shipPos.x) ** 2 + (targetPos.y - shipPos.y) ** 2
@@ -310,7 +319,7 @@ export class AIBehavior implements IAIBehavior {
 
     if (!targetPos) return this._ship.rotation;
 
-    const shipPos = this._ship.centerPosition;
+    const shipPos = this._ship.position;
 
     return Math.atan2(targetPos.y - shipPos.y, targetPos.x - shipPos.x);
   }
@@ -325,7 +334,7 @@ export class AIBehavior implements IAIBehavior {
 
   private initializePatrolPoints(): void {
     // Handle both old and new ship systems
-    const shipPos = this._ship.centerPosition || this._ship.position;
+    const shipPos = this._ship.position;
     if (!shipPos) {
       console.warn(
         'AIBehavior: Ship has no position property, skipping patrol initialization'
@@ -348,9 +357,8 @@ export class AIBehavior implements IAIBehavior {
     if (this._patrolPoints.length === 0) return;
 
     const currentTarget = this._patrolPoints[this._currentPatrolIndex];
-    // Use centerPosition for old ships, position for modular ships
-    const shipPos =
-      (this._ship as any).centerPosition || (this._ship as any).position;
+    // Use position for unified ship system
+    const shipPos = this._ship.position;
     const distance = Math.sqrt(
       (currentTarget.x - shipPos.x) ** 2 + (currentTarget.y - shipPos.y) ** 2
     );
@@ -370,9 +378,8 @@ export class AIBehavior implements IAIBehavior {
       // 1% chance per update to change direction
       const randomAngle = Math.random() * 2 * Math.PI;
       const randomDistance = 100 + Math.random() * 200;
-      // Use centerPosition if available (old ships), otherwise use position (modular ships)
-      const shipPos =
-        (this._ship as any).centerPosition || (this._ship as any).position;
+      // Use position for unified ship system
+      const shipPos = this._ship.position;
 
       this.setTarget({
         x: shipPos.x + Math.cos(randomAngle) * randomDistance,
@@ -388,9 +395,8 @@ export class AIBehavior implements IAIBehavior {
     const searchSpeed = 0.001; // radians per millisecond
 
     const angle = (now * searchSpeed) % (2 * Math.PI);
-    // Use centerPosition if available (old ships), otherwise use position (modular ships)
-    const shipPos =
-      (this._ship as any).centerPosition || (this._ship as any).position;
+    // Use position for unified ship system
+    const shipPos = this._ship.position;
 
     this.setTarget({
       x: shipPos.x + Math.cos(angle) * searchRadius,

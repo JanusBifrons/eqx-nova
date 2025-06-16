@@ -6,8 +6,7 @@ import type {
   CompoundBodyPart,
 } from '../../../engine/interfaces/IPhysicsSystem';
 import type { IRendererSystem } from '../../../engine/interfaces/IRendererSystem';
-import type { IModularShip } from './interfaces/IModularShip';
-import type { IShipStructure } from './interfaces/IShipStructure';
+import type { IShip } from './interfaces/IShip';
 import type { DebrisManager } from '../../managers/DebrisManager';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,7 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
  * Uses a compound body with multiple equal-sized rectangle blocks
  * This helps us verify that physics and rendering are properly aligned
  */
-export class SimpleDebugShip implements IModularShip {
+export class SimpleDebugShip implements IShip {
   private readonly _id: string;
   private readonly _physicsSystem: IPhysicsSystem;
   private readonly _rendererSystem: IRendererSystem;
@@ -74,7 +73,9 @@ export class SimpleDebugShip implements IModularShip {
         x: pos.x,
         y: pos.y,
       }));
-      console.log(`🔧 Using CUSTOM block layout with ${this._blockOffsets.length} blocks`);
+      console.log(
+        `🔧 Using CUSTOM block layout with ${this._blockOffsets.length} blocks`
+      );
       console.log(`🔧 Custom block offsets:`, this._blockOffsets);
     } else {
       // Store block offsets for later use when breaking apart
@@ -91,14 +92,16 @@ export class SimpleDebugShip implements IModularShip {
     }
 
     // Create compound body with dynamic number of blocks based on _blockOffsets
-    const parts: CompoundBodyPart[] = this._blockOffsets.map((offset, index) => ({
-      type: 'rectangle' as const,
-      x: offset.x,
-      y: offset.y,
-      width: this._blockSize,
-      height: this._blockSize,
-      componentId: `block_${index}`,
-    }));
+    const parts: CompoundBodyPart[] = this._blockOffsets.map(
+      (offset, index) => ({
+        type: 'rectangle' as const,
+        x: offset.x,
+        y: offset.y,
+        width: this._blockSize,
+        height: this._blockSize,
+        componentId: `block_${index}`,
+      })
+    );
 
     this._physicsBody = this._physicsSystem.createCompoundBody(
       position.x,
@@ -138,8 +141,9 @@ export class SimpleDebugShip implements IModularShip {
     ];
 
     // Create colors array for the actual number of blocks
-    const colors = Array.from({ length: this._blockOffsets.length }, (_, i) =>
-      baseColors[i % baseColors.length]
+    const colors = Array.from(
+      { length: this._blockOffsets.length },
+      (_, i) => baseColors[i % baseColors.length]
     );
 
     // Initialize flash effect arrays
@@ -156,7 +160,9 @@ export class SimpleDebugShip implements IModularShip {
       const blockWorldX = position.x + this._blockOffsets[i].x;
       const blockWorldY = position.y + this._blockOffsets[i].y;
 
-      console.log(`🎨 Creating render object ${i}: ID=${renderObjectId}, pos=(${blockWorldX}, ${blockWorldY}), color=0x${colors[i % colors.length].toString(16)}`);
+      console.log(
+        `🎨 Creating render object ${i}: ID=${renderObjectId}, pos=(${blockWorldX}, ${blockWorldY}), color=0x${colors[i % colors.length].toString(16)}`
+      );
 
       this._rendererSystem.createRenderObject({
         id: renderObjectId,
@@ -210,13 +216,34 @@ export class SimpleDebugShip implements IModularShip {
     }
     return { x: 0, y: 0 };
   }
-  public get structure(): IShipStructure {
-    // Return minimal structure - cast to avoid interface mismatch
+  public get structure(): any {
+    // Return minimal structure
     return {
       components: [],
       cockpitComponent: null,
       gridSize: 20,
-    } as unknown as IShipStructure;
+    };
+  }
+
+  // Compatibility properties
+  public get isActive(): boolean {
+    return this.isAlive;
+  }
+
+  public get faction(): string {
+    return 'ai'; // Default AI faction
+  }
+
+  public get ship(): any {
+    return this; // Return self for legacy compatibility
+  }
+
+  public get parts(): any[] {
+    return []; // Simple ship has no modular parts
+  }
+
+  public getActiveParts(): any[] {
+    return this.isAlive ? [{ id: this.id }] : [];
   }
 
   public get isDestroyed(): boolean {
@@ -253,17 +280,30 @@ export class SimpleDebugShip implements IModularShip {
     // Note: When broken apart, we don't control individual pieces
   }
   public applyForce(force: Vector2D): void {
-    // Only apply force to the compound body when intact
-    // When broken apart, the pieces should just float as debris
-    if (this._physicsBody && !this._isBrokenApart) {
-      console.log(
-        `🚀 Applying force (${force.x.toFixed(2)}, ${force.y.toFixed(2)}) to ship at angle ${this._physicsBody.angle.toFixed(3)} radians (${((this._physicsBody.angle * 180) / Math.PI).toFixed(1)}°)`
-      );
+    // Skip physics if ship is broken apart - compound body becomes invalid
+    if (this._isBrokenApart) {
+      console.log('⚠️ Skipping force application - ship is broken apart');
+      return;
+    }
+
+    if (this._physicsBody) {
       this._physicsSystem.applyForce(this._physicsBody, force);
     }
-    // Note: When broken apart, we don't apply input forces to individual pieces
-    // They should behave as independent debris
   }
+
+  public setThrust(enabled: boolean): void {
+    if (enabled && this._physicsBody && !this._isBrokenApart) {
+      // Apply thrust force in the direction the ship is facing
+      const thrustForce = 0.5; // Adjust as needed
+      const angle = this.rotation;
+      const force = {
+        x: Math.cos(angle) * thrustForce,
+        y: Math.sin(angle) * thrustForce,
+      };
+      this._physicsSystem.applyForce(this._physicsBody, force);
+    }
+  }
+
   public update(_deltaTime?: number): void {
     const deltaTime = _deltaTime || 16; // Default to ~60fps if not provided
 

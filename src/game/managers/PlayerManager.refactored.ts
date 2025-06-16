@@ -99,13 +99,6 @@ export class PlayerManager {
     return this.playerController;
   }
 
-  /**
-   * Compatibility method for existing code that expects getModularShip()
-   */
-  public getModularShip(): IShip | null {
-    return this.getPlayerShip();
-  }
-
   public getPlayerPosition(): Vector2D | null {
     if (this.playerShip) {
       return this.playerShip.position;
